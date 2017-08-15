@@ -19,12 +19,11 @@
 
 #include <errno.h>
 #include <stdbool.h>
-#include <mcu/tmr.h>
-#include <mcu/cortexm.h>
-#include <mcu/core.h>
+#include "cortexm/cortexm.h"
+#include "mcu/tmr.h"
+#include "mcu/core.h"
 
 #include "hal.h"
-#include "stm32f4xx/stm32f4xx_ll_tim.h"
 
 #define NUM_TMRS MCU_TMR_PORTS
 #define NUM_OCS 4
@@ -43,313 +42,358 @@
 static TIM_TypeDef * const tmr_regs_table[NUM_TMRS] = MCU_TMR_REGS;
 static u8 const tmr_irqs[MCU_TMR_PORTS] = MCU_TMR_IRQS;
 
-
-
-struct tmr_cfg {
-	uint8_t pin_assign;
-	uint8_t enabled_oc_chans;
-	uint8_t enabled_ic_chans;
-};
-
 typedef struct MCU_PACK {
 	mcu_event_handler_t handler[NUM_OCS+NUM_ICS];
-	struct tmr_cfg cfg;
-	uint8_t ref_count;
+	u8 ref_count;
 } tmr_local_t;
 
-static tmr_local_t m_mcu_tmr_local[NUM_TMRS];
+static tmr_local_t m_tmr_local[NUM_TMRS];
 
-static void _mcu_tmr_clear_actions(int port);
+static void clear_actions(int port);
 
-void _mcu_tmr_clear_actions(int port){
-	memset(m_mcu_tmr_local[port].handler, 0, (NUM_OCS+NUM_ICS)*sizeof(mcu_event_handler_t));
+static int execute_handler(mcu_event_handler_t * handler, u32 o_events, u32 channel, u32 value);
+
+void clear_actions(int port){
+	memset(m_tmr_local[port].handler, 0, (NUM_OCS+NUM_ICS)*sizeof(mcu_event_handler_t));
 }
 
-void _mcu_tmr_dev_power_on(int port){
-	if ( m_mcu_tmr_local[port].ref_count == 0 ){
-		_mcu_tmr_clear_actions(port);
-		/*
+void mcu_tmr_dev_power_on(const devfs_handle_t * handle){
+	int port = handle->port;
+	if ( m_tmr_local[port].ref_count == 0 ){
+		clear_actions(port);
+#if 0
 		switch(port){
 		case 0:
-			_mcu_lpc_core_enable_pwr(PCTIM0);
+			mcu_lpc_core_enable_pwr(PCTIM0);
 			break;
 		case 1:
-			_mcu_lpc_core_enable_pwr(PCTIM1);
+			mcu_lpc_core_enable_pwr(PCTIM1);
 			break;
 		case 2:
-			_mcu_lpc_core_enable_pwr(PCTIM2);
+			mcu_lpc_core_enable_pwr(PCTIM2);
 			break;
 		case 3:
-			_mcu_lpc_core_enable_pwr(PCTIM3);
+			mcu_lpc_core_enable_pwr(PCTIM3);
 			break;
 		}
-		*/
-		if( tmr_irqs[port] >= 0 ){
-			_mcu_cortexm_priv_enable_irq((void*)(u32)(tmr_irqs[port]));
-		}
+#endif
+		cortexm_enable_irq((void*)(u32)(tmr_irqs[port]));
 	}
-	m_mcu_tmr_local[port].ref_count++;
+	m_tmr_local[port].ref_count++;
 }
 
 
-void _mcu_tmr_dev_power_off(int port){
-	if ( m_mcu_tmr_local[port].ref_count > 0 ){
-		if ( m_mcu_tmr_local[port].ref_count == 1 ){
-			_mcu_tmr_clear_actions(port);
-			_mcu_cortexm_priv_disable_irq((void*)(u32)(tmr_irqs[port]));
-			/*
+void mcu_tmr_dev_power_off(const devfs_handle_t * handle){
+	int port = handle->port;
+	if ( m_tmr_local[port].ref_count > 0 ){
+		if ( m_tmr_local[port].ref_count == 1 ){
+			clear_actions(port);
+			cortexm_disable_irq((void*)(u32)(tmr_irqs[port]));
+#if 0
 			switch(port){
 			case 0:
-				_mcu_lpc_core_disable_pwr(PCTIM0);
+				mcu_lpc_core_disable_pwr(PCTIM0);
 				break;
 			case 1:
-				_mcu_lpc_core_disable_pwr(PCTIM1);
+				mcu_lpc_core_disable_pwr(PCTIM1);
 				break;
 			case 2:
-				_mcu_lpc_core_disable_pwr(PCTIM2);
+				mcu_lpc_core_disable_pwr(PCTIM2);
 				break;
 			case 3:
-				_mcu_lpc_core_disable_pwr(PCTIM3);
+				mcu_lpc_core_disable_pwr(PCTIM3);
 				break;
 			}
-			*/
+#endif
 		}
-		m_mcu_tmr_local[port].ref_count--;
+		m_tmr_local[port].ref_count--;
 	}
 }
 
-int _mcu_tmr_dev_powered_on(int port){
-	return ( m_mcu_tmr_local[port].ref_count != 0);
+int mcu_tmr_dev_is_powered(const devfs_handle_t * handle){
+	int port = handle->port;
+	return ( m_tmr_local[port].ref_count != 0);
 }
 
-int mcu_tmr_getattr(int port, void * ctl){
+int mcu_tmr_getinfo(const devfs_handle_t * handle, void * ctl){
+	tmr_info_t * info = ctl;
+	int port = handle->port;
+
+	// set supported flags and events
+	info->o_flags = 0;
+	info->o_events = 0;
+	//info->freq = mcu_board_config.core_periph_freq / (tmr_regs_table[port]->PR+1);
+
 
 	return 0;
 }
 
-int mcu_tmr_setattr(int port, void * ctl){
-
-	return 0;
-}
-
-int mcu_tmr_on(int port, void * ctl){
+int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 	TIM_TypeDef * regs;
-	TIM_HandleTypeDef handle;
+	int port = handle->port;
+	int ctcr = 0;
+
+	const tmr_attr_t * attr = mcu_select_attr(handle, ctl);
+	if( attr == 0 ){
+		return -1;
+	}
+
+	u32 o_flags = attr->o_flags;
+	int chan = attr->channel.loc;
 	regs = tmr_regs_table[port];
-	handle.Instance = regs;
-	HAL_TIM_Base_Start(&handle);
+
+
+	if( o_flags & TMR_FLAG_SET_TIMER ){
+
+		if( (o_flags & (TMR_FLAG_IS_SOURCE_CPU|TMR_FLAG_IS_SOURCE_IC0|TMR_FLAG_IS_SOURCE_IC1)) ){
+
+			if( o_flags & TMR_FLAG_IS_SOURCE_CPU ){
+				if( attr->freq == 0 ){
+					errno = EINVAL;
+					return -1 - offsetof(tmr_attr_t, freq);
+				}
+			} else {
+				ctcr = 1; //default on the rising edge
+				if( o_flags & TMR_FLAG_IS_SOURCE_EDGEFALLING ){
+					ctcr = 2;
+				} else if( o_flags & TMR_FLAG_IS_SOURCE_EDGEBOTH ){
+					ctcr = 3;
+				}
+			}
+
+			if( mcu_set_pin_assignment(
+					&(attr->pin_assignment),
+					MCU_CONFIG_PIN_ASSIGNMENT(tmr_config_t, handle),
+					MCU_PIN_ASSIGNMENT_COUNT(tmr_pin_assignment_t),
+					CORE_PERIPH_TMR, port, 0, 0) < 0 ){
+				return -1;
+			}
+
+
+			if( o_flags & TMR_FLAG_IS_SOURCE_IC1 ){
+				ctcr |= (1<<2);
+			}
+
+			//Set the prescalar so that the freq is correct
+			if ( (attr->freq < mcu_board_config.core_periph_freq) && (attr->freq != 0) ){
+				//tmr_regs_table[port]->PR = ((mcu_board_config.core_periph_freq + attr->freq/2) / attr->freq);
+				//if (tmr_regs_table[port]->PR != 0 ){
+				//	tmr_regs_table[port]->PR -= 1;
+				//}
+			} else {
+				//regs->PR = 0;
+			}
+
+			//regs->CTCR = ctcr;
+		}
+
+	}
+
+
+	if( o_flags & TMR_FLAG_SET_CHANNEL ){
+		//Check for reset action
+		if ( o_flags & TMR_FLAG_IS_CHANNEL_RESET_ON_MATCH){ //reset on match
+
+		}
+
+		//Check to see if the timer should stop on a match
+		if ( o_flags & TMR_FLAG_IS_CHANNEL_STOP_ON_MATCH){
+
+		}
+
+		if( chan <= 3 ){
+			//regs->EMR &= ~(0x3<<(chan+4));
+			if( o_flags & TMR_FLAG_IS_CHANNEL_SET_OUTPUT_ON_MATCH ){
+				//set OC output on event
+			}
+
+			if( o_flags & TMR_FLAG_IS_CHANNEL_CLEAR_OUTPUT_ON_MATCH ){
+				//clr OC output on event
+			}
+
+			if( o_flags & TMR_FLAG_IS_CHANNEL_TOGGLE_OUTPUT_ON_MATCH ){
+				//toggle OC output on event
+			}
+		}
+	}
+
 	return 0;
 }
 
-int mcu_tmr_off(int port, void * ctl){
+int mcu_tmr_enable(const devfs_handle_t * handle, void * ctl){
 	TIM_TypeDef * regs;
-	TIM_HandleTypeDef handle;
+	int port = handle->port;
 	regs = tmr_regs_table[port];
-	handle.Instance = regs;
-	HAL_TIM_Base_Stop(&handle);
+	//regs->TCR = 1;
 	return 0;
 }
 
-int mcu_tmr_setoc(int port, void * ctl){
-
-	/*
+int mcu_tmr_disable(const devfs_handle_t * handle, void * ctl){
 	TIM_TypeDef * regs;
+	int port = handle->port;
+	regs = tmr_regs_table[port];
+	//regs->TCR = 0;
+	return 0;
+}
+
+int mcu_tmr_setchannel(const devfs_handle_t * handle, void * ctl){
+	TIM_TypeDef * regs;
+	int port = handle->port;
 	regs = tmr_regs_table[port];
 	//Write the output compare value
-	tmr_reqattr_t * req = (tmr_reqattr_t*)ctl;
-	if ( req->channel > 3 ){
-		errno = EINVAL;
-		return -1;
-	}
+	mcu_channel_t * req = (mcu_channel_t*)ctl;
+	u8 chan;
 
-#if MCU_TMR_API == 1
-	regs->MR[req->channel] = req->value;
-#else
-	((uint32_t*)&(regs->MR0))[ req->channel ] = req->value;
-#endif
-*/
+	if( req->loc & MCU_CHANNEL_FLAG_IS_INPUT ){
+		chan = req->loc & ~MCU_CHANNEL_FLAG_IS_INPUT;
+		if ( chan > 1 ){
+			errno = EINVAL;
+			return -1;
+		}
+
+		((uint32_t*)&(regs->CCR1))[ chan ] = req->value;
+
+	} else {
+
+		if ( req->loc > 3 ){
+			errno = EINVAL;
+			return -1;
+		}
+
+		((uint32_t*)&(regs->CCR1))[ req->loc ] = req->value;
+	}
 	return 0;
 }
 
-int mcu_tmr_getoc(int port, void * ctl){
-
-	/*
+int mcu_tmr_getchannel(const devfs_handle_t * handle, void * ctl){
 	TIM_TypeDef * regs;
+	int port = handle->port;
 	regs = tmr_regs_table[port];
 	//Read the output compare channel
-	tmr_reqattr_t * req = (tmr_reqattr_t*)ctl;
-	if ( req->channel > 3 ){
-		errno = EINVAL;
-		return -1;
-	}
-#if MCU_TMR_API == 1
-	req->value = regs->MR[req->channel];
-#else
-	req->value = ((uint32_t*)&(regs->MR0))[ req->channel ];
-#endif
-*/
-	return 0;
+	mcu_channel_t * req = (mcu_channel_t*)ctl;
+	u8 chan;
 
+	if( req->loc & MCU_CHANNEL_FLAG_IS_INPUT ){
+		chan = req->loc & ~MCU_CHANNEL_FLAG_IS_INPUT;
+		if ( chan > 1 ){
+			errno = EINVAL;
+			return -1;
+		}
+
+		req->value = ((uint32_t*)&(regs->CCR1))[ chan ];
+	} else {
+		if ( req->loc > 3 ){
+			errno = EINVAL;
+			return -1;
+		}
+
+		req->value = ((uint32_t*)&(regs->CCR1))[ req->loc ];
+	}
+	return 0;
 }
 
-int mcu_tmr_setic(int port, void * ctl){
-	/*
+int mcu_tmr_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
+	errno = ENOTSUP;
+	return -1;
+}
+
+
+int mcu_tmr_setaction(const devfs_handle_t * handle, void * ctl){
+	mcu_action_t * action = (mcu_action_t*)ctl;
 	TIM_TypeDef * regs;
+	int port = handle->port;
 	regs = tmr_regs_table[port];
-	unsigned int chan;
-	tmr_reqattr_t * req = (tmr_reqattr_t*)ctl;
-	chan = req->channel - TMR_ACTION_CHANNEL_IC0;
-	if ( chan > 1 ){
-		errno = EINVAL;
-		return -1;
-	}
-#if MCU_TMR_API == 1
-	regs->CR[chan] = req->value;
-#else
-	((uint32_t*)&(regs->CR0))[ req->channel ] = req->value;
-#endif
-*/
-	return 0;
-}
+	u32 chan;
+	u32 o_events;
 
-int mcu_tmr_getic(int port, void * ctl){
-	/*
-	TIM_TypeDef * regs;
-	unsigned int chan;
-	regs = tmr_regs_table[port];
-	tmr_reqattr_t * req = (tmr_reqattr_t*)ctl;
-	chan = req->channel - TMR_ACTION_CHANNEL_IC0;
-	if ( chan > 1 ){
-		errno = EINVAL;
-		return -1;
-	}
-#if MCU_TMR_API == 1
-	req->value = regs->CR[chan];
-#else
-	req->value = ((uint32_t*)&(regs->CR0))[ chan ];
-#endif
-*/
-	return 0;
-}
-
-int _mcu_tmr_dev_write(const devfs_handle_t * cfg, devfs_async_t * wop){
-	int port;
-	mcu_action_t * action;
-	int chan;
-	action = (mcu_action_t*)wop->buf;
-
-	if( wop->nbyte != sizeof(mcu_action_t) ){
-		errno = EINVAL;
-		return -1;
-	}
-
-	port = cfg->port;
+	o_events = action->o_events;
 	chan = action->channel;
-	if ( m_mcu_tmr_local[port].handler[chan].callback != 0 ){
-		//The interrupt is on -- port is busy
-		errno = EAGAIN;
-		return -1;
+
+	if ( o_events == MCU_EVENT_FLAG_NONE ){ //Check to see if all actions are disabled
+		//regs->MCR &= ~(0x03 << (chan*3) );
+		m_tmr_local[port].handler[chan].callback = 0;
+	} else if( o_events & MCU_EVENT_FLAG_MATCH ){
+
+		if( action->handler.callback != 0 ){
+			//regs->MCR |= ((1<<0) << (chan*3)); //set the interrupt on match flag
+		}  else {
+			//regs->MCR &= ~((1<<0) << (chan*3)); //disable the interrupt on match
+		}
+
+		m_tmr_local[port].handler[chan] = action->handler;
 	}
 
-	action = (mcu_action_t*)wop->buf;
-	action->handler = wop->handler;
-
-	_mcu_cortexm_set_irq_prio(tmr_irqs[port], action->prio);
-
-	return mcu_tmr_setaction(port, action);
-}
-
-
-int mcu_tmr_setaction(int port, void * ctl){
-
 	return 0;
 }
 
-int _mcu_tmr_dev_read(const devfs_handle_t * cfg, devfs_async_t * rop){
-	int port = DEVFS_GET_PORT(cfg);
-	int chan = rop->loc;
-
-	if( _mcu_cortexm_priv_validate_callback(rop->handler.callback) < 0 ){
-		return -1;
-	}
-
-	m_mcu_tmr_local[port].handler[chan] = rop->handler;
-	return 0;
+int mcu_tmr_dev_read(const devfs_handle_t * handle, devfs_async_t * rop){
+	errno = ENOTSUP;
+	return -1;
 }
 
-int mcu_tmr_set(int port, void * ctl){
+int mcu_tmr_set(const devfs_handle_t * handle, void * ctl){
 	TIM_TypeDef * regs;
+	int port = handle->port;
 	regs = tmr_regs_table[port];
-	//regs->TC = (uint32_t)ctl;
+	regs->CNT = (uint32_t)ctl;
 	return 0;
 }
 
-int mcu_tmr_get(int port, void * ctl){
+int mcu_tmr_get(const devfs_handle_t * handle, void * ctl){
 	TIM_TypeDef * regs;
+	int port = handle->port;
 	regs = tmr_regs_table[port];
-	//return regs->TC;
-	return 0;
+	return regs->CNT;
 }
 
 static void tmr_isr(int port); //This is speed optimized
 //void tmr_isr(int port); //This is size optimized
 
+int execute_handler(mcu_event_handler_t * handler, u32 o_events, u32 channel, u32 value){
+	tmr_event_t event;
+	event.channel.loc = channel;
+	event.channel.value = value;
+	return mcu_execute_event_handler(handler, o_events, &event);
+}
+
 //Four timers with 4 OC's and 2 IC's each
 void tmr_isr(int port){
-
-	/*
 	int flags;
 	TIM_TypeDef * regs;
 	regs = tmr_regs_table[port];
-	flags = (regs->IR & 0x3F);
-	regs->IR = flags; //clear the flags
+	flags = (regs->DIER & 0x3F);
+	regs->DIER = flags; //clear the flags
 	//execute the callbacks
-#if MCU_TMR_API == 1
+
 	if( flags & MR0_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[0]), (mcu_event_t)regs->MR[0]);
+		execute_handler(&(m_tmr_local[port].handler[0]), MCU_EVENT_FLAG_MATCH, 0, regs->CCR1);
 	}
 	if( flags & MR1_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[1]), (mcu_event_t)regs->MR[1]);
+		execute_handler(&(m_tmr_local[port].handler[1]), MCU_EVENT_FLAG_MATCH, 1, regs->CCR2);
 	}
 	if( flags & MR2_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[2]), (mcu_event_t)regs->MR[2]);
+		execute_handler(&(m_tmr_local[port].handler[2]), MCU_EVENT_FLAG_MATCH, 2, regs->CCR3);
 	}
 	if( flags & MR3_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[3]), (mcu_event_t)regs->MR[3]);
+		execute_handler(&(m_tmr_local[port].handler[3]), MCU_EVENT_FLAG_MATCH, 3, regs->CCR4);
 	}
-	if( flags & CR0_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[4]), (mcu_event_t)regs->CR[0]);
-	}
-	if( flags & CR1_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[5]), (mcu_event_t)regs->CR[1]);
-	}
-#else
-	if( flags & MR0_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[0]), (mcu_event_t)regs->MR0);
-	}
-	if( flags & MR1_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[1]), (mcu_event_t)regs->MR1);
-	}
-	if( flags & MR2_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[2]), (mcu_event_t)regs->MR2);
-	}
-	if( flags & MR3_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[3]), (mcu_event_t)regs->MR3);
-	}
-	if( flags & CR0_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[4]), (mcu_event_t)regs->CR0);
-	}
-	if( flags & CR1_FLAG ){
-		mcu_execute_event_handler(&(m_mcu_tmr_local[port].handler[5]), (mcu_event_t)regs->CR1);
-	}
-#endif
-*/
 }
 
-void _mcu_core_tmr0_isr(){ tmr_isr(0); }
-void _mcu_core_tmr1_isr(){ tmr_isr(1); }
-void _mcu_core_tmr2_isr(){ tmr_isr(2); }
-void _mcu_core_tmr3_isr(){ tmr_isr(3); }
+void mcu_core_tmr0_isr(){
+	tmr_isr(0);
+}
+
+void mcu_core_tmr1_isr(){
+	tmr_isr(1);
+}
+
+void mcu_core_tmr2_isr(){
+	tmr_isr(2);
+}
+
+void mcu_core_tmr3_isr(){
+	tmr_isr(3);
+}
 
 #endif
 

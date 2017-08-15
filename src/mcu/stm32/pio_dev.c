@@ -26,17 +26,16 @@
 
 #if MCU_PIO_PORTS > 0
 
-
 typedef struct {
 	mcu_event_handler_t handler;
-	uint8_t ref_count;
+	u8 ref_count;
 } pio_local_t;
 
 static pio_local_t m_mcu_pio_local[MCU_PIO_PORTS] MCU_SYS_MEM;
+static GPIO_TypeDef * const m_pio_regs_table[MCU_PIO_PORTS] = MCU_PIO_REGS;
+static u8 const m_pio_irqs[MCU_PIO_PORTS] = MCU_PIO_IRQS;
 
-GPIO_TypeDef * const m_pio_regs_table[MCU_PIO_PORTS] = MCU_PIO_REGS;
-u8 const m_pio_irqs[MCU_PIO_PORTS] = MCU_PIO_IRQS;
-
+//this function is used by other modules to access pio regs
 GPIO_TypeDef * const hal_get_pio_regs(u8 port){
 	if( port < MCU_PIO_PORTS ){
 		return m_pio_regs_table[port];
@@ -44,26 +43,29 @@ GPIO_TypeDef * const hal_get_pio_regs(u8 port){
 	return 0;
 }
 
-void _mcu_pio_dev_power_on(int port){
+void _mcu_pio_dev_power_on(const devfs_handle_t * handle){
+	int port = handle->port;
 	if ( m_mcu_pio_local[port].ref_count == 0 ){
 		m_mcu_pio_local[port].handler.callback = NULL;
+		switch(port){
+		case 0: __HAL_RCC_GPIOA_CLK_ENABLE(); break;
+		case 1: __HAL_RCC_GPIOB_CLK_ENABLE(); break;
+		case 2: __HAL_RCC_GPIOC_CLK_ENABLE(); break;
+		case 3: __HAL_RCC_GPIOD_CLK_ENABLE(); break;
+		case 4: __HAL_RCC_GPIOE_CLK_ENABLE(); break;
+		case 5: __HAL_RCC_GPIOF_CLK_ENABLE(); break;
+		case 6: __HAL_RCC_GPIOG_CLK_ENABLE(); break;
+		case 7: __HAL_RCC_GPIOH_CLK_ENABLE(); break;
+		}
 	}
 	m_mcu_pio_local[port].ref_count++;
 }
 
-void _mcu_pio_dev_power_off(int port){
+void _mcu_pio_dev_power_off(const devfs_handle_t * handle){
+	int port = handle->port;
 	if ( m_mcu_pio_local[port].ref_count > 0 ){
 		if ( m_mcu_pio_local[port].ref_count == 1 ){
-			switch(port){
-			case 0: __HAL_RCC_GPIOA_CLK_ENABLE(); break;
-			case 1: __HAL_RCC_GPIOB_CLK_ENABLE(); break;
-			case 2: __HAL_RCC_GPIOC_CLK_ENABLE(); break;
-			case 3: __HAL_RCC_GPIOD_CLK_ENABLE(); break;
-			case 4: __HAL_RCC_GPIOE_CLK_ENABLE(); break;
-			case 5: __HAL_RCC_GPIOF_CLK_ENABLE(); break;
-			case 6: __HAL_RCC_GPIOG_CLK_ENABLE(); break;
-			case 7: __HAL_RCC_GPIOH_CLK_ENABLE(); break;
-			}
+
 
 			m_mcu_pio_local[port].handler.callback = NULL;
 		}
@@ -71,7 +73,8 @@ void _mcu_pio_dev_power_off(int port){
 	}
 }
 
-int _mcu_pio_dev_powered_on(int port){
+int _mcu_pio_dev_powered_on(const devfs_handle_t * handle){
+	int port = handle->port;
 	if ( m_mcu_pio_local[port].ref_count > 0 ){
 		return 1;
 	}
@@ -81,10 +84,9 @@ int _mcu_pio_dev_powered_on(int port){
 
 
 
-int _mcu_pio_dev_write(const devfs_handle_t * cfg, devfs_async_t * wop){
-	int port;
+int _mcu_pio_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
+	int port = handle->port;
 	mcu_action_t * action;
-	port = cfg->port;
 
 	if( wop->nbyte != sizeof(mcu_action_t) ){
 		errno = EINVAL;
@@ -93,22 +95,23 @@ int _mcu_pio_dev_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 
 	action = (mcu_action_t*)wop->buf;
 	action->handler = wop->handler;
-	return mcu_pio_setaction(port, action);
+	return mcu_pio_setaction(handle, action);
 }
 
-int mcu_pio_setaction(int port, void * ctl){
+int mcu_pio_setaction(const devfs_handle_t * handle, void * ctl){
 
 	return 0;
 }
 
 
-int mcu_pio_getattr(int port, void * ctl){
+int mcu_pio_getattr(const devfs_handle_t * handle, void * ctl){
 	//read the direction pin status
 	errno = ENOTSUP;
 	return -1;
 }
 
-int mcu_pio_setattr(int port, void * ctl){
+int mcu_pio_setattr(const devfs_handle_t * handle, void * ctl){
+	int port = handle->port;
 	pio_attr_t * attr;
 	GPIO_InitTypeDef gpio_init;
 	GPIO_TypeDef * regs = m_pio_regs_table[port];
@@ -152,20 +155,22 @@ int mcu_pio_setattr(int port, void * ctl){
 	return 0;
 }
 
-int mcu_pio_setmask(int port, void * ctl){
+int mcu_pio_setmask(const devfs_handle_t * handle, void * ctl){
 	return 0;
 }
 
-int mcu_pio_clrmask(int port, void * ctl){
+int mcu_pio_clrmask(const devfs_handle_t * handle, void * ctl){
 	return 0;
 }
 
-int mcu_pio_get(int port, void * ctl){
+int mcu_pio_get(const devfs_handle_t * handle, void * ctl){
+	int port = handle->port;
 	GPIO_TypeDef * regs = m_pio_regs_table[port];
 	return regs->IDR;
 }
 
-int mcu_pio_set(int port, void * ctl){
+int mcu_pio_set(const devfs_handle_t * handle, void * ctl){
+	int port = handle->port;
 	GPIO_TypeDef * regs = m_pio_regs_table[port];
 	regs->ODR = (u32)ctl;
 	return 0;

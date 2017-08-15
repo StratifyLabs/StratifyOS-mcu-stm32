@@ -243,6 +243,8 @@
 					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
@@ -252,7 +254,7 @@
 							<option id="cdt.managedbuild.option.gnu.cross.prefix.523431653" name="Prefix" superClass="cdt.managedbuild.option.gnu.cross.prefix" useByScannerDiscovery="false" value="${HOST}-" valueType="string"/>
 							<option id="cdt.managedbuild.option.gnu.cross.path.566857154" name="Path" superClass="cdt.managedbuild.option.gnu.cross.path" useByScannerDiscovery="false" value=" ${PathDelimiter}${TOOLSPATH}/bin" valueType="string"/>
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.targetPlatform.gnu.cross.973390915" isAbstract="false" osList="all" superClass="cdt.managedbuild.targetPlatform.gnu.cross"/>
-							<builder autoBuildTarget="all" buildPath="${workspace_loc:/StratifyOS}/build_debug_mcu_lpc17xx" cleanBuildTarget="clean" id="org.eclipse.cdt.build.core.internal.builder.1816799499" incrementalBuildTarget="all" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" superClass="org.eclipse.cdt.build.core.internal.builder"/>
+							<builder buildPath="${workspace_loc:/StratifyOS-mcu-stm32}/build_debug_mcu_stm32f446xx" id="cdt.managedbuild.builder.gnu.cross.137223513" name="Gnu Make Builder" superClass="cdt.managedbuild.builder.gnu.cross"/>
 							<tool command="gcc" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.cross.c.compiler.1296954668" name="Cross GCC Compiler" superClass="cdt.managedbuild.tool.gnu.cross.c.compiler">
 								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.option.optimization.level.1628163421" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" useByScannerDiscovery="false" value="gnu.c.optimization.level.size" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.33713364" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.none" valueType="enumerated"/>
@@ -307,10 +309,10 @@
 		<configuration configurationName="build_release_crt_armv7em_fpu">
 			<resource resourceType="PROJECT" workspacePath="/StratifyOS"/>
 		</configuration>
-		<configuration configurationName="build_release_crt_armv7m">
+		<configuration configurationName="build_release_mcu_lpc407x_8x">
 			<resource resourceType="PROJECT" workspacePath="/StratifyOS"/>
 		</configuration>
-		<configuration configurationName="build_release_mcu_lpc407x_8x">
+		<configuration configurationName="build_release_crt_armv7m">
 			<resource resourceType="PROJECT" workspacePath="/StratifyOS"/>
 		</configuration>
 		<configuration configurationName="build_release_mcu_lpc17xx">
@@ -322,6 +324,7 @@
 		<configuration configurationName="build_debug_mcu_lpc17xx">
 			<resource resourceType="PROJECT" workspacePath="/StratifyOS"/>
 		</configuration>
+		<configuration configurationName="build_debug_mcu_stm32f446xx"/>
 		<configuration configurationName="build_release_mcu_lpc82x">
 			<resource resourceType="PROJECT" workspacePath="/StratifyOS"/>
 		</configuration>

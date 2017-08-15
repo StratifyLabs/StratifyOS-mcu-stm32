@@ -107,7 +107,7 @@ int mcu_rtc_setattr(int port, void * ctl){
 int mcu_rtc_setaction(int port, void * ctl){
 	mcu_action_t * action = (mcu_action_t*)ctl;
 
-	if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+	if( cortexm_validate_callback(action->callback) < 0 ){
 		return -1;
 	}
 

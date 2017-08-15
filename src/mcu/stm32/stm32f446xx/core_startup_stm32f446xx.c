@@ -17,7 +17,7 @@
  * 
  */
 
-#include <sos/dev/bootloader.h>
+#include <mcu/bootloader.h>
 
 #include "../hal.h"
 #include "../core_startup.h"
@@ -252,13 +252,13 @@ void (* const _mcu_core_vector_table[])() __attribute__ ((section(".startup"))) 
 
 void _mcu_core_reset_handler(){
 	core_init();
-	_mcu_cortexm_priv_set_vector_table_addr((void*)_mcu_core_vector_table);
+	cortexm_set_vector_table_addr((void*)_mcu_core_vector_table);
 	_main(); //This function should never return
 	while(1);
 }
 
 void _mcu_core_default_isr(){
-	mcu_board_event(MCU_BOARD_CONFIG_EVENT_PRIV_FATAL, 0);
+	mcu_board_event(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, 0);
 }
 
 

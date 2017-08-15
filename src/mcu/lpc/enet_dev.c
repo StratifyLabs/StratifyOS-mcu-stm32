@@ -184,7 +184,7 @@ int _mcu_enet_dev_read(const devfs_handle_t * cfg, devfs_async_t * rop){
 	//setup the tx descriptor to transfer the packet
 	enet_local[port].rx_desc.buf = rop->buf;
 	enet_local[port].rx_desc.ctrl = ENET_RCTRL_SIZE(rop->nbyte) | ENET_RCTRL_INT;
-	if( _mcu_cortexm_priv_validate_callback(rop->callback) < 0 ){
+	if( cortexm_validate_callback(rop->callback) < 0 ){
 		return -1;
 	}
 
@@ -226,7 +226,7 @@ int _mcu_enet_dev_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 	enet_local[port].tx_desc.buf = wop->buf;
 	enet_local[port].tx_desc.ctrl = ENET_TCTRL_SIZE(wop->nbyte) | ENET_TCTRL_LAST | ENET_TCTRL_INT;
 
-	if( _mcu_cortexm_priv_validate_callback(wop->callback) < 0 ){
+	if( cortexm_validate_callback(wop->callback) < 0 ){
 		return -1;
 	}
 

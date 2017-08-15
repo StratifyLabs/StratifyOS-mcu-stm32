@@ -111,7 +111,7 @@ int _mcu_dma_transferlist(int operation,
 	channel_regs->CLLI = (u32)linked_list->next;
 
 	//Set the callback value
-	if( _mcu_cortexm_priv_validate_callback(callback) < 0 ){
+	if( cortexm_validate_callback(callback) < 0 ){
 		return -1;
 	}
 

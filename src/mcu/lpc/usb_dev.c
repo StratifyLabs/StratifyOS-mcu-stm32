@@ -250,7 +250,7 @@ int mcu_usb_setaction(int port, void * ctl){
 	if ( (log_ep < USB_LOGIC_EP_NUM)  ){
 		if( action->event == USB_EVENT_DATA_READY ){
 			//_mcu_cortexm_priv_enable_interrupts(NULL);
-			if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+			if( cortexm_validate_callback(action->callback) < 0 ){
 				return -1;
 			}
 
@@ -259,7 +259,7 @@ int mcu_usb_setaction(int port, void * ctl){
 
 			return 0;
 		} else if( action->event == USB_EVENT_WRITE_COMPLETE ){
-			if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+			if( cortexm_validate_callback(action->callback) < 0 ){
 				return -1;
 			}
 
@@ -342,7 +342,7 @@ int _mcu_usb_dev_read(const devfs_handle_t * cfg, devfs_async_t * rop){
 		rop->nbyte = 0;
 		if ( !(rop->flags & O_NONBLOCK) ){
 			//If this is a blocking call, set the callback and context
-			if( _mcu_cortexm_priv_validate_callback(rop->callback) < 0 ){
+			if( cortexm_validate_callback(rop->callback) < 0 ){
 				return -1;
 			}
 
@@ -380,7 +380,7 @@ int _mcu_usb_dev_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 
 	usb_local.write_pending |= (1<<ep);
 
-	if( _mcu_cortexm_priv_validate_callback(wop->callback) < 0 ){
+	if( cortexm_validate_callback(wop->callback) < 0 ){
 		return -1;
 	}
 

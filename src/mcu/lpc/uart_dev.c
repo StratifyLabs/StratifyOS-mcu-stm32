@@ -454,7 +454,7 @@ int mcu_uart_setaction(int port, void * ctl){
 
 	} else {
 
-		if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+		if( cortexm_validate_callback(action->callback) < 0 ){
 			return -1;
 		}
 
@@ -552,7 +552,7 @@ int _mcu_uart_dev_read(const devfs_handle_t * cfg, devfs_async_t * rop){
 			errno = EAGAIN;
 			len = -1;
 		} else {
-			if( _mcu_cortexm_priv_validate_callback(rop->callback) < 0 ){
+			if( cortexm_validate_callback(rop->callback) < 0 ){
 				return -1;
 			}
 
@@ -590,7 +590,7 @@ int _mcu_uart_dev_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 	uart_regs->TER = 0; //disable the transmitter
 	write_tx_data(port);
 
-	if( _mcu_cortexm_priv_validate_callback(wop->callback) < 0 ){
+	if( cortexm_validate_callback(wop->callback) < 0 ){
 		return -1;
 	}
 

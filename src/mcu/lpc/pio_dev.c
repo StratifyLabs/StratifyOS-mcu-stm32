@@ -193,7 +193,7 @@ int mcu_pio_setaction(int port, void * ctl){
 	}
 
 	if ( port == 0 ){
-		if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+		if( cortexm_validate_callback(action->callback) < 0 ){
 			return -1;
 		}
 
@@ -201,7 +201,7 @@ int mcu_pio_setaction(int port, void * ctl){
 		_mcu_pio0_local.handler.context = action->context;
 		LPC_GPIOINT->IO0IntClr = -1; //clear pending interrupts
 	} else if ( port == 2 ){
-		if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+		if( cortexm_validate_callback(action->callback) < 0 ){
 			return -1;
 		}
 

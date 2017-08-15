@@ -376,7 +376,7 @@ int mcu_ssp_setaction(int port, void * ctl){
 		return 0;
 	}
 
-	if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+	if( cortexm_validate_callback(action->callback) < 0 ){
 		return -1;
 	}
 
@@ -496,7 +496,7 @@ int ssp_port_transfer(int port, int is_read, devfs_async_t * dop){
 	}
 	ssp_local[port].size = size;
 
-	if( _mcu_cortexm_priv_validate_callback(dop->callback) < 0 ){
+	if( cortexm_validate_callback(dop->callback) < 0 ){
 		return -1;
 	}
 

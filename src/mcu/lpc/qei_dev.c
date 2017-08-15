@@ -156,7 +156,7 @@ int mcu_qei_setaction(int port, void * ctl){
 		regs->IES = (1<<4);
 	}
 
-	if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+	if( cortexm_validate_callback(action->callback) < 0 ){
 		return -1;
 	}
 
@@ -171,7 +171,7 @@ int mcu_qei_setaction(int port, void * ctl){
 
 int _mcu_qei_dev_read(const devfs_handle_t * cfg, devfs_async_t * rop){
 	const int port = cfg->periph.port;
-	if( _mcu_cortexm_priv_validate_callback(rop->callback) < 0 ){
+	if( cortexm_validate_callback(rop->callback) < 0 ){
 		return -1;
 	}
 

@@ -157,7 +157,7 @@ int mcu_mci_setaction(int port, void * ctl){
 
 	}
 
-	if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+	if( cortexm_validate_callback(action->callback) < 0 ){
 		return -1;
 	}
 

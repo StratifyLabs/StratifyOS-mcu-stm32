@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert; 
+/* Copyright 2011-2017 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -104,7 +104,7 @@ int _mcu_adc_dev_read(const devfs_handle_t * cfg, devfs_async_t * rop){
 		return -1;
 	}
 
-	if( _mcu_cortexm_priv_validate_callback(rop->callback) < 0 ){
+	if( cortexm_validate_callback(rop->callback) < 0 ){
 		return -1;
 	}
 
@@ -251,7 +251,7 @@ int mcu_adc_setaction(int port, void * ctl){
 		}
 	}
 
-	if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+	if( cortexm_validate_callback(action->callback) < 0 ){
 		return -1;
 	}
 

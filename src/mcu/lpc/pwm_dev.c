@@ -302,7 +302,7 @@ int mcu_pwm_setaction(int port, void * ctl){
 	}
 
 
-	if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+	if( cortexm_validate_callback(action->callback) < 0 ){
 		return -1;
 	}
 
@@ -358,7 +358,7 @@ int _mcu_pwm_dev_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 	regs->MCR |= (1<<0); //enable the interrupt
 	pwm_local[port].chan = wop->loc;
 
-	if( _mcu_cortexm_priv_validate_callback(wop->callback) < 0 ){
+	if( cortexm_validate_callback(wop->callback) < 0 ){
 		return -1;
 	}
 

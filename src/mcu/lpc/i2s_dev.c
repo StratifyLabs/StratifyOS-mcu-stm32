@@ -253,7 +253,7 @@ int mcu_i2s_setaction(int port, void * ctl){
 			exec_callback(&i2s_local[port].rx, MCU_EVENT_SET_CODE(MCU_EVENT_OP_CANCELLED));
 		}
 
-		if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+		if( cortexm_validate_callback(action->callback) < 0 ){
 			return -1;
 		}
 
@@ -268,7 +268,7 @@ int mcu_i2s_setaction(int port, void * ctl){
 			exec_callback(&i2s_local[port].tx, MCU_EVENT_SET_CODE(MCU_EVENT_OP_CANCELLED));
 		}
 
-		if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+		if( cortexm_validate_callback(action->callback) < 0 ){
 			return -1;
 		}
 
@@ -354,7 +354,7 @@ int _mcu_i2s_dev_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 	i2s_local[port].tx.len = wop->nbyte/4;
 
 	//Check the local buffer for bytes that are immediately available
-	if( _mcu_cortexm_priv_validate_callback(wop->callback) < 0 ){
+	if( cortexm_validate_callback(wop->callback) < 0 ){
 		return -1;
 	}
 
@@ -415,7 +415,7 @@ int _mcu_i2s_dev_read(const devfs_handle_t * cfg, devfs_async_t * rop){
 
 	} else if( len != nsamples ){
 		//for blocking operations wait until the entire buffer is read then call the callback
-		if( _mcu_cortexm_priv_validate_callback(rop->callback) < 0 ){
+		if( cortexm_validate_callback(rop->callback) < 0 ){
 			return -1;
 		}
 

@@ -71,7 +71,7 @@ void core_init(){
 
 
 void _mcu_core_nmi_isr(){
-	mcu_board_event(MCU_BOARD_CONFIG_EVENT_PRIV_FATAL, 0);
+	mcu_board_event(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, 0);
 }
 
 

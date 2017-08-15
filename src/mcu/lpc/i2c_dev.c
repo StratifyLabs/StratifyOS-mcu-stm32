@@ -388,7 +388,7 @@ int mcu_i2c_setaction(int port, void * ctl){
 		return 0;
 	}
 
-	if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+	if( cortexm_validate_callback(action->callback) < 0 ){
 		return -1;
 	}
 
@@ -694,7 +694,7 @@ int i2c_transfer(int port, int op, devfs_async_t * dop){
 	i2c_local[port].state = I2C_STATE_START;
 
 
-	if( _mcu_cortexm_priv_validate_callback(dop->callback) < 0 ){
+	if( cortexm_validate_callback(dop->callback) < 0 ){
 		errno = EPERM;
 		return -1;
 	}

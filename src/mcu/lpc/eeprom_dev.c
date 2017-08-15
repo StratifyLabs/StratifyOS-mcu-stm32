@@ -119,7 +119,7 @@ int mcu_eeprom_setaction(int port, void * ctl){
 		}
 	}
 
-	if( _mcu_cortexm_priv_validate_callback(action->callback) < 0 ){
+	if( cortexm_validate_callback(action->callback) < 0 ){
 		return -1;
 	}
 
@@ -155,7 +155,7 @@ int _mcu_eeprom_dev_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 	eeprom_local[port].page = calc_page(wop->loc);
 	eeprom_local[port].offset = calc_offset(wop->loc);
 
-	if( _mcu_cortexm_priv_validate_callback(wop->callback) < 0 ){
+	if( cortexm_validate_callback(wop->callback) < 0 ){
 		return -1;
 	}
 
