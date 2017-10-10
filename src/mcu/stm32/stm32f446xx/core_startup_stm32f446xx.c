@@ -17,6 +17,7 @@
  * 
  */
 
+#include <mcu/mcu.h>
 #include <mcu/bootloader.h>
 
 #include "../hal.h"

@@ -27,7 +27,7 @@
 
 #define NUM_TMRS MCU_TMR_PORTS
 #define NUM_OCS 4
-#define NUM_ICS 2
+#define NUM_ICS 4
 
 
 #define MR0_FLAG (1<<0)
@@ -41,9 +41,14 @@
 
 static TIM_TypeDef * const tmr_regs_table[NUM_TMRS] = MCU_TMR_REGS;
 static u8 const tmr_irqs[MCU_TMR_PORTS] = MCU_TMR_IRQS;
+static u32 const tmr_channels[4] = {
+		TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4
+};
 
 typedef struct MCU_PACK {
+	TIM_HandleTypeDef hal_handle; //must be first
 	mcu_event_handler_t handler[NUM_OCS+NUM_ICS];
+	mcu_event_handler_t period_handler;
 	u8 ref_count;
 } tmr_local_t;
 
@@ -61,6 +66,7 @@ void mcu_tmr_dev_power_on(const devfs_handle_t * handle){
 	int port = handle->port;
 	if ( m_tmr_local[port].ref_count == 0 ){
 		clear_actions(port);
+		m_tmr_local[port].hal_handle.Instance = tmr_regs_table[port];
 #if 0
 		switch(port){
 		case 0:
@@ -88,6 +94,7 @@ void mcu_tmr_dev_power_off(const devfs_handle_t * handle){
 	if ( m_tmr_local[port].ref_count > 0 ){
 		if ( m_tmr_local[port].ref_count == 1 ){
 			clear_actions(port);
+			m_tmr_local[port].hal_handle.Instance = 0;
 			cortexm_disable_irq((void*)(u32)(tmr_irqs[port]));
 #if 0
 			switch(port){
@@ -117,10 +124,9 @@ int mcu_tmr_dev_is_powered(const devfs_handle_t * handle){
 
 int mcu_tmr_getinfo(const devfs_handle_t * handle, void * ctl){
 	tmr_info_t * info = ctl;
-	int port = handle->port;
 
 	// set supported flags and events
-	info->o_flags = 0;
+	info->o_flags = TMR_FLAG_IS_AUTO_RELOAD;
 	info->o_events = 0;
 	//info->freq = mcu_board_config.core_periph_freq / (tmr_regs_table[port]->PR+1);
 
@@ -129,9 +135,7 @@ int mcu_tmr_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
-	TIM_TypeDef * regs;
 	int port = handle->port;
-	int ctcr = 0;
 
 	const tmr_attr_t * attr = mcu_select_attr(handle, ctl);
 	if( attr == 0 ){
@@ -139,6 +143,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 	}
 
 	u32 o_flags = attr->o_flags;
+	u32 freq = attr->freq;
 	int chan = attr->channel.loc;
 	regs = tmr_regs_table[port];
 
@@ -149,15 +154,13 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 
 			if( o_flags & TMR_FLAG_IS_SOURCE_CPU ){
 				if( attr->freq == 0 ){
-					errno = EINVAL;
-					return -1 - offsetof(tmr_attr_t, freq);
+					freq = 1000000;
 				}
 			} else {
-				ctcr = 1; //default on the rising edge
 				if( o_flags & TMR_FLAG_IS_SOURCE_EDGEFALLING ){
-					ctcr = 2;
+
 				} else if( o_flags & TMR_FLAG_IS_SOURCE_EDGEBOTH ){
-					ctcr = 3;
+
 				}
 			}
 
@@ -171,26 +174,61 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 
 
 			if( o_flags & TMR_FLAG_IS_SOURCE_IC1 ){
-				ctcr |= (1<<2);
+
 			}
 
 			//Set the prescalar so that the freq is correct
-			if ( (attr->freq < mcu_board_config.core_periph_freq) && (attr->freq != 0) ){
-				//tmr_regs_table[port]->PR = ((mcu_board_config.core_periph_freq + attr->freq/2) / attr->freq);
-				//if (tmr_regs_table[port]->PR != 0 ){
-				//	tmr_regs_table[port]->PR -= 1;
-				//}
+			if ( freq < mcu_board_config.core_periph_freq ){
+				m_tmr_local[port].hal_handle.Init.Prescaler = ((mcu_board_config.core_periph_freq + freq/2) / freq);
 			} else {
-				//regs->PR = 0;
+				m_tmr_local[port].hal_handle.Init.Prescaler = 0;
 			}
 
-			//regs->CTCR = ctcr;
+			if( o_flags & TMR_FLAG_IS_SOURCE_COUNTDOWN ){
+				m_tmr_local[port].hal_handle.Init.CounterMode = TIM_COUNTERMODE_DOWN;
+			} else {
+				m_tmr_local[port].hal_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+			}
+			m_tmr_local[port].hal_handle.Init.Period = attr->period;
+
+			HAL_TIM_Base_Init(&m_tmr_local[port].hal_handle);
 		}
 
 	}
 
 
 	if( o_flags & TMR_FLAG_SET_CHANNEL ){
+		int chan = attr->channel.loc & ~MCU_CHANNEL_FLAG_IS_INPUT;
+
+		if( chan >= NUM_OCS ){
+			errno = EINVAL;
+			return -1;
+		}
+
+		u32 tim_channel = tmr_channels[chan];
+
+		if(attr->channel.loc &  MCU_CHANNEL_FLAG_IS_INPUT){
+
+		} else {
+			TIM_OC_InitTypeDef init_oc;
+
+			if( o_flags & TMR_FLAG_IS_CHANNEL_TOGGLE_OUTPUT_ON_MATCH ){
+				init_oc.OCMode = TIM_OCMODE_TOGGLE;
+			} else if ( o_flags & TMR_FLAG_IS_CHANNEL_SET_OUTPUT_ON_MATCH ){
+				init_oc.OCMode = TIM_OCMODE_ACTIVE;
+			} else if( o_flags & TMR_FLAG_IS_CHANNEL_SET_OUTPUT_ON_MATCH ){
+				init_oc.OCMode = TIM_OCMODE_INACTIVE;
+			} else {
+				init_oc.OCMode = TIM_OCMODE_TIMING;
+			}
+
+			init_oc.Pulse = 0;
+			init_oc.OCPolarity = TIM_OCPOLARITY_HIGH;
+			init_oc.OCFastMode = TIM_OCFAST_DISABLE;
+			HAL_TIM_OC_ConfigChannel(&m_tmr_local[port], &init_oc, tim_channel);
+		}
+
+
 		//Check for reset action
 		if ( o_flags & TMR_FLAG_IS_CHANNEL_RESET_ON_MATCH){ //reset on match
 
@@ -201,8 +239,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 
 		}
 
-		if( chan <= 3 ){
-			//regs->EMR &= ~(0x3<<(chan+4));
+		if( chan < NUM_OCS ){
 			if( o_flags & TMR_FLAG_IS_CHANNEL_SET_OUTPUT_ON_MATCH ){
 				//set OC output on event
 			}
@@ -221,18 +258,18 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_tmr_enable(const devfs_handle_t * handle, void * ctl){
-	TIM_TypeDef * regs;
 	int port = handle->port;
-	regs = tmr_regs_table[port];
-	//regs->TCR = 1;
+	if( m_tmr_local[port].hal_handle.Init.Period != 0 ){
+		HAL_TIM_Base_Start_IT(&m_tmr_local[port].hal_handle);
+	} else {
+		HAL_TIM_Base_Start(&m_tmr_local[port].hal_handle);
+	}
 	return 0;
 }
 
 int mcu_tmr_disable(const devfs_handle_t * handle, void * ctl){
-	TIM_TypeDef * regs;
 	int port = handle->port;
-	regs = tmr_regs_table[port];
-	//regs->TCR = 0;
+	HAL_TIM_Base_Stop_IT(&m_tmr_local[port].hal_handle);
 	return 0;
 }
 
@@ -246,22 +283,20 @@ int mcu_tmr_setchannel(const devfs_handle_t * handle, void * ctl){
 
 	if( req->loc & MCU_CHANNEL_FLAG_IS_INPUT ){
 		chan = req->loc & ~MCU_CHANNEL_FLAG_IS_INPUT;
-		if ( chan > 1 ){
+		if ( chan >= NUM_ICS ){
 			errno = EINVAL;
 			return -1;
 		}
-
-		((uint32_t*)&(regs->CCR1))[ chan ] = req->value;
-
 	} else {
-
-		if ( req->loc > 3 ){
+		chan = req->loc;
+		if ( chan >= NUM_OCS ){
 			errno = EINVAL;
 			return -1;
 		}
-
-		((uint32_t*)&(regs->CCR1))[ req->loc ] = req->value;
 	}
+
+	((u32*)&(regs->CCR1))[ chan ] = req->value;
+
 	return 0;
 }
 
@@ -269,26 +304,25 @@ int mcu_tmr_getchannel(const devfs_handle_t * handle, void * ctl){
 	TIM_TypeDef * regs;
 	int port = handle->port;
 	regs = tmr_regs_table[port];
-	//Read the output compare channel
+	//Write the output compare value
 	mcu_channel_t * req = (mcu_channel_t*)ctl;
 	u8 chan;
 
 	if( req->loc & MCU_CHANNEL_FLAG_IS_INPUT ){
 		chan = req->loc & ~MCU_CHANNEL_FLAG_IS_INPUT;
-		if ( chan > 1 ){
+		if ( chan >= NUM_ICS ){
 			errno = EINVAL;
 			return -1;
 		}
-
-		req->value = ((uint32_t*)&(regs->CCR1))[ chan ];
 	} else {
-		if ( req->loc > 3 ){
+		chan = req->loc;
+		if ( chan >= NUM_OCS ){
 			errno = EINVAL;
 			return -1;
 		}
-
-		req->value = ((uint32_t*)&(regs->CCR1))[ req->loc ];
 	}
+
+	req->value = ((u32*)&(regs->CCR1))[ chan ];
 	return 0;
 }
 
@@ -300,24 +334,50 @@ int mcu_tmr_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
 
 int mcu_tmr_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = (mcu_action_t*)ctl;
-	TIM_TypeDef * regs;
 	int port = handle->port;
 	regs = tmr_regs_table[port];
 	u32 chan;
 	u32 o_events;
+	u32 tim_channel;
 
 	o_events = action->o_events;
-	chan = action->channel;
+	chan = action->channel & ~MCU_CHANNEL_FLAG_IS_INPUT;
 
-	if ( o_events == MCU_EVENT_FLAG_NONE ){ //Check to see if all actions are disabled
-		//regs->MCR &= ~(0x03 << (chan*3) );
+	if( chan >= NUM_OCS ){
+		errno = EINVAL;
+		return -1;
+	}
+
+	tim_channel = tmr_channels[chan];
+
+	if ( o_events == MCU_EVENT_FLAG_NONE ){ //Check to see if all actions are disabled for the channel
 		m_tmr_local[port].handler[chan].callback = 0;
+		if( action->channel & MCU_CHANNEL_FLAG_IS_INPUT ){
+			HAL_TIM_IC_Stop_IT(&m_tmr_local[port].hal_handle, tim_channel);
+		} else {
+			HAL_TIM_OC_Stop_IT(&m_tmr_local[port].hal_handle, tim_channel);
+		}
+
+		//execute a cancelled callback
+
 	} else if( o_events & MCU_EVENT_FLAG_MATCH ){
 
-		if( action->handler.callback != 0 ){
-			//regs->MCR |= ((1<<0) << (chan*3)); //set the interrupt on match flag
-		}  else {
-			//regs->MCR &= ~((1<<0) << (chan*3)); //disable the interrupt on match
+		if( action->channel & MCU_CHANNEL_FLAG_IS_INPUT ){
+
+			if( action->handler.callback != 0 ){
+				HAL_TIM_IC_Start_IT(&m_tmr_local[port].hal_handle, tim_channel);
+			}  else {
+				HAL_TIM_IC_Stop_IT(&m_tmr_local[port].hal_handle, tim_channel);
+			}
+
+		} else {
+
+			if( action->handler.callback != 0 ){
+				HAL_TIM_OC_Start_IT(&m_tmr_local[port].hal_handle, tim_channel);
+			}  else {
+				HAL_TIM_OC_Stop_IT(&m_tmr_local[port].hal_handle, tim_channel);
+			}
+
 		}
 
 		m_tmr_local[port].handler[chan] = action->handler;
@@ -356,27 +416,42 @@ int execute_handler(mcu_event_handler_t * handler, u32 o_events, u32 channel, u3
 	return mcu_execute_event_handler(handler, o_events, &event);
 }
 
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	//this happens on an overflow
+	tmr_local_t * local = (tmr_local_t*)htim;
+	execute_handler(&local->period_handler, MCU_EVENT_FLAG_OVERFLOW, -1, 0);
+}
+
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim){
+	//this happens on an output compare match
+	tmr_local_t * local = (tmr_local_t*)htim;
+	execute_handler(&local->period_handler, MCU_EVENT_FLAG_MATCH, htim->Channel, htim->Instance->CNT);
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
+	//this happens on an output compare match
+	tmr_local_t * local = (tmr_local_t*)htim;
+	execute_handler(&local->period_handler, MCU_EVENT_FLAG_MATCH, htim->Channel | MCU_CHANNEL_FLAG_IS_INPUT, htim->Instance->CNT);
+
+}
+
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
+
+	//this belongs in the PWM driver (NOT here)
+}
+
+void HAL_TIM_TriggerCallback(TIM_HandleTypeDef *htim){
+
+}
+
+void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim){
+
+}
+
 //Four timers with 4 OC's and 2 IC's each
 void tmr_isr(int port){
-	int flags;
-	TIM_TypeDef * regs;
-	regs = tmr_regs_table[port];
-	flags = (regs->DIER & 0x3F);
-	regs->DIER = flags; //clear the flags
-	//execute the callbacks
-
-	if( flags & MR0_FLAG ){
-		execute_handler(&(m_tmr_local[port].handler[0]), MCU_EVENT_FLAG_MATCH, 0, regs->CCR1);
-	}
-	if( flags & MR1_FLAG ){
-		execute_handler(&(m_tmr_local[port].handler[1]), MCU_EVENT_FLAG_MATCH, 1, regs->CCR2);
-	}
-	if( flags & MR2_FLAG ){
-		execute_handler(&(m_tmr_local[port].handler[2]), MCU_EVENT_FLAG_MATCH, 2, regs->CCR3);
-	}
-	if( flags & MR3_FLAG ){
-		execute_handler(&(m_tmr_local[port].handler[3]), MCU_EVENT_FLAG_MATCH, 3, regs->CCR4);
-	}
+	HAL_TIM_IRQHandler(&m_tmr_local[port].hal_handle);
 }
 
 void mcu_core_tmr0_isr(){

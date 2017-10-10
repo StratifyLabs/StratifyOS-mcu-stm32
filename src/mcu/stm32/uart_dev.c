@@ -143,7 +143,6 @@ int mcu_uart_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
-	USART_TypeDef * uart_regs;
 	u32 o_flags;
 	int port = handle->port;
 
@@ -172,7 +171,7 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 
 	//clock setup (HAL MSP stuff)
 
-	HAL_UART_INIT(&uart->hal_handle);
+	HAL_UART_Init(&uart->hal_handle);
 
 
 	return 0;
@@ -245,7 +244,7 @@ int mcu_uart_setaction(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_uart_put(const devfs_handle_t * handle, void * ctl){
-	char c = (u32)ctl;
+	u8 c = (u32)ctl;
 	int port = handle->port;
 	uart_local_t * uart = uart_local + port;
 
@@ -283,7 +282,6 @@ int mcu_uart_getall(const devfs_handle_t * handle, void * ctl){
 
 
 int mcu_uart_dev_read(const devfs_handle_t * handle, devfs_async_t * async){
-	int ret;
 	int port = handle->port;
 	uart_local_t * uart = uart_local + port;
 
