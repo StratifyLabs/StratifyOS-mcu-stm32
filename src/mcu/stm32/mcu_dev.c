@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert; 
+/* Copyright 2011-2017 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -12,18 +12,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * 
- */
+ * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>. */
 
-#ifndef SPI_FLAGS_H_
-#define SPI_FLAGS_H_
+#include "mcu/arch.h"
+#include "mcu/mcu.h"
 
-
-#define MSTR (1<<5)
-#define SPIE (1<<7)
-#define SPIF_INT (1<<0)
-#define SPIF (1<<7)
-
-#endif /* SPI_FLAGS_H_ */
+const mcu_config_t mcu_config = {
+		.irq_total = DEV_LAST_IRQ,
+		.irq_middle_prio = DEV_MIDDLE_PRIORITY,
+		.usb_logical_endpoint_count = 4
+};

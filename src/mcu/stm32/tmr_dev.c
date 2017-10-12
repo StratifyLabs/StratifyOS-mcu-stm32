@@ -145,7 +145,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 	u32 o_flags = attr->o_flags;
 	u32 freq = attr->freq;
 	int chan = attr->channel.loc;
-	regs = tmr_regs_table[port];
+	//regs = tmr_regs_table[port];
 
 
 	if( o_flags & TMR_FLAG_SET_TIMER ){
@@ -335,7 +335,7 @@ int mcu_tmr_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
 int mcu_tmr_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = (mcu_action_t*)ctl;
 	int port = handle->port;
-	regs = tmr_regs_table[port];
+	//regs = tmr_regs_table[port];
 	u32 chan;
 	u32 o_events;
 	u32 tim_channel;

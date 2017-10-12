@@ -80,4 +80,8 @@ int mcu_core_initclock(int div){
 	return 0;
 }
 
+HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority){
+	return HAL_OK;
+}
+
 /*! @} */

@@ -262,4 +262,8 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
 	return 0;
 }
 
+int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int periph_port){
+	return 0;
+}
+
 #endif

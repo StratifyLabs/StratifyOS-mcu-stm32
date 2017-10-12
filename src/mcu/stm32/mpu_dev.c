@@ -18,27 +18,12 @@
  */
 
 #include <stdbool.h>
-#include "mcu/mpu.h"
+#include "cortexm/mpu.h"
 
 
 int mpu_dev_init(){
 	int err;
 
-	//Peripherals Regions 0 and 1
-	/*
-	err = mpu_enable_region(
-			0,
-			(void*)0x2009C000,  //GPIO Access
-			0x2009FFFF + 1 - 0x2009C000,
-			MPU_ACCESS_PRW_URW,
-			MPU_MEMORY_PERIPHERALS,
-			false
-	);
-
-	if ( err < 0 ){
-		return err;
-	}
-	*/
 
 	err = mpu_enable_region(
 			1,

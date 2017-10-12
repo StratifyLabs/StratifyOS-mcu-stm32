@@ -12,42 +12,49 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>. */
+ * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * 
+ */
 
-#ifndef CORE_FLAGS_H_
-#define CORE_FLAGS_H_
-
-
-
-#define OSCRANGE 4
-#define OSCEN 5
-#define OSCSTAT 6
-#define PLLE0 0
-#define PLLC0 1
-#define PLLE0_STAT 24
-#define PLLC0_STAT 25
-#define PLOCK0 26
+#include "mcu/arch.h"
+#include "mcu/wdt.h"
+#include "cortexm/cortexm.h"
+#include "mcu/core.h"
+#include "cortexm/fault.h"
 
 
+#define WDEN (1<<0)
+#define WDRESET (1<<1)
+#define WDTOF (1<<2)
+#define WDINT (1<<3)
 
-#define PLLE1 0
-#define PLLC1 1
-#define PLLE1_STAT 8
-#define PLLC1_STAT 9
-#define PLOCK1 10
+#define WDLOCK (1<<31)
 
-#define IRC_OSC 0
-#define MAIN_OSC 1
-
-
-#define PM1 (1<<1)
-#define PM0 (1<<0)
-#define PM_MASK (0x03)
+int mcu_wdt_init(int mode, int interval){
 
 
 
-#define PLLCFG_MSEL(x) (((x)-1) << 0) // PLL Multiplier
-#define PLLCFG_PSEL(x) ((x) << 5) // PLL Divider
+	return 0;
+}
+
+int mcu_wdt_setinterval(int interval){
 
 
-#endif /* CORE_FLAGS_H_ */
+	mcu_wdt_reset();
+
+	return 0;
+}
+
+void mcu_wdt_priv_reset(void * args){
+	//LPC_WDT->FEED = 0xAA;
+	//LPC_WDT->FEED = 0x55;
+}
+
+void mcu_wdt_reset(){
+	//LPC_WDT->FEED = 0xAA;
+	//LPC_WDT->FEED = 0x55;
+}
+
+
+//ISR handler is in the cortex_m/fault.c source file

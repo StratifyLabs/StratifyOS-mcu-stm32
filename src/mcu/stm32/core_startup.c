@@ -21,16 +21,16 @@
 #include "hal.h"
 
 static const char sys_proc_name[] = "sys";
-void (* const _mcu_core_vector_table)();
 
 
-void _mcu_core_nmi_isr() MCU_WEAK;
+void mcu_core_nmi_isr() MCU_WEAK;
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr) MCU_WEAK;
 
 
-void _mcu_core_getserialno(mcu_sn_t * serial_number){
+void mcu_core_getserialno(mcu_sn_t * serial_number){
 
 }
+
 
 void core_init(){
 	u32 *src, *dest;
@@ -70,8 +70,8 @@ void core_init(){
 }
 
 
-void _mcu_core_nmi_isr(){
-	mcu_board_event(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, 0);
+void mcu_core_nmi_isr(){
+	mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, 0);
 }
 
 

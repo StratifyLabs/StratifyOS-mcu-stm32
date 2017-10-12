@@ -24,27 +24,27 @@
 #include "../core_startup.h"
 
 
-const bootloader_api_t _mcu_core_bootloader_api MCU_WEAK;
-const bootloader_api_t _mcu_core_bootloader_api = {
+const bootloader_api_t mcu_core_bootloader_api MCU_WEAK;
+const bootloader_api_t mcu_core_bootloader_api = {
 		.code_size = 0,
 };
 
-void _mcu_core_default_isr();
+void mcu_core_default_isr();
 
-void _mcu_core_hardware_id() MCU_ALIAS(_mcu_core_default_isr);
+void mcu_core_hardware_id() MCU_ALIAS(_mcu_core_default_isr);
 
-void _mcu_core_reset_handler() __attribute__ ((section(".reset_vector")));
-void _mcu_core_nmi_isr() MCU_WEAK;
+void mcu_core_reset_handler() __attribute__ ((section(".reset_vector")));
+void mcu_core_nmi_isr() MCU_WEAK;
 
-void _mcu_core_hardfault_handler();
-void _mcu_core_memfault_handler();
-void _mcu_core_busfault_handler();
-void _mcu_core_usagefault_handler();
+void mcu_core_hardfault_handler();
+void mcu_core_memfault_handler();
+void mcu_core_busfault_handler();
+void mcu_core_usagefault_handler();
 
-void _mcu_core_svcall_handler();
-void _mcu_core_debugmon_handler() MCU_ALIAS(_mcu_core_default_isr);
-void _mcu_core_pendsv_handler();
-void _mcu_core_systick_handler();
+void mcu_core_svcall_handler();
+void mcu_core_debugmon_handler() MCU_ALIAS(_mcu_core_default_isr);
+void mcu_core_pendsv_handler();
+void mcu_core_systick_handler();
 
 #define _DECLARE_ISR(name) void _mcu_core_##name##_isr() MCU_ALIAS(_mcu_core_default_isr)
 #define _ISR(name) _mcu_core_##name##_isr
@@ -138,30 +138,25 @@ _DECLARE_ISR(fmpi2c1_ev);
 _DECLARE_ISR(fmpi2c1_er);
 
 
-
-/*! \details This is the startup code which gets written to
- * address 0 (or wherever the text starts if there is another bootloader) in flash memory
- */
-
-void (* const _mcu_core_vector_table[])() __attribute__ ((section(".startup"))) = {
+void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) = {
 		// Core Level - CM3
 		(void*)&_top_of_stack,					// The initial stack pointer
-		_mcu_core_reset_handler,						// The reset handler
-		_mcu_core_nmi_isr,							// The NMI handler
-		_mcu_core_hardfault_handler,					// The hard fault handler
-		_mcu_core_memfault_handler,					// The MPU fault handler
-		_mcu_core_busfault_handler,					// The bus fault handler
-		_mcu_core_usagefault_handler,				// The usage fault handler
-		_mcu_core_hardware_id,					// Reserved -- this is the checksum addr for ISP programming 0x1C
-		0,										// Reserved -- this is the hwpl security word 0x20
-		(void*)&_mcu_core_bootloader_api,										// Reserved -- this is the kernel signature checksum value 0x24
+		mcu_core_reset_handler,						// The reset handler
+		mcu_core_nmi_isr,							// The NMI handler
+		mcu_core_hardfault_handler,					// The hard fault handler
+		mcu_core_memfault_handler,					// The MPU fault handler
+		mcu_core_busfault_handler,					// The bus fault handler
+		mcu_core_usagefault_handler,				// The usage fault handler
+		mcu_core_hardware_id,					// Reserved
 		0,										// Reserved
-		_mcu_core_svcall_handler,					// SVCall handler
-		_mcu_core_debugmon_handler,					// Debug monitor handler
+		(void*)&mcu_core_bootloader_api,										// Reserved -- this is the kernel signature checksum value 0x24
 		0,										// Reserved
-		_mcu_core_pendsv_handler,					// The PendSV handler
-		_mcu_core_systick_handler,					// The SysTick handler
-		//Non Cortex M3 interrupts
+		mcu_core_svcall_handler,					// SVCall handler
+		mcu_core_debugmon_handler,					// Debug monitor handler
+		0,										// Reserved
+		mcu_core_pendsv_handler,					// The PendSV handler
+		mcu_core_systick_handler,					// The SysTick handler
+		//Non Cortex M interrupts (device specific interrupts)
 
 		_ISR(wwdg),
 		_ISR(pvd),
@@ -251,15 +246,15 @@ void (* const _mcu_core_vector_table[])() __attribute__ ((section(".startup"))) 
 		_ISR(fmpi2c1_er)
 };
 
-void _mcu_core_reset_handler(){
+void mcu_core_reset_handler(){
 	core_init();
-	cortexm_set_vector_table_addr((void*)_mcu_core_vector_table);
+	cortexm_set_vector_table_addr((void*)mcu_core_vector_table);
 	_main(); //This function should never return
 	while(1);
 }
 
 void _mcu_core_default_isr(){
-	mcu_board_event(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, 0);
+	mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, 0);
 }
 
 

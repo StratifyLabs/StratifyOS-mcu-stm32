@@ -89,7 +89,6 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="include"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src/mcu/lpc"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -188,7 +187,6 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="include"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src/mcu/lpc"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -236,7 +234,7 @@
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/StratifyOS/build_debug_mcu_stm32f446xx"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/StratifyOS-mcu-stm32/build_debug_mcu_stm32f446xx"/>
 						<entry flags="RESOLVED" kind="libraryFile" name="StratifyOS" srcPrefixMapping="" srcRootPath=""/>
-						<entry flags="RESOLVED" kind="libraryFile" name="StratifyOS-mcu-stm32" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="RESOLVED" kind="libraryFile" name="sos_mcu_stm32" srcPrefixMapping="" srcRootPath=""/>
 					</externalSetting>
 				</externalSettings>
 				<extensions>
@@ -248,13 +246,13 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="a" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.staticLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.staticLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="${RM}" description="Debug MCU stm32f446xx" errorParsers="org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GASErrorParser" id="cdt.managedbuild.config.gnu.cross.lib.release.388924090.1536021794.652448319.1226112525.1155335286.1509898672" name="build_debug_mcu_stm32f446xx" parent="cdt.managedbuild.config.gnu.cross.lib.release" postannouncebuildStep="" postbuildStep="${POSTPROCESS} ${TOOLSPATH} ${HOST} stratify stratify_${BUILD_NAME} ${BUILD_ARCH} ${BUILD_FLOAT} mcu/arch/stm32 ${BUILD_TYPE}" preannouncebuildStep="" prebuildStep="">
+				<configuration artifactExtension="a" artifactName="sos_mcu_stm32" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.staticLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.staticLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="${RM}" description="Debug MCU stm32f446xx" errorParsers="org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GASErrorParser" id="cdt.managedbuild.config.gnu.cross.lib.release.388924090.1536021794.652448319.1226112525.1155335286.1509898672" name="build_debug_mcu_stm32f446xx" parent="cdt.managedbuild.config.gnu.cross.lib.release" postannouncebuildStep="" postbuildStep="${POSTPROCESS} ${TOOLSPATH} ${HOST} sos sos_${BUILD_NAME} ${BUILD_ARCH} ${BUILD_FLOAT} mcu/arch/stm32 ${BUILD_TYPE}" preannouncebuildStep="" prebuildStep="">
 					<folderInfo id="cdt.managedbuild.config.gnu.cross.lib.release.388924090.1536021794.652448319.1226112525.1155335286.1509898672." name="/" resourcePath="">
 						<toolChain errorParsers="" id="cdt.managedbuild.toolchain.gnu.cross.lib.release.1982662233" name="Cross GCC" nonInternalBuilderId="cdt.managedbuild.builder.gnu.cross" superClass="cdt.managedbuild.toolchain.gnu.cross.lib.release">
 							<option id="cdt.managedbuild.option.gnu.cross.prefix.523431653" name="Prefix" superClass="cdt.managedbuild.option.gnu.cross.prefix" useByScannerDiscovery="false" value="${HOST}-" valueType="string"/>
 							<option id="cdt.managedbuild.option.gnu.cross.path.566857154" name="Path" superClass="cdt.managedbuild.option.gnu.cross.path" useByScannerDiscovery="false" value=" ${PathDelimiter}${TOOLSPATH}/bin" valueType="string"/>
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.targetPlatform.gnu.cross.973390915" isAbstract="false" osList="all" superClass="cdt.managedbuild.targetPlatform.gnu.cross"/>
-							<builder buildPath="${workspace_loc:/StratifyOS-mcu-stm32}/build_debug_mcu_stm32f446xx" id="cdt.managedbuild.builder.gnu.cross.137223513" name="Gnu Make Builder" superClass="cdt.managedbuild.builder.gnu.cross"/>
+							<builder buildPath="${workspace_loc:/StratifyOS-mcu-stm32}/build_debug_mcu_stm32f446xx" id="cdt.managedbuild.builder.gnu.cross.137223513" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" superClass="cdt.managedbuild.builder.gnu.cross"/>
 							<tool command="gcc" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.cross.c.compiler.1296954668" name="Cross GCC Compiler" superClass="cdt.managedbuild.tool.gnu.cross.c.compiler">
 								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.option.optimization.level.1628163421" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" useByScannerDiscovery="false" value="gnu.c.optimization.level.size" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.33713364" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.none" valueType="enumerated"/>
@@ -276,7 +274,7 @@
 							</tool>
 							<tool commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}stratify_${BUILD_NAME}${BUILD_TYPE}.a ${INPUTS}" id="cdt.managedbuild.tool.gnu.cross.c.linker.1400425088" name="Cross GCC Linker" superClass="cdt.managedbuild.tool.gnu.cross.c.linker"/>
 							<tool commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}stratify_${BUILD_NAME}${BUILD_TYPE}.a ${INPUTS}" id="cdt.managedbuild.tool.gnu.cross.cpp.linker.97792461" name="Cross G++ Linker" superClass="cdt.managedbuild.tool.gnu.cross.cpp.linker"/>
-							<tool command="ar" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}stratify_${BUILD_NAME}${BUILD_TYPE}.a ${INPUTS}" errorParsers="" id="cdt.managedbuild.tool.gnu.cross.archiver.669719325" name="Cross GCC Archiver" superClass="cdt.managedbuild.tool.gnu.cross.archiver"/>
+							<tool command="ar" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} libsos_${BUILD_NAME}${BUILD_TYPE}.a ${INPUTS}" errorParsers="" id="cdt.managedbuild.tool.gnu.cross.archiver.669719325" name="Cross GCC Archiver" superClass="cdt.managedbuild.tool.gnu.cross.archiver"/>
 							<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.2020218975" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler">
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1532801528" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
