@@ -17,6 +17,7 @@
  * 
  */
 
+#include <sos/sos.h>
 #include <errno.h>
 #include <fcntl.h>
 #include "cortexm/cortexm.h"
@@ -40,6 +41,7 @@ typedef struct {
 	u16 received_len;
 	u16 bytes_received;
 	u8 ref_count;
+	const uart_attr_t * attr;
 } uart_local_t;
 
 static uart_local_t uart_local[UART_PORTS] MCU_SYS_MEM;
@@ -52,33 +54,41 @@ static void exec_writecallback(int port, USART_TypeDef * uart_regs, u32 o_events
 void mcu_uart_dev_power_on(const devfs_handle_t * handle){
 	int port = handle->port;
 	if ( uart_local[port].ref_count == 0 ){
+
+		uart_local[port].hal_handle.Instance = uart_regs_table[port];
+
 		switch(port){
 		case 0:
-			//mcu_lpc_core_enable_pwr(PCUART0);
+			__HAL_RCC_USART1_CLK_ENABLE();
 			break;
 #if MCU_UART_PORTS > 1
 		case 1:
-			//mcu_lpc_core_enable_pwr(PCUART1);
+			__HAL_RCC_USART2_CLK_ENABLE();
 			break;
 #endif
 #if MCU_UART_PORTS > 2
 		case 2:
-			//mcu_lpc_core_enable_pwr(PCUART2);
+			__HAL_RCC_USART3_CLK_ENABLE();
 			break;
 #endif
 #if MCU_UART_PORTS > 3
 		case 3:
-			//mcu_lpc_core_enable_pwr(PCUART3);
+			__HAL_RCC_UART4_CLK_ENABLE();
 			break;
 #endif
 #if MCU_UART_PORTS > 4
 		case 4:
-			//mcu_lpc_core_enable_pwr(PCUART4);
+			__HAL_RCC_UART5_CLK_ENABLE();
 			break;
 #endif
+#if MCU_UART_PORTS > 5
+		case 5:
+			__HAL_RCC_USART6_CLK_ENABLE();
+			break;
+#endif
+
 		}
-		//uart_local[port].tx_bufp = NULL;
-		//uart_local[port].rx_bufp = NULL;
+		//reset HAL UART
 	}
 	uart_local[port].ref_count++;
 
@@ -93,33 +103,36 @@ void mcu_uart_dev_power_off(const devfs_handle_t * handle){
 			cortexm_disable_irq((void*)(u32)(uart_irqs[port]));
 			switch(port){
 			case 0:
-
-				//mcu_lpc_core_disable_pwr(PCUART0);
+				__HAL_RCC_USART1_CLK_DISABLE();
 				break;
 #if MCU_UART_PORTS > 1
 			case 1:
-				//mcu_lpc_core_disable_pwr(PCUART1);
+				__HAL_RCC_USART2_CLK_DISABLE();
 				break;
 #endif
 #if MCU_UART_PORTS > 2
 			case 2:
-				//mcu_lpc_core_disable_pwr(PCUART2);
+				__HAL_RCC_USART3_CLK_DISABLE();
 				break;
 #endif
 #if MCU_UART_PORTS > 3
 			case 3:
-				//mcu_lpc_core_disable_pwr(PCUART3);
+				__HAL_RCC_UART4_CLK_DISABLE();
 				break;
 #endif
 #if MCU_UART_PORTS > 4
 			case 4:
-				//mcu_lpc_core_disable_pwr(PCUART4);
+				__HAL_RCC_UART5_CLK_DISABLE();
+				break;
+#endif
+#if MCU_UART_PORTS > 5
+			case 5:
+				__HAL_RCC_USART6_CLK_DISABLE();
 				break;
 #endif
 
 			}
-			//uart_local[port].tx_bufp = NULL;
-			//uart_local[port].rx_bufp = NULL;
+			uart_local[port].hal_handle.Instance = 0;
 		}
 		uart_local[port].ref_count--;
 	}
@@ -145,34 +158,60 @@ int mcu_uart_getinfo(const devfs_handle_t * handle, void * ctl){
 int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 	u32 o_flags;
 	int port = handle->port;
+	u32 freq;
 
 	uart_local_t * uart = uart_local + port;
-	const uart_attr_t * attr = mcu_select_attr(handle, ctl);
-	if( attr == 0 ){
+	uart->attr = mcu_select_attr(handle, ctl);
+	if( uart->attr == 0 ){
 		return -1;
 	}
 
-	o_flags = attr->o_flags;
+	o_flags = uart->attr->o_flags;
 
-	uart->hal_handle.Init.StopBits = UART_STOPBITS_1;
-	if( o_flags & UART_FLAG_IS_STOP2 ){
-		uart->hal_handle.Init.StopBits = UART_STOPBITS_2;
+	if( o_flags & UART_FLAG_SET_LINE_CODING ){
+		freq = uart->attr->freq;
+		if( freq == 0 ){
+			freq = 115200;
+		}
+
+		uart->hal_handle.Init.BaudRate = freq;
+
+		uart->hal_handle.Init.WordLength = UART_WORDLENGTH_8B;
+		if( uart->attr->width == 9 ){
+			uart->hal_handle.Init.WordLength = UART_WORDLENGTH_9B;
+		}
+
+		uart->hal_handle.Init.StopBits = UART_STOPBITS_1;
+		if( o_flags & UART_FLAG_IS_STOP2 ){
+			uart->hal_handle.Init.StopBits = UART_STOPBITS_2;
+		}
+
+		uart->hal_handle.Init.Parity = HAL_UART_PARITY_NONE;
+		if( o_flags & UART_FLAG_IS_PARITY_EVEN ){
+			uart->hal_handle.Init.Parity = HAL_UART_PARITY_EVEN;
+		} else if( o_flags & UART_FLAG_IS_PARITY_ODD ){
+			uart->hal_handle.Init.Parity = HAL_UART_PARITY_ODD;
+		}
+
+		uart->hal_handle.Init.Mode = UART_MODE_TX_RX;
+		uart->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+		uart->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
+
+		//pin assignments
+		if( mcu_set_pin_assignment(
+				&(uart->attr->pin_assignment),
+				MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
+				MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t),
+				CORE_PERIPH_UART, port, 0, 0) < 0 ){
+			return -1;
+		}
+
+		if( HAL_UART_Init(&uart->hal_handle) != HAL_OK ){
+			return -1;
+		}
+
+		mcu_core_set_nvic_priority(USART3_IRQn, mcu_config.irq_middle_prio-3);
 	}
-
-	uart->hal_handle.Init.BaudRate = attr->freq;
-	uart->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	uart->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
-	uart->hal_handle.Init.WordLength = UART_WORDLENGTH_8B;
-	if( attr->width == 9 ){
-		uart->hal_handle.Init.WordLength = UART_WORDLENGTH_9B;
-	}
-
-	//pin assignments
-
-	//clock setup (HAL MSP stuff)
-
-	HAL_UART_Init(&uart->hal_handle);
-
 
 	return 0;
 }
@@ -238,8 +277,6 @@ int mcu_uart_setaction(const devfs_handle_t * handle, void * ctl){
 	}
 
 	cortexm_set_irq_prio(uart_irqs[port], action->prio);
-
-
 	return 0;
 }
 
@@ -248,7 +285,7 @@ int mcu_uart_put(const devfs_handle_t * handle, void * ctl){
 	int port = handle->port;
 	uart_local_t * uart = uart_local + port;
 
-	if( HAL_UART_Transmit(&uart->hal_handle, &c, 1, 100) != HAL_OK ){
+	if( HAL_UART_Transmit(&uart->hal_handle, &c, 1, 100) != HAL_MAX_DELAY ){
 		return -1;
 	}
 
@@ -278,8 +315,6 @@ int mcu_uart_get(const devfs_handle_t * handle, void * ctl){
 int mcu_uart_getall(const devfs_handle_t * handle, void * ctl){
 	return mcu_uart_get(handle, ctl); //only has a one byte buffer
 }
-
-
 
 int mcu_uart_dev_read(const devfs_handle_t * handle, devfs_async_t * async){
 	int port = handle->port;
@@ -360,36 +395,36 @@ void mcu_uart_isr(int port){
 	HAL_UART_IRQHandler(&uart->hal_handle);
 }
 
-void mcu_core_uart0_isr(){
+void mcu_core_usart1_isr(){
 	mcu_uart_isr(0);
 }
 
 #if MCU_UART_PORTS > 1
-void mcu_core_uart1_isr(){
+void mcu_core_usart2_isr(){
 	mcu_uart_isr(1);
 }
 #endif
 
 #if MCU_UART_PORTS > 2
-void mcu_core_uart2_isr(){
+void mcu_core_usart3_isr(){
 	mcu_uart_isr(2);
 }
 #endif
 
 #if MCU_UART_PORTS > 3
-void mcu_core_uart3_isr(){
+void mcu_core_uart4_isr(){
 	mcu_uart_isr(3);
 }
 #endif
 
 #if MCU_UART_PORTS > 4
-void mcu_core_uart4_isr(){
+void mcu_core_uart5_isr(){
 	mcu_uart_isr(4);
 }
 #endif
 
 #if MCU_UART_PORTS > 5
-void mcu_core_uart5_isr(){
+void mcu_core_usart6_isr(){
 	mcu_uart_isr(5);
 }
 #endif

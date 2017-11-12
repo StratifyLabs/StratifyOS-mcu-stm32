@@ -250,7 +250,9 @@ void mcu_core_reset_handler(){
 	core_init();
 	cortexm_set_vector_table_addr((void*)mcu_core_vector_table);
 	_main(); //This function should never return
-	while(1);
+	while(1){
+		;
+	}
 }
 
 void _mcu_core_default_isr(){

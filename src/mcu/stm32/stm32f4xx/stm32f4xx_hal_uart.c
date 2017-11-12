@@ -628,6 +628,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, uint8_t *pData, u
       return  HAL_ERROR;
     }
     
+
     /* Process Locked */
     __HAL_LOCK(huart);
     
@@ -661,11 +662,14 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, uint8_t *pData, u
       } 
       else
       {
+
         if(UART_WaitOnFlagUntilTimeout(huart, UART_FLAG_TXE, RESET, tickstart, Timeout) != HAL_OK)
         {
           return HAL_TIMEOUT;
         }
+
         huart->Instance->DR = (*pData++ & (uint8_t)0xFF);
+
       } 
     }
     
@@ -673,7 +677,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, uint8_t *pData, u
     { 
       return HAL_TIMEOUT;
     }
-    
+
     /* At end of Tx process, restore huart->gState to Ready */
       huart->gState = HAL_UART_STATE_READY;
     

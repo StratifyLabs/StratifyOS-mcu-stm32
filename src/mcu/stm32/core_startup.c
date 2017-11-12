@@ -17,6 +17,7 @@
  * 
  */
 
+#include <sos/sos.h>
 #include "core_startup.h"
 #include "hal.h"
 
@@ -38,6 +39,9 @@ void core_init(){
 	for(dest = &_data; dest < &_edata; ){ *dest++ = *src++; } //Copy from flash to RAM (data)
 	for(src = &_bss; src < &_ebss; ) *src++ = 0; //Zero out BSS section
 	for(src = &_sys; src < &_esys; ) *src++ = 0; //Zero out sysmem
+
+
+	__HAL_RCC_GPIOB_CLK_ENABLE();
 
 
 	//Re-entrancy initialization
@@ -62,11 +66,15 @@ void core_init(){
 	__lock_init_recursive_global(__env_lock_object);
 
 	//This is the de facto MCU initialization -- turn off power to peripherals that must be "open()"ed.
-#if defined LPC_SC
-	LPC_SC->PCONP = (1<<PCGPIO)|(1<<PCRTC);
-#else
 
-#endif
+	  __HAL_RCC_GPIOA_CLK_ENABLE();
+	  __HAL_RCC_GPIOB_CLK_ENABLE();
+	  __HAL_RCC_GPIOC_CLK_ENABLE();
+	  __HAL_RCC_GPIOD_CLK_ENABLE();
+	  __HAL_RCC_GPIOE_CLK_ENABLE();
+	  __HAL_RCC_GPIOF_CLK_ENABLE();
+	  __HAL_RCC_GPIOG_CLK_ENABLE();
+	  __HAL_RCC_GPIOH_CLK_ENABLE();
 }
 
 

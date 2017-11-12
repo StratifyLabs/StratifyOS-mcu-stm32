@@ -77,6 +77,8 @@ int mcu_core_initclock(int div){
 		return -1;
 	}
 
+	SystemCoreClock = mcu_board_config.core_cpu_freq;
+
 	return 0;
 }
 

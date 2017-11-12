@@ -395,7 +395,7 @@ int mcu_tmr_set(const devfs_handle_t * handle, void * ctl){
 	TIM_TypeDef * regs;
 	int port = handle->port;
 	regs = tmr_regs_table[port];
-	regs->CNT = (uint32_t)ctl;
+	regs->CNT = (u32)ctl;
 	return 0;
 }
 
@@ -454,19 +454,19 @@ void tmr_isr(int port){
 	HAL_TIM_IRQHandler(&m_tmr_local[port].hal_handle);
 }
 
-void mcu_core_tmr0_isr(){
+void mcu_core_tim1_cc_isr(){
 	tmr_isr(0);
 }
 
-void mcu_core_tmr1_isr(){
+void mcu_core_tim2_isr(){
 	tmr_isr(1);
 }
 
-void mcu_core_tmr2_isr(){
+void mcu_core_tim3_isr(){
 	tmr_isr(2);
 }
 
-void mcu_core_tmr3_isr(){
+void mcu_core_tim4_isr(){
 	tmr_isr(3);
 }
 

@@ -156,10 +156,18 @@ int mcu_pio_setattr(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_pio_setmask(const devfs_handle_t * handle, void * ctl){
+	int port = handle->port;
+	GPIO_TypeDef * regs = m_pio_regs_table[port];
+	u32 o_pinmask = (u32)ctl;
+	HAL_GPIO_WritePin(regs, o_pinmask, GPIO_PIN_SET);
 	return 0;
 }
 
 int mcu_pio_clrmask(const devfs_handle_t * handle, void * ctl){
+	int port = handle->port;
+	GPIO_TypeDef * regs = m_pio_regs_table[port];
+	u32 o_pinmask = (u32)ctl;
+	HAL_GPIO_WritePin(regs, o_pinmask, GPIO_PIN_RESET);
 	return 0;
 }
 
