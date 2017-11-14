@@ -17,6 +17,7 @@
  * 
  */
 
+#include <mcu/debug.h>
 #include <errno.h>
 #include <stdbool.h>
 #include "cortexm/cortexm.h"
@@ -45,6 +46,16 @@ static u32 const tmr_channels[4] = {
 		TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4
 };
 
+static u8 decode_hal_channel(u8 channel){
+	switch(channel){
+	case HAL_TIM_ACTIVE_CHANNEL_1: return 0;
+	case HAL_TIM_ACTIVE_CHANNEL_2: return 1;
+	case HAL_TIM_ACTIVE_CHANNEL_3: return 2;
+	case HAL_TIM_ACTIVE_CHANNEL_4: return 3;
+	}
+	return 0;
+}
+
 typedef struct MCU_PACK {
 	TIM_HandleTypeDef hal_handle; //must be first
 	mcu_event_handler_t handler[NUM_OCS+NUM_ICS];
@@ -67,23 +78,26 @@ void mcu_tmr_dev_power_on(const devfs_handle_t * handle){
 	if ( m_tmr_local[port].ref_count == 0 ){
 		clear_actions(port);
 		m_tmr_local[port].hal_handle.Instance = tmr_regs_table[port];
-#if 0
 		switch(port){
 		case 0:
-			mcu_lpc_core_enable_pwr(PCTIM0);
+			__HAL_RCC_TIM1_CLK_ENABLE();
 			break;
 		case 1:
-			mcu_lpc_core_enable_pwr(PCTIM1);
+			__HAL_RCC_TIM2_CLK_ENABLE();
 			break;
 		case 2:
-			mcu_lpc_core_enable_pwr(PCTIM2);
+			__HAL_RCC_TIM3_CLK_ENABLE();
 			break;
 		case 3:
-			mcu_lpc_core_enable_pwr(PCTIM3);
+			__HAL_RCC_TIM4_CLK_ENABLE();
+			break;
+		case 4:
+			__HAL_RCC_TIM5_CLK_ENABLE();
 			break;
 		}
-#endif
-		cortexm_enable_irq((void*)(u32)(tmr_irqs[port]));
+		if( tmr_irqs[port] != (u8)-1 ){
+			cortexm_enable_irq((void*)(u32)(tmr_irqs[port]));
+		}
 	}
 	m_tmr_local[port].ref_count++;
 }
@@ -95,25 +109,28 @@ void mcu_tmr_dev_power_off(const devfs_handle_t * handle){
 		if ( m_tmr_local[port].ref_count == 1 ){
 			clear_actions(port);
 			m_tmr_local[port].hal_handle.Instance = 0;
-			cortexm_disable_irq((void*)(u32)(tmr_irqs[port]));
-#if 0
+			if( tmr_irqs[port] != (u8)-1 ){
+				cortexm_disable_irq((void*)(u32)(tmr_irqs[port]));
+			}
 			switch(port){
 			case 0:
-				mcu_lpc_core_disable_pwr(PCTIM0);
+				__HAL_RCC_TIM1_CLK_DISABLE();
 				break;
 			case 1:
-				mcu_lpc_core_disable_pwr(PCTIM1);
+				__HAL_RCC_TIM2_CLK_DISABLE();
 				break;
 			case 2:
-				mcu_lpc_core_disable_pwr(PCTIM2);
+				__HAL_RCC_TIM3_CLK_DISABLE();
 				break;
 			case 3:
-				mcu_lpc_core_disable_pwr(PCTIM3);
+				__HAL_RCC_TIM4_CLK_DISABLE();
+				break;
+			case 4:
+				__HAL_RCC_TIM5_CLK_DISABLE();
 				break;
 			}
-#endif
+			m_tmr_local[port].ref_count--;
 		}
-		m_tmr_local[port].ref_count--;
 	}
 }
 
@@ -126,7 +143,7 @@ int mcu_tmr_getinfo(const devfs_handle_t * handle, void * ctl){
 	tmr_info_t * info = ctl;
 
 	// set supported flags and events
-	info->o_flags = TMR_FLAG_IS_AUTO_RELOAD;
+	info->o_flags = TMR_FLAG_IS_AUTO_RELOAD | TMR_FLAG_SET_TIMER;
 	info->o_events = 0;
 	//info->freq = mcu_board_config.core_periph_freq / (tmr_regs_table[port]->PR+1);
 
@@ -190,6 +207,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 				m_tmr_local[port].hal_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
 			}
 			m_tmr_local[port].hal_handle.Init.Period = attr->period;
+			m_tmr_local[port].hal_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 
 			HAL_TIM_Base_Init(&m_tmr_local[port].hal_handle);
 		}
@@ -225,7 +243,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 			init_oc.Pulse = 0;
 			init_oc.OCPolarity = TIM_OCPOLARITY_HIGH;
 			init_oc.OCFastMode = TIM_OCFAST_DISABLE;
-			HAL_TIM_OC_ConfigChannel(&m_tmr_local[port], &init_oc, tim_channel);
+			HAL_TIM_OC_ConfigChannel(&m_tmr_local[port].hal_handle, &init_oc, tim_channel);
 		}
 
 
@@ -426,14 +444,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim){
 	//this happens on an output compare match
 	tmr_local_t * local = (tmr_local_t*)htim;
-	execute_handler(&local->period_handler, MCU_EVENT_FLAG_MATCH, htim->Channel, htim->Instance->CNT);
+	u8 channel = decode_hal_channel(htim->Channel);
+	execute_handler(&local->handler[channel], MCU_EVENT_FLAG_MATCH, channel, htim->Instance->CNT);
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
 	//this happens on an output compare match
 	tmr_local_t * local = (tmr_local_t*)htim;
-	execute_handler(&local->period_handler, MCU_EVENT_FLAG_MATCH, htim->Channel | MCU_CHANNEL_FLAG_IS_INPUT, htim->Instance->CNT);
-
+	u8 channel = decode_hal_channel(htim->Channel);
+	execute_handler(&local->handler[channel], MCU_EVENT_FLAG_MATCH, channel | MCU_CHANNEL_FLAG_IS_INPUT, htim->Instance->CNT);
 }
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){

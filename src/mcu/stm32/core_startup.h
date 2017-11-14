@@ -27,7 +27,7 @@
 void core_init();
 int _main();
 
-#define _DECLARE_ISR(name) void _mcu_core_##name##_isr() MCU_ALIAS(_mcu_core_default_isr)
-#define _ISR(name) _mcu_core_##name##_isr
+#define _DECLARE_ISR(name) void mcu_core_##name##_isr() MCU_ALIAS(mcu_core_default_isr)
+#define _ISR(name) mcu_core_##name##_isr
 
 #endif /* CORE_STARTUP_H_ */

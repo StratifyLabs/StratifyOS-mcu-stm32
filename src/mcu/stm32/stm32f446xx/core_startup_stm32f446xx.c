@@ -31,7 +31,7 @@ const bootloader_api_t mcu_core_bootloader_api = {
 
 void mcu_core_default_isr();
 
-void mcu_core_hardware_id() MCU_ALIAS(_mcu_core_default_isr);
+void mcu_core_hardware_id() MCU_ALIAS(mcu_core_default_isr);
 
 void mcu_core_reset_handler() __attribute__ ((section(".reset_vector")));
 void mcu_core_nmi_isr() MCU_WEAK;
@@ -42,12 +42,10 @@ void mcu_core_busfault_handler();
 void mcu_core_usagefault_handler();
 
 void mcu_core_svcall_handler();
-void mcu_core_debugmon_handler() MCU_ALIAS(_mcu_core_default_isr);
+void mcu_core_debugmon_handler() MCU_ALIAS(mcu_core_default_isr);
 void mcu_core_pendsv_handler();
 void mcu_core_systick_handler();
 
-#define _DECLARE_ISR(name) void _mcu_core_##name##_isr() MCU_ALIAS(_mcu_core_default_isr)
-#define _ISR(name) _mcu_core_##name##_isr
 
 //ISR's -- weakly bound to default handler
 _DECLARE_ISR(wwdg);
@@ -250,13 +248,14 @@ void mcu_core_reset_handler(){
 	core_init();
 	cortexm_set_vector_table_addr((void*)mcu_core_vector_table);
 	_main(); //This function should never return
+	mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "main");
 	while(1){
 		;
 	}
 }
 
-void _mcu_core_default_isr(){
-	mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, 0);
+void mcu_core_default_isr(){
+	mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "dflt");
 }
 
 
