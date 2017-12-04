@@ -130,6 +130,7 @@ static HAL_StatusTypeDef PCD_WriteEmptyTxFifo(PCD_HandleTypeDef *hpcd, uint32_t 
   * @{
   */
 
+
 /**
   * @brief  Initializes the PCD according to the specified
   *         parameters in the PCD_InitTypeDef and initialize the associated handle.
@@ -166,6 +167,7 @@ HAL_StatusTypeDef HAL_PCD_Init(PCD_HandleTypeDef *hpcd)
  /*Init the Core (common init.) */
  USB_CoreInit(hpcd->Instance, hpcd->Init);
  
+
  /* Force Device Mode*/
  USB_SetCurrentMode(hpcd->Instance , USB_OTG_DEVICE_MODE);
  
@@ -196,6 +198,7 @@ HAL_StatusTypeDef HAL_PCD_Init(PCD_HandleTypeDef *hpcd)
    
    hpcd->Instance->DIEPTXF[i] = 0U;
  }
+
  /* Init Device */
  USB_DevInit(hpcd->Instance, hpcd->Init);
  

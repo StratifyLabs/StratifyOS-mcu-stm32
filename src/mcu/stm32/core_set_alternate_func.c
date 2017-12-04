@@ -20,6 +20,7 @@
 #include "hal.h"
 
 #include <mcu/core.h>
+#include <mcu/debug.h>
 
 #if defined __stm32f446xx
 
@@ -235,7 +236,7 @@ int hal_get_alternate_function(int gpio_port, int pin, core_periph_t function, i
 	return i;
 }
 
-int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int periph_port, int mode){
+int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int periph_port, int mode, int speed, int pull){
 	GPIO_InitTypeDef GPIO_InitStruct;
 	GPIO_TypeDef * gpio_regs;
 	int alternate_function;
@@ -263,9 +264,13 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
 
 int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int periph_port){
 	int mode;
+	int speed;
+	int pull;
 	switch(function){
 	default:
 		mode = GPIO_MODE_AF_PP;
+		pull = GPIO_NOPULL;
+		speed = GPIO_SPEED_LOW;
 		break;
 	case CORE_PERIPH_I2C:
 		mode = GPIO_MODE_AF_OD;
@@ -274,8 +279,14 @@ int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int 
 	case CORE_PERIPH_DAC:
 		mode = GPIO_MODE_ANALOG;
 		break;
+	case CORE_PERIPH_USB:
+		mcu_debug_printf("Set usb periph pin\n");
+		mode = GPIO_MODE_AF_PP;
+		speed = GPIO_SPEED_FREQ_VERY_HIGH;
+		pull = GPIO_NOPULL;
+		break;
 	}
-	return hal_set_alternate_pin_function(*pin, function, periph_port, mode);
+	return hal_set_alternate_pin_function(*pin, function, periph_port, mode, speed, pull);
 }
 
 #endif

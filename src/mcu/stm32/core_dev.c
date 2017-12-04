@@ -26,7 +26,7 @@
 
 static u32 mcu_core_get_reset_src();
 static int enable_clock_out(int o_flags, int div);
-static u32 mcu_core_reset_source = CORE_FLAG_IS_RESET_SOFTWARE;
+static u32 mcu_core_reset_source = CORE_FLAG_IS_RESET_SYSTEM;
 
 
 
@@ -46,7 +46,7 @@ int mcu_core_getinfo(const devfs_handle_t * handle, void * arg){
 	core_info_t * info = arg;
 	info->o_flags = 0;
 	info->freq = mcu_board_config.core_cpu_freq;
-	if( mcu_core_reset_source == CORE_FLAG_IS_RESET_SOFTWARE ){
+	if( mcu_core_reset_source == CORE_FLAG_IS_RESET_SYSTEM ){
 		mcu_core_reset_source = mcu_core_get_reset_src();
 	}
 
@@ -192,22 +192,27 @@ void mcu_set_sleep_mode(int * level){
 }
 
 u32 mcu_core_get_reset_src(){
-	u32 src = CORE_FLAG_IS_RESET_SOFTWARE;
-	u32 src_reg = 0;
+	u32 src = CORE_FLAG_IS_RESET_SYSTEM;
+	u32 src_reg = RCC->CSR;
+	RCC->CSR |= RCC_CSR_RMVF; //clear flags
 
-	if ( src_reg & (1<<3) ){
+	if ( src_reg & RCC_CSR_BORRSTF ){
 		return CORE_FLAG_IS_RESET_BOR;
 	}
 
-	if ( src_reg & (1<<2) ){
+	if ( src_reg & (RCC_CSR_IWDGRSTF|RCC_CSR_WWDGRSTF) ){
 		return CORE_FLAG_IS_RESET_WDT;
 	}
 
-	if ( src_reg & (1<<0) ){
+	if ( src_reg & RCC_CSR_PORRSTF ){
 		return CORE_FLAG_IS_RESET_POR;
 	}
 
-	if ( src_reg & (1<<1) ){
+	if( src_reg & RCC_CSR_SFTRSTF ){
+		return CORE_FLAG_IS_RESET_SOFTWARE;
+	}
+
+	if ( src_reg & RCC_CSR_PINRSTF ){
 		return CORE_FLAG_IS_RESET_EXTERNAL;
 	}
 

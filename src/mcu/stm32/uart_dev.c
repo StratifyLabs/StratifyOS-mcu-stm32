@@ -89,8 +89,11 @@ void mcu_uart_dev_power_on(const devfs_handle_t * handle){
 
 		}
 		//reset HAL UART
+		cortexm_enable_irq((void*)(u32)(uart_irqs[port]));
+
 	}
 	uart_local[port].ref_count++;
+
 
 
 }
@@ -209,8 +212,6 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 		if( HAL_UART_Init(&uart->hal_handle) != HAL_OK ){
 			return -1;
 		}
-
-		mcu_core_set_nvic_priority(USART3_IRQn, mcu_config.irq_middle_prio-3);
 	}
 
 	return 0;
@@ -285,9 +286,17 @@ int mcu_uart_put(const devfs_handle_t * handle, void * ctl){
 	int port = handle->port;
 	uart_local_t * uart = uart_local + port;
 
-	if( HAL_UART_Transmit(&uart->hal_handle, &c, 1, 100) != HAL_MAX_DELAY ){
+#if 0
+	while(__HAL_UART_GET_FLAG(&uart->hal_handle, UART_FLAG_TXE) == RESET ){
+		;
+	}
+
+    uart->hal_handle.Instance->DR = c;
+#else
+	if( HAL_UART_Transmit(&uart->hal_handle, &c, 1, HAL_MAX_DELAY) != HAL_OK ){
 		return -1;
 	}
+#endif
 
 	return 0;
 }

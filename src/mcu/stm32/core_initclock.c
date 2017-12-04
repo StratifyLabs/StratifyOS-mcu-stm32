@@ -86,4 +86,11 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority){
 	return HAL_OK;
 }
 
+void HAL_Delay(__IO uint32_t Delay){
+	u32 value = SysTick->VAL;
+	while( SysTick->VAL && (value - SysTick->VAL < Delay) ){
+		;
+	}
+}
+
 /*! @} */
