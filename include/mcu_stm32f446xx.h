@@ -74,6 +74,10 @@
 #define DEV_MIDDLE_PRIORITY 16
 
 
+#define DEVICE_RAM_PAGES 112
+#define DEVICE_RAM_PAGE_SIZE 1024
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif

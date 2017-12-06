@@ -264,16 +264,15 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
 
 int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int periph_port){
 	int mode;
-	int speed;
-	int pull;
+	int speed = GPIO_SPEED_FREQ_LOW;
+	int pull = GPIO_NOPULL;
 	switch(function){
 	default:
 		mode = GPIO_MODE_AF_PP;
-		pull = GPIO_NOPULL;
-		speed = GPIO_SPEED_LOW;
 		break;
 	case CORE_PERIPH_I2C:
 		mode = GPIO_MODE_AF_OD;
+		speed = GPIO_SPEED_FREQ_HIGH;
 		break;
 	case CORE_PERIPH_ADC:
 	case CORE_PERIPH_DAC:

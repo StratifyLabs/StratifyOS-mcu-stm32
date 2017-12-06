@@ -85,7 +85,6 @@ int _mcu_pio_dev_powered_on(const devfs_handle_t * handle){
 
 
 int _mcu_pio_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
-	int port = handle->port;
 	mcu_action_t * action;
 
 	if( wop->nbyte != sizeof(mcu_action_t) ){
