@@ -215,19 +215,7 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 	}
 
 	if( o_flags & USB_FLAG_CONFIGURE_ENDPOINT ){
-		u8 epnum = attr->address;
 		usb_configure_endpoint(handle, attr->address, attr->max_packet_size, attr->type);
-		//update the RX offset values for all configured endpoints
-
-		if( (epnum & 0x80) == 0 ){
-			usb_local.rx_buffer_offset[epnum] = usb_local.rx_buffer_used;
-			usb_local.rx_buffer_used += (attr->max_packet_size*2);
-			if( usb_local.rx_buffer_used > mcu_board_config.usb_rx_buffer_size ){
-				//this is a fatal error
-				mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "usbbuf");
-			}
-		}
-
 	}
 
 	return 0;
@@ -396,6 +384,24 @@ void usb_configure(const devfs_handle_t * handle, u32 cfg){
 
 void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32 max_packet_size, u8 type){
 	HAL_PCD_EP_Open(&usb_local.hal_handle, endpoint_num, max_packet_size, type & EP_TYPE_MSK);
+
+	if( (endpoint_num & 0x80) == 0 ){
+		void * dest_buffer;
+
+		usb_local.rx_buffer_offset[endpoint_num] = usb_local.rx_buffer_used;
+		usb_local.rx_buffer_used += (max_packet_size*2);
+		if( usb_local.rx_buffer_used > mcu_board_config.usb_rx_buffer_size ){
+			//this is a fatal error
+			mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "usbbuf");
+		}
+
+		dest_buffer = mcu_board_config.usb_rx_buffer +
+				usb_local.rx_buffer_offset[endpoint_num] +
+				max_packet_size;
+
+		HAL_PCD_EP_Receive(&usb_local.hal_handle, endpoint_num, dest_buffer, max_packet_size);
+
+	}
 }
 
 void usb_enable_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
@@ -468,7 +474,10 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 	memcpy(dest_buffer, hpcd->Setup, usb_local.rx_count[0]);
 	mcu_debug_root_printf("Setup\n");
 
-	mcu_execute_event_handler(&usb_local.read[0], MCU_EVENT_FLAG_SETUP, &event);
+	mcu_execute_event_handler(usb_local.read + 0, MCU_EVENT_FLAG_SETUP, &event);
+
+	//prepare EP zero for receiving out data
+	HAL_PCD_EP_Receive(hpcd, 0, mcu_board_config.usb_rx_buffer, hpcd->OUT_ep[0].maxpacket);
 }
 
 void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
@@ -489,7 +498,7 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	memcpy(dest_buffer, src_buffer, count);
 	usb_local.rx_count[epnum] = count;
 
-	mcu_debug_root_printf("Data out %d 0x%lX\n", epnum, (u32)usb_local.read[epnum].callback);
+	mcu_debug_root_printf("Data out %d 0x%lX %d\n", epnum, (u32)usb_local.read[epnum].callback, count);
 	mcu_execute_event_handler(usb_local.read + epnum, MCU_EVENT_FLAG_DATA_READY, &event);
 
 	//prepare to receive the next packet in the local buffer
@@ -505,7 +514,7 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 
 	mcu_debug_root_printf("Data in %d 0x%lX\n", logical_ep, (u32)usb_local.read[logical_ep].callback);
 
-	mcu_execute_event_handler(&usb_local.write[logical_ep], MCU_EVENT_FLAG_WRITE_COMPLETE, &event);
+	mcu_execute_event_handler(usb_local.write + logical_ep, MCU_EVENT_FLAG_WRITE_COMPLETE, &event);
 
 	if( (epnum & 0x7f) == 0 ){
 		//ep 0 data in complete
@@ -516,28 +525,21 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 }
 
 void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd){
-	//USBD_LL_SOF((USBD_HandleTypeDef*)hpcd->pData);
+
 }
 
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 	mcu_debug_root_printf("Reset\n");
+	int i;
 	u32 mps = mcu_board_config.usb_max_packet_zero;
 
-	HAL_PCD_EP_Open(hpcd,
-			0x00,
-			mps,
-			0); //control type
+	usb_local.rx_buffer_used = mps;
+	for(i=0; i < DEV_USB_LOGICAL_ENDPOINT_COUNT; i++){
+		usb_local.rx_buffer_offset[i] = 0;
+	}
 
-	hpcd->OUT_ep[0].maxpacket = mps;
-
-
-	HAL_PCD_EP_Open(hpcd,
-			0x80,
-			mps,
-			0); //control type
-
-	hpcd->IN_ep[0].maxpacket = mps;
-
+	HAL_PCD_EP_Open(hpcd, 0x00, mps, 0);
+	HAL_PCD_EP_Open(hpcd, 0x80, mps, 0);
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
