@@ -387,6 +387,7 @@ void usb_wakeup(int port){
 }
 
 void usb_set_address(const devfs_handle_t * handle, u32 addr){
+	mcu_debug_root_printf("Set Addr %d\n", addr);
 	HAL_PCD_SetAddress(&usb_local.hal_handle, addr);
 
 }
@@ -396,26 +397,29 @@ void usb_configure(const devfs_handle_t * handle, u32 cfg){
 }
 
 void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32 max_packet_size, u8 type){
+	mcu_debug_root_printf("Open 0x%X\n", endpoint_num);
 	HAL_PCD_EP_Open(&usb_local.hal_handle, endpoint_num, max_packet_size, type & EP_TYPE_MSK);
 }
 
 void usb_enable_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
-
+	mcu_debug_root_printf("Enable 0x%X\n", endpoint_num);
 }
 
 void usb_disable_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
-
+	mcu_debug_root_printf("Disable 0x%X\n", endpoint_num);
 }
 
 void usb_reset_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
-
+	mcu_debug_root_printf("Reset 0x%X\n", endpoint_num);
 }
 
 void usb_stall_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
+	mcu_debug_root_printf("set stall %d\n", endpoint_num);
 	HAL_PCD_EP_SetStall(&usb_local.hal_handle, endpoint_num);
 }
 
 void usb_unstall_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
+	mcu_debug_root_printf("clr stall %d\n", endpoint_num);
 	HAL_PCD_EP_ClrStall(&usb_local.hal_handle, endpoint_num);
 }
 
@@ -447,10 +451,9 @@ int mcu_usb_root_read_endpoint(const devfs_handle_t * handle, u32 endpoint_num, 
 
 int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num, const void * src, u32 size){
 	int ret;
-	mcu_debug_printf("TX %d bytes\n", size);
+	mcu_debug_root_printf("Tx 0x%X %d\n", endpoint_num, size);
 	ret = HAL_PCD_EP_Transmit(&usb_local.hal_handle, endpoint_num, (void*)src, size);
 	if( ret == HAL_OK ){
-		mcu_debug_printf("TX'd on 0x%X\n", endpoint_num);
 		return size;
 	}
 	return -1;
@@ -463,7 +466,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 	event.epnum = 0;
 	void * dest_buffer;
 
-	mcu_debug_printf("Setup\n");
+	mcu_debug_root_printf("Setup\n");
 	//Setup data is in hpcd->Setup buffer at this point
 
 	//copy setup data to ep0 data buffer
@@ -483,6 +486,8 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	void * src_buffer;
 	void * dest_buffer;
 
+	mcu_debug_root_printf("Data Out %d\n", epnum);
+
 	//set read ready flag
 	usb_local.read_ready |= (1<<epnum);
 	count = HAL_PCD_EP_GetRxCount(&usb_local.hal_handle, epnum);
@@ -496,6 +501,7 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	//USBD_LL_DataOutStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->OUT_ep[epnum].xfer_buff);
 	mcu_execute_event_handler(usb_local.read + epnum, MCU_EVENT_FLAG_DATA_READY, &event);
 
+	mcu_debug_root_printf("Rx 0x%X %d\n", epnum, hpcd->OUT_ep[epnum].maxpacket);
 	//prepare to receive the next packet in the local buffer
 	HAL_PCD_EP_Receive(hpcd, epnum, src_buffer, hpcd->OUT_ep[epnum].maxpacket);
 
@@ -506,12 +512,15 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	usb_event_t event;
 	event.epnum = epnum;
 
+	mcu_debug_root_printf("Data In %d\n", epnum);
+
 	//USBD_LL_DataInStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->IN_ep[epnum].xfer_buff);
 	mcu_execute_event_handler(&usb_local.write[logical_ep], MCU_EVENT_FLAG_WRITE_COMPLETE, &event);
 
 	if( (epnum & 0x7f) == 0 ){
 		//ep 0 data in complete
 		//prepare EP0 for next setup packet
+		mcu_debug_root_printf("Rx 0x0 0\n");
 		HAL_PCD_EP_Receive(hpcd, 0, 0, 0);
 	}
 
@@ -522,6 +531,23 @@ void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
+	mcu_debug_root_printf("Reset\n");
+	u32 mps = mcu_board_config.usb_max_packet_zero;
+
+	HAL_PCD_EP_Open(hpcd,
+			0x00,
+			mps,
+			0); //control type
+
+	hpcd->OUT_ep[0].maxpacket = mps;
+
+
+	HAL_PCD_EP_Open(hpcd,
+			0x80,
+			mps,
+			0); //control type
+
+	hpcd->IN_ep[0].maxpacket = mps;
 
 }
 
@@ -530,7 +556,7 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd){
-
+	mcu_debug_root_printf("Resume\n");
 }
 
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
