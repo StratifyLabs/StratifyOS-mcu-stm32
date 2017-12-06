@@ -29,7 +29,11 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr) 
 
 
 void mcu_core_getserialno(mcu_sn_t * serial_number){
-
+	u32 * serial_addr = (u32*)0x1FFF7A10;
+	serial_number->sn[0] = serial_addr[0];
+	serial_number->sn[1] = serial_addr[1];
+	serial_number->sn[2] = serial_addr[2];
+	serial_number->sn[3] = 0;
 }
 
 
