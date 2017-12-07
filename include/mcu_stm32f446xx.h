@@ -8,11 +8,7 @@
 #ifndef MCU_STM32F446XX_H_
 #define MCU_STM32F446XX_H_
 
-
-#include <string.h>
 #include <mcu/types.h>
-
-
 #include "cmsis/stm32f4xx.h"
 #include "cmsis/stm32f446xx.h"
 
@@ -70,12 +66,11 @@
 
 #define DEV_USB_LOGICAL_ENDPOINT_COUNT 4
 
-#define DEV_LAST_IRQ FMPI2C1_ER_IRQn
-#define DEV_MIDDLE_PRIORITY 16
+#define MCU_LAST_IRQ FMPI2C1_ER_IRQn
+#define MCU_MIDDLE_IRQ_PRIORITY 16
 
 
-#define DEVICE_RAM_PAGES 112
-#define DEVICE_RAM_PAGE_SIZE 1024
+#define MCU_RAM_PAGES 112
 
 
 #ifdef __cplusplus
