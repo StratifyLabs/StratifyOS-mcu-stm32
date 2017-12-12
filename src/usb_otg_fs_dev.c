@@ -26,7 +26,7 @@
 #include <mcu/core.h>
 #include <mcu/debug.h>
 
-#include <stm32_local.h>
+#include "stm32_local.h"
 
 
 #if MCU_USB_PORTS > 0

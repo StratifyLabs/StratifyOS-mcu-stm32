@@ -19,7 +19,7 @@
 
 #include <core_startup.h>
 #include <sos/sos.h>
-#include <stm32_local.h>
+#include "stm32_local.h"
 
 static const char sys_proc_name[] = "sys";
 

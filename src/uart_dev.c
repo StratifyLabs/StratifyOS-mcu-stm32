@@ -20,7 +20,7 @@
 #include <sos/sos.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stm32_local.h>
+#include "stm32_local.h"
 #include "cortexm/cortexm.h"
 #include "mcu/uart.h"
 #include "mcu/pio.h"

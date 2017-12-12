@@ -18,7 +18,7 @@
 //#include "config.h"
 
 #include <mcu/bootloader.h>
-#include <stm32_local.h>
+#include "stm32_local.h"
 
 
 static u32 mcu_core_get_reset_src();

@@ -21,7 +21,7 @@
 #include <mcu/pio.h>
 #include <mcu/core.h>
 
-#include <stm32_local.h>
+#include "stm32_local.h"
 
 
 #if MCU_PIO_PORTS > 0
@@ -43,7 +43,7 @@ GPIO_TypeDef * const hal_get_pio_regs(u8 port){
 	return 0;
 }
 
-void _mcu_pio_dev_power_on(const devfs_handle_t * handle){
+void mcu_pio_dev_power_on(const devfs_handle_t * handle){
 	int port = handle->port;
 	if ( m_mcu_pio_local[port].ref_count == 0 ){
 		m_mcu_pio_local[port].handler.callback = NULL;
@@ -61,7 +61,7 @@ void _mcu_pio_dev_power_on(const devfs_handle_t * handle){
 	m_mcu_pio_local[port].ref_count++;
 }
 
-void _mcu_pio_dev_power_off(const devfs_handle_t * handle){
+void mcu_pio_dev_power_off(const devfs_handle_t * handle){
 	int port = handle->port;
 	if ( m_mcu_pio_local[port].ref_count > 0 ){
 		if ( m_mcu_pio_local[port].ref_count == 1 ){
@@ -73,7 +73,7 @@ void _mcu_pio_dev_power_off(const devfs_handle_t * handle){
 	}
 }
 
-int _mcu_pio_dev_powered_on(const devfs_handle_t * handle){
+int mcu_pio_dev_is_powered(const devfs_handle_t * handle){
 	int port = handle->port;
 	if ( m_mcu_pio_local[port].ref_count > 0 ){
 		return 1;
@@ -84,7 +84,7 @@ int _mcu_pio_dev_powered_on(const devfs_handle_t * handle){
 
 
 
-int _mcu_pio_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
+int mcu_pio_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
 	mcu_action_t * action;
 
 	if( wop->nbyte != sizeof(mcu_action_t) ){
@@ -103,7 +103,7 @@ int mcu_pio_setaction(const devfs_handle_t * handle, void * ctl){
 }
 
 
-int mcu_pio_getattr(const devfs_handle_t * handle, void * ctl){
+int mcu_pio_getinfo(const devfs_handle_t * handle, void * ctl){
 	//read the direction pin status
 	errno = ENOTSUP;
 	return -1;
@@ -191,10 +191,30 @@ void exec_cancelled2(){
 	//mcu_execute_event_handler(&(_mcu_pio2_local.handler), MCU_EVENT_SET_CODE(MCU_EVENT_OP_CANCELLED));
 }
 
-//On __lpc17xx The pio interrupts use the eint3 interrupt service routine -- this function should be called from there
-void _mcu_core_pio0_isr(){
 
+//argument shouldn't be zero
+void mcu_core_exti0_isr(){
+	HAL_GPIO_EXTI_IRQHandler(0);
 }
+
+void mcu_core_exti1_isr(){
+	HAL_GPIO_EXTI_IRQHandler(0);
+}
+
+void mcu_core_exti2_isr(){
+	HAL_GPIO_EXTI_IRQHandler(0);
+}
+
+
+void mcu_core_exti3_isr(){
+	HAL_GPIO_EXTI_IRQHandler(0);
+}
+
+
+void mcu_core_exti4_isr(){
+	HAL_GPIO_EXTI_IRQHandler(0);
+}
+
 
 
 #endif

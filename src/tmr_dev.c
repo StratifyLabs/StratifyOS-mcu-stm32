@@ -20,7 +20,7 @@
 #include <mcu/debug.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <stm32_local.h>
+#include "stm32_local.h"
 #include "cortexm/cortexm.h"
 #include "mcu/tmr.h"
 #include "mcu/core.h"

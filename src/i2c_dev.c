@@ -19,7 +19,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <stm32_local.h>
+#include "stm32_local.h"
 #include "cortexm/cortexm.h"
 #include "mcu/i2c.h"
 #include "mcu/debug.h"
@@ -66,16 +66,11 @@ void mcu_i2c_dev_power_on(const devfs_handle_t * handle){
 		i2c->hal_handle.Instance = i2c_regs_table[port];
 		switch(port){
 		case 0:
-			//mcu_lpc_core_enable_pwr(PCI2C0);
+			__HAL_RCC_I2C1_CLK_ENABLE();
 			break;
 #if MCU_I2C_PORTS > 1
 		case 1:
-			//mcu_lpc_core_enable_pwr(PCI2C1);
-			break;
-#endif
-#if MCU_I2C_PORTS > 2
-		case 2:
-			//mcu_lpc_core_enable_pwr(PCI2C2);
+			__HAL_RCC_I2C2_CLK_ENABLE();
 			break;
 #endif
 		}
@@ -98,16 +93,11 @@ void mcu_i2c_dev_power_off(const devfs_handle_t * handle){
 			cortexm_disable_irq((void*)(u32)(i2c_irqs[port]));
 			switch(port){
 			case 0:
-				//mcu_lpc_core_disable_pwr(PCI2C0);
+				__HAL_RCC_I2C1_CLK_DISABLE();
 				break;
 #if MCU_I2C_PORTS > 1
 			case 1:
-				//mcu_lpc_core_disable_pwr(PCI2C1);
-				break;
-#endif
-#if MCU_I2C_PORTS > 2
-			case 2:
-				//mcu_lpc_core_disable_pwr(PCI2C2);
+				__HAL_RCC_I2C2_CLK_DISABLE();
 				break;
 #endif
 			}
@@ -266,7 +256,7 @@ int mcu_i2c_dev_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 
 	if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){
-		ret = HAL_I2C_Master_Sequential_Transmit_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, &async->loc, 1, 0);
+		ret = HAL_I2C_Master_Sequential_Transmit_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, (u8*)&async->loc, 1, 0);
 	} else if( i2c->o_flags & I2C_FLAG_PREPARE_DATA ){
 		ret = HAL_I2C_Master_Transmit_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->buf, async->nbyte);
 	}
@@ -288,7 +278,7 @@ int mcu_i2c_dev_read(const devfs_handle_t * handle, devfs_async_t * async){
 	}
 
 	if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){
-		ret = HAL_I2C_Master_Sequential_Receive_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, &async->loc, 1, 0);
+		ret = HAL_I2C_Master_Sequential_Transmit_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, (u8*)&async->loc, 1, 0);
 	} else if( i2c->o_flags & I2C_FLAG_PREPARE_DATA ){
 		ret = HAL_I2C_Master_Receive_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->buf, async->nbyte);
 	}
@@ -336,18 +326,13 @@ static void mcu_i2cer_isr(int port) {
 }
 
 void mcu_core_i2c0_isr(){ mcu_i2c_isr(0); }
-#if MCU_I2C_PORTS > 1
-void mcu_core_i2c1_isr(){ mcu_i2c_isr(1); }
-#endif
-#if MCU_I2C_PORTS > 2
-void mcu_core_i2c2_isr(){ mcu_i2c_isr(2); }
-#endif
-
 void mcu_core_i2c0er_isr(){ mcu_i2cer_isr(0); }
 #if MCU_I2C_PORTS > 1
+void mcu_core_i2c1_isr(){ mcu_i2c_isr(1); }
 void mcu_core_i2c1er_isr(){ mcu_i2cer_isr(1); }
 #endif
 #if MCU_I2C_PORTS > 2
+void mcu_core_i2c2_isr(){ mcu_i2c_isr(2); }
 void mcu_core_i2c2er_isr(){ mcu_i2cer_isr(2); }
 #endif
 

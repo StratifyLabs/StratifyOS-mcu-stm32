@@ -14,7 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include <stm32_local.h>
+#include <sos/dev/appfs.h>
+#include "stm32_local.h"
 
 const mcu_config_t mcu_config = {
 		.irq_total = MCU_LAST_IRQ,
@@ -22,4 +23,4 @@ const mcu_config_t mcu_config = {
 		.usb_logical_endpoint_count = 4
 };
 
-u32 mcu_ram_usage_table[MCU_RAM_PAGES/2] MCU_SYS_MEM;
+u32 mcu_ram_usage_table[APPFS_RAM_USAGE_WORDS(MCU_RAM_PAGES)] MCU_SYS_MEM;

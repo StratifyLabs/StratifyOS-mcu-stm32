@@ -19,7 +19,7 @@
 
 #include <mcu/core.h>
 #include <mcu/debug.h>
-#include <stm32_local.h>
+#include "stm32_local.h"
 
 #if defined __stm32f446xx
 

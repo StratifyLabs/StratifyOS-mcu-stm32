@@ -17,7 +17,7 @@
  * 
  */
 
-#include <stm32_local.h>
+#include "stm32_local.h"
 
 
 //requires mcu_core_osc_freq, mcu_board_config.core_cpu_freq, and mcu_board_config.core_periph_freq to be defined ext
