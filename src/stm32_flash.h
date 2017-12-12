@@ -50,6 +50,7 @@ extern u32 _sram_start;
 int stm32_flash_get_sector_size(u32 sector);
 int stm32_flash_get_sector_addr(u32 sector);
 int stm32_flash_is_flash(u32 addr, u32 size);
+int stm32_flash_is_code(u32 addr, u32 size);
 int stm32_flash_get_sector(u32 addr);
 
 int stm32_flash_blank_check(int loc, int nbyte);

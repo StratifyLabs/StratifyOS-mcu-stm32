@@ -108,6 +108,18 @@ int stm32_flash_is_flash(u32 addr, u32 size){
 	return 0;
 }
 
+int stm32_flash_is_code(u32 addr, u32 size){
+	if( addr + size <= FLASH_CODE_START ){
+		return 0;
+	}
+
+	if( addr >= FLASH_CODE_END ){
+		return 0;
+	}
+
+	return 1;
+}
+
 //Get the flash page that contains the address
 int stm32_flash_get_sector(u32 addr){
 	u32 offset;

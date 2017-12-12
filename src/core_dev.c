@@ -18,7 +18,7 @@
 //#include "config.h"
 
 #include <mcu/bootloader.h>
-#include "stm32_local.h"
+#include "stm32_flash.h"
 
 
 static u32 mcu_core_get_reset_src();
@@ -228,6 +228,6 @@ void mcu_core_set_nvic_priority(int irq, int prio){
 
 void mcu_core_get_bootloader_api(void * args){
 	void * ptr;
-	memcpy(&ptr, (void*)(36), sizeof(void*)); //get pointer to boot api
+	memcpy(&ptr, (void*)(FLASH_START + 36), sizeof(void*)); //get pointer to boot api
 	memcpy(args, ptr, sizeof(bootloader_api_t)); //copy boot api
 }

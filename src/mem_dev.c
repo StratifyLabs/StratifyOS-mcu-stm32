@@ -43,7 +43,7 @@ int mcu_mem_dev_is_powered(const devfs_handle_t * handle){
 
 //this is used by appfs
 int mcu_mem_getsyspage(){
-	return (SRAM_PAGES);
+	return 0; //system memory starts on the first page at SRAM_START
 }
 
 
@@ -127,18 +127,25 @@ int mcu_mem_erasepage(const devfs_handle_t * handle, void * ctl){
 
 	page_size = stm32_flash_get_sector_size(page);
 
+	//protect the OS and the bootloader from being erased
 	if( page <= last_boot_page ){
+		mcu_debug_root_printf("Can't erase page (BOOT) %d in 0x%lX %d\n", page, addr, page_size);
 		errno = EROFS;
 		return -1;
 	}
 
-	//protect the OS and the bootloader from being erased
-	if ( (page <= last_boot_page) ||
-			((addr + page_size >= FLASH_CODE_START) && (addr <= FLASH_CODE_END)) ){
-		mcu_debug_root_printf("Can't erase page %d\n", page);
+	if( stm32_flash_is_flash(addr, page_size) == 0 ){
+		mcu_debug_root_printf("Can't erase page (FLASH) %d in 0x%lX %d\n", page, addr, page_size);
 		errno = EROFS;
 		return -1;
 	}
+
+	if( stm32_flash_is_code(addr, page_size) ){
+		mcu_debug_root_printf("Can't erase page (CODE) %d in 0x%lX %d\n", page, addr, page_size);
+		errno = EROFS;
+		return -1;
+	}
+
 
 	err = stm32_flash_erase_sector(page);
 	if( err < 0 ){
@@ -169,7 +176,7 @@ int mcu_mem_writepage(const devfs_handle_t * handle, void * ctl){
 	write_page = stm32_flash_get_sector(wattr->addr);
 
 	if ( write_page <= last_boot_page ){
-		mcu_debug_root_printf("Can't write to 0x%lX\n", wattr->addr);
+		mcu_debug_root_printf("Can't write to 0x%lX boot page %d %d\n", wattr->addr, write_page, last_boot_page);
 		errno = EROFS;
 		return -1;
 	}
@@ -262,7 +269,7 @@ int get_last_boot_page(){
 	mcu_core_get_bootloader_api(&api);
 
 	if( api.code_size > 0 ){ //zero means there is no bootloader installed
-		return stm32_flash_get_sector(api.code_size + FLASH_START);
+		return stm32_flash_get_sector(api.code_size);
 	}
 
 	return -1;

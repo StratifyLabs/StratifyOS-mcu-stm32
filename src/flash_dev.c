@@ -79,7 +79,7 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 	page = (u32)ctl;
 	int last_page = get_last_bootloader_page();
 
-	if ( page < last_page ){
+	if ( page <= last_page ){
 		//Never erase the bootloader
 		errno = EROFS;
 		return -1;
@@ -94,16 +94,21 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 		return -1;
 	}
 
+
 	//check to see if the page is already blank
 	if ( stm32_flash_blank_check(addr, page_size) == 0 ){
 		return 0;
 	}
 
+
+
 	err = stm32_flash_erase_sector(page);
 	if( err < 0 ){
 		errno = EIO;
 	}
+
 	return err;
+
 }
 
 int mcu_flash_getpage(const devfs_handle_t * handle, void * ctl){
@@ -120,8 +125,8 @@ int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
 	flash_writepage_t * wattr = ctl;
 
 	nbyte = wattr->nbyte;
-	if( nbyte > 256 ){
-		nbyte = 256;
+	if( nbyte > FLASH_MAX_WRITE_SIZE ){
+		nbyte = FLASH_MAX_WRITE_SIZE;
 	}
 
 	//is dest in flash?
