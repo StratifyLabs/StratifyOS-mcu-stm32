@@ -161,7 +161,6 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 
 	u32 o_flags = attr->o_flags;
 	u32 freq = attr->freq;
-	int chan = attr->channel.loc;
 	//regs = tmr_regs_table[port];
 
 
@@ -269,6 +268,11 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 			if( o_flags & TMR_FLAG_IS_CHANNEL_TOGGLE_OUTPUT_ON_MATCH ){
 				//toggle OC output on event
 			}
+		}
+
+
+		if( mcu_tmr_setchannel(handle, (void*)&attr->channel) < 0 ){
+			return -1;
 		}
 	}
 
