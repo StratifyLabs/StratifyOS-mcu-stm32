@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert; 
+/* Copyright 2011-2016 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -13,15 +13,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  */
 
-#include "mcu/arch.h"
-#include "mcu/wdt.h"
-#include "cortexm/cortexm.h"
-#include "mcu/core.h"
-#include "cortexm/fault.h"
+#include "stm32_local.h"
 
 
 #define WDEN (1<<0)

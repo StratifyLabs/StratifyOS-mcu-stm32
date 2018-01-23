@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert; 
+/* Copyright 2011-2016 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -13,12 +13,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  */
 
 #include "cortexm/fault.h"
-#include "mcu/arch.h"
 
 int fault_dev_save(const fault_t * fault){
 #if 0
@@ -47,4 +46,3 @@ int fault_dev_load(fault_t * fault){
 #endif
 	return 0;
 }
-

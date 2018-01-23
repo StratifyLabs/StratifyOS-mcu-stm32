@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert; 
+/* Copyright 2011-2016 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -13,12 +13,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  */
 
 #include <core_startup.h>
-#include <sos/sos.h>
 #include "stm32_local.h"
 
 static const char sys_proc_name[] = "sys";
@@ -90,8 +89,3 @@ void mcu_core_nmi_isr(){
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr){
 	return 0;
 }
-
-
-
-
-

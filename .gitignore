@@ -13,3 +13,4 @@
 /build_release_mcu_lpc82x/
 
 *.user
+cmake_*
