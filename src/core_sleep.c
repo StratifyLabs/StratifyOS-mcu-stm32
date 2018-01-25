@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert; 
+/* Copyright 2011-2016 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -13,8 +13,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  */
 
 #include "stm32_local.h"
@@ -30,34 +30,6 @@ extern LPC_GPDMACH_Type * mcu_dma_get_channel(uint32_t chan);
 
 int mcu_core_user_sleep(core_sleep_t level){
 
-#ifdef __lpc17xx__
-	int tmp;
-
-	LPC_GPDMACH_Type * channel_regs;
-
-	//Wait for any DMA transactions on RAM to complete (AHB transactions are OK in idle but not deep sleep)
-	for(tmp = 0; tmp < DMA_MAX_CHANNEL; tmp++){
-		if ( LPC_GPDMA->EnbldChns & (1<<tmp) ){
-			channel_regs = mcu_dma_get_channel(tmp);
-			if ( level >= CORE_DEEPSLEEP ){
-				if ( (channel_regs->CDestAddr <= 0x10001FFF) ||
-						(channel_regs->CSrcAddr <= 0x10001FFF) ){
-
-					//wait for DMA to complete
-					while(  LPC_GPDMA->EnbldChns & (1<<tmp) ){
-						//this will trip the WDT if it takes too long
-					}
-				}
-			} else {
-				//wait for DMA to complete
-				while(  LPC_GPDMA->EnbldChns & (1<<tmp) ){
-					//this will trip the WDT if it takes too long
-				}
-			}
-		}
-	}
-#endif
-
 	cortexm_svcall((cortexm_svcall_t)mcu_set_sleep_mode, &level);
 	if ( level < 0 ){
 		return level;
@@ -68,3 +40,10 @@ int mcu_core_user_sleep(core_sleep_t level){
 	return 0;
 }
 
+void mcu_core_prepare_deepsleep(int level){
+
+}
+
+void mcu_core_recover_deepsleep(int level){
+	
+}

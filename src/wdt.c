@@ -29,16 +29,10 @@
 
 int mcu_wdt_init(int mode, int interval){
 
-
-
 	return 0;
 }
 
 int mcu_wdt_setinterval(int interval){
-
-
-	mcu_wdt_reset();
-
 	return 0;
 }
 

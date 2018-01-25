@@ -3,12 +3,12 @@
 
 set(SOURCES
   ${SOURCES_PREFIX}/core_dev.c
-  ${SOURCES_PREFIX}/core_initclock.c
   ${SOURCES_PREFIX}/core_set_alternate_func.c
   ${SOURCES_PREFIX}/core_setusbclock.c
   ${SOURCES_PREFIX}/core_sleep.c
   ${SOURCES_PREFIX}/core_startup.c
   ${SOURCES_PREFIX}/fault_dev.c
+  ${SOURCES_PREFIX}/flash_dev.c
   ${SOURCES_PREFIX}/i2c_dev.c
   ${SOURCES_PREFIX}/stm32_flash.c
   ${SOURCES_PREFIX}/mcu_dev.c

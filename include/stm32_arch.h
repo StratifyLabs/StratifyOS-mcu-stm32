@@ -17,11 +17,18 @@
 #ifndef STM32_ARCH_H_
 #define STM32_ARCH_H_
 
-#ifdef __stm32f446xx
+#if defined __stm32f446xx
 #define CORE_M4 1
 #define ARM_MATH_CM4 1
 #define STM32F446xx 1
 #include "mcu_stm32f446xx.h"
+#endif
+
+#if defined __stm32f401xc
+#define CORE_M4 1
+#define ARM_MATH_CM4 1
+#define STM32F401xC 1
+#include "mcu_stm32f401xc.h"
 #endif
 
 
