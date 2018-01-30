@@ -3,7 +3,6 @@
 
 set(SOURCES
   ${SOURCES_PREFIX}/core_dev.c
-  ${SOURCES_PREFIX}/core_set_alternate_func.c
   ${SOURCES_PREFIX}/core_setusbclock.c
   ${SOURCES_PREFIX}/core_sleep.c
   ${SOURCES_PREFIX}/core_startup.c

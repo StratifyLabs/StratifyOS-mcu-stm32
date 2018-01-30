@@ -113,8 +113,8 @@ _DECLARE_ISR(dma2_stream4); //60
 //_DECLARE_ISR(can2_rx0);
 //_DECLARE_ISR(can2_rx1);
 //_DECLARE_ISR(can2_sce);
-
-
+//65
+//66
 _DECLARE_ISR(otg_fs); //67
 _DECLARE_ISR(dma2_stream5); //68
 _DECLARE_ISR(dma2_stream6);
@@ -242,19 +242,7 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(fpu), //81
 		mcu_core_default_isr,
 		mcu_core_default_isr,
-		_ISR(spi4), //84
-		mcu_core_default_isr,
-		mcu_core_default_isr,
-		mcu_core_default_isr, //87
-		mcu_core_default_isr,
-		mcu_core_default_isr,
-		mcu_core_default_isr, //90
-		mcu_core_default_isr, //91
-		mcu_core_default_isr,
-		mcu_core_default_isr,
-		mcu_core_default_isr,
-		mcu_core_default_isr,
-		mcu_core_default_isr
+        _ISR(spi4) //84
 };
 
 void mcu_core_reset_handler(){

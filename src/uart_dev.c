@@ -60,27 +60,27 @@ void mcu_uart_dev_power_on(const devfs_handle_t * handle){
 		case 0:
 			__HAL_RCC_USART1_CLK_ENABLE();
 			break;
-#if MCU_UART_PORTS > 1
+#if defined USART2
 		case 1:
 			__HAL_RCC_USART2_CLK_ENABLE();
 			break;
 #endif
-#if MCU_UART_PORTS > 2
+#if defined USART3
 		case 2:
 			__HAL_RCC_USART3_CLK_ENABLE();
 			break;
 #endif
-#if MCU_UART_PORTS > 3
+#if defined UART4
 		case 3:
 			__HAL_RCC_UART4_CLK_ENABLE();
 			break;
 #endif
-#if MCU_UART_PORTS > 4
+#if defined UART5
 		case 4:
 			__HAL_RCC_UART5_CLK_ENABLE();
 			break;
 #endif
-#if MCU_UART_PORTS > 5
+#if defined USART6
 		case 5:
 			__HAL_RCC_USART6_CLK_ENABLE();
 			break;
@@ -107,27 +107,27 @@ void mcu_uart_dev_power_off(const devfs_handle_t * handle){
 			case 0:
 				__HAL_RCC_USART1_CLK_DISABLE();
 				break;
-#if MCU_UART_PORTS > 1
+#if defined USART2
 			case 1:
 				__HAL_RCC_USART2_CLK_DISABLE();
 				break;
 #endif
-#if MCU_UART_PORTS > 2
+#if defined USART3
 			case 2:
 				__HAL_RCC_USART3_CLK_DISABLE();
 				break;
 #endif
-#if MCU_UART_PORTS > 3
+#if defined UART4
 			case 3:
 				__HAL_RCC_UART4_CLK_DISABLE();
 				break;
 #endif
-#if MCU_UART_PORTS > 4
+#if defined UART5
 			case 4:
 				__HAL_RCC_UART5_CLK_DISABLE();
 				break;
 #endif
-#if MCU_UART_PORTS > 5
+#if defined USART6
 			case 5:
 				__HAL_RCC_USART6_CLK_DISABLE();
 				break;
@@ -285,17 +285,9 @@ int mcu_uart_put(const devfs_handle_t * handle, void * ctl){
 	int port = handle->port;
 	uart_local_t * uart = uart_local + port;
 
-#if 0
-	while(__HAL_UART_GET_FLAG(&uart->hal_handle, UART_FLAG_TXE) == RESET ){
-		;
-	}
-
-    uart->hal_handle.Instance->DR = c;
-#else
 	if( HAL_UART_Transmit(&uart->hal_handle, &c, 1, HAL_MAX_DELAY) != HAL_OK ){
 		return -1;
 	}
-#endif
 
 	return 0;
 }

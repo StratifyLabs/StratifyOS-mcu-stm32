@@ -25,6 +25,7 @@
 #include <usbd/types.h>
 #include <mcu/core.h>
 #include <mcu/debug.h>
+#include <mcu/boot_debug.h>
 
 #include "stm32_local.h"
 
@@ -72,16 +73,7 @@ void clear_callbacks(){
 
 }
 
-#ifdef LPCXX7X_8X
-static void configure_pin(const mcu_pin_t * pin, void * arg){
-	if( pin->pin == 31 ){
-		LPC_USB->StCtrl |= 0x03;
-	}
-}
-#else
 #define configure_pin 0
-#endif
-
 
 void mcu_usb_dev_power_on(const devfs_handle_t * handle){
 	if ( usb_local.ref_count == 0 ){
@@ -89,9 +81,6 @@ void mcu_usb_dev_power_on(const devfs_handle_t * handle){
 		usb_local.connected = 0;
 		clear_callbacks();
 		usb_local.special_event_handler.callback = 0;
-		//mcu_lpc_core_enable_pwr(PCUSB);
-		//LPC_USB->USBClkCtrl = 0x12; //turn on dev clk en and AHB clk en
-		//while( LPC_USB->USBClkCtrl != 0x12 ){}  //wait for clocks
 		usb_local.hal_handle.Instance = usb_regs_table[0];
 		__HAL_RCC_USB_OTG_FS_CLK_ENABLE();
 		cortexm_enable_irq((void*)(u32)(usb_irqs[0]));  //Enable USB IRQ
@@ -172,8 +161,10 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 			usb_local.hal_handle.Init.vbus_sensing_enable = ENABLE;
 		}
 
-		HAL_PCD_Init(&usb_local.hal_handle);
 
+        HAL_PCD_Init(&usb_local.hal_handle);
+
+        //this needs an MCU definition to define the number of endpoints and the amount of RAM available 1.25K for at least some STM32F4xx
 		//these need to be pulled from MCU FIFO
 		HAL_PCDEx_SetRxFiFo(&usb_local.hal_handle, 128);  //size is in 32-bit words for all fifo - 512
 		HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, 0, 32); //128 / 640
@@ -545,7 +536,7 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd){
-	//mcu_debug_root_printf("Resume\n");
+
 }
 
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
@@ -564,8 +555,6 @@ void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd){
 void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd){
 	usb_local.connected = 0;
 }
-
-
 
 void mcu_core_otg_fs_isr(){
 	HAL_PCD_IRQHandler(&usb_local.hal_handle);

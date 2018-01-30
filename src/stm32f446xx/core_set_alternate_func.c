@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert; 
+/* Copyright 2011-2016 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -13,48 +13,20 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  */
 
 #include <mcu/core.h>
 #include <mcu/debug.h>
 #include "stm32_local.h"
-
-#if defined __stm32f446xx
+#include "stm32_pin_local.h"
 
 #define TOTAL_ENTRIES 16
 
 typedef struct {
 	u16 entry[TOTAL_ENTRIES];
 } alternate_function_entry_t;
-
-#define ENTRY(function, port) (port<<8|function)
-#define RESERVED_ (ENTRY(CORE_PERIPH_RESERVED, 0))
-#define ENTRY_GET_FUNCTION(entry) (entry & 0xFF)
-#define ENTRY_GET_PORT(entry) ( entry >> 8)
-
-#define E_TMR_(port) ENTRY(CORE_PERIPH_TMR,(port-1))
-#define E_TMR(port) ENTRY(CORE_PERIPH_TMR,(port-1))
-#define E_UART(port) ENTRY(CORE_PERIPH_UART,(port-1))
-#define E_USRT(port) ENTRY(CORE_PERIPH_UART,(port-1))
-#define E_I2S_(port) ENTRY(CORE_PERIPH_I2S,(port-1))
-#define E_SYS_(port) ENTRY(CORE_PERIPH_SYS,(port-1))
-#define E_QSPI(port) ENTRY(CORE_PERIPH_QSPI,(port-1))
-#define E_SPI_(port) ENTRY(CORE_PERIPH_SPI,(port-1))
-#define E_USB_(port) ENTRY(CORE_PERIPH_USB,(port-1))
-#define E_LCD_(port) ENTRY(CORE_PERIPH_LCD,(port-1))
-#define E_FMC_(port) ENTRY(CORE_PERIPH_LCD,(port-1))
-#define E_MCO_(port) ENTRY(CORE_PERIPH_LCD,(port-1))
-#define E_I2C_(port) ENTRY(CORE_PERIPH_I2C,(port-1))
-#define E_HDMI(port) ENTRY(CORE_PERIPH_I2C,(port-1))
-#define E_CAN_(port) ENTRY(CORE_PERIPH_CAN,(port-1))
-#define E_JTAG(port) ENTRY(CORE_PERIPH_JTAG,(port-1))
-#define E_RTC_(port) ENTRY(CORE_PERIPH_RTC,(port-1))
-#define E_SPDF(port) ENTRY(CORE_PERIPH_RTC,(port-1))
-#define E_SDIO(port) ENTRY(CORE_PERIPH_RTC,(port-1))
-#define E_TRAC(port) ENTRY(CORE_PERIPH_TRACE,(port-1))
-#define E_FMP_(port) ENTRY(CORE_PERIPH_I2C,(port-1))
 
 
 #define TOTAL_PINS (7*16+2)
@@ -285,5 +257,3 @@ int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int 
 	}
 	return hal_set_alternate_pin_function(*pin, function, periph_port, mode, speed, pull);
 }
-
-#endif

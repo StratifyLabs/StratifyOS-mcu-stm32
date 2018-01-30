@@ -20,14 +20,18 @@
 #if defined __stm32f446xx
 #define CORE_M4 1
 #define ARM_MATH_CM4 1
+#if !defined STM32F446xx
 #define STM32F446xx 1
+#endif
 #include "mcu_stm32f446xx.h"
 #endif
 
 #if defined __stm32f401xc
 #define CORE_M4 1
 #define ARM_MATH_CM4 1
+#if !defined STM32F401xC
 #define STM32F401xC 1
+#endif
 #include "mcu_stm32f401xc.h"
 #endif
 

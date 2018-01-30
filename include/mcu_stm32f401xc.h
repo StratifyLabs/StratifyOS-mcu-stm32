@@ -76,7 +76,7 @@
 #define MCU_MIDDLE_IRQ_PRIORITY 8
 
 
-#define MCU_RAM_PAGES 112
+#define MCU_RAM_PAGES 56
 
 
 #ifdef __cplusplus
