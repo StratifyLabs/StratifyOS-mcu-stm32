@@ -43,10 +43,6 @@ void core_init(){
 	for(src = &_bss; src < &_ebss; ) *src++ = 0; //Zero out BSS section
 	for(src = &_sys; src < &_esys; ) *src++ = 0; //Zero out sysmem
 
-
-	__HAL_RCC_GPIOB_CLK_ENABLE();
-
-
 	//Re-entrancy initialization
 	//If the program faults on the next line, make sure the etext and data are aligned properly in the linker script (4 byte boundary)
 	_REENT->procmem_base = (proc_mem_t*)&_ebss;
@@ -60,7 +56,6 @@ void core_init(){
 	//Initialize the global mutexes
 	__lock_init_recursive_global(__malloc_lock_object);
 	_REENT->procmem_base->__malloc_lock_object.flags |= PTHREAD_MUTEX_FLAGS_PSHARED; //Make the malloc lock pshared
-
 
 	__lock_init_global(__tz_lock_object);
 	__lock_init_recursive_global(__atexit_lock);

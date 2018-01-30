@@ -239,17 +239,13 @@ int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int 
     default: break;
 	case CORE_PERIPH_I2C:
 		mode = GPIO_MODE_AF_OD;
-		speed = GPIO_SPEED_FREQ_HIGH;
 		break;
 	case CORE_PERIPH_ADC:
 	case CORE_PERIPH_DAC:
 		mode = GPIO_MODE_ANALOG;
 		break;
-	case CORE_PERIPH_USB:
-		mode = GPIO_MODE_AF_PP;
-		speed = GPIO_SPEED_FREQ_VERY_HIGH;
-		pull = GPIO_NOPULL;
-		break;
+    case CORE_PERIPH_USB:
+    case CORE_PERIPH_SPI:
     case CORE_PERIPH_TMR:
         speed = GPIO_SPEED_FREQ_VERY_HIGH;
         break;
