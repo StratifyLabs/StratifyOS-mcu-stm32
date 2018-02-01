@@ -80,6 +80,7 @@
 
 
 #define MCU_RAM_PAGES 112
+#define MCU_DELAY_FACTOR 12
 
 
 #ifdef __cplusplus

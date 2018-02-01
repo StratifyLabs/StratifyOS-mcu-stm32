@@ -203,7 +203,12 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
             } else {
                 m_tmr_local[port].hal_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
             }
-            m_tmr_local[port].hal_handle.Init.Period = attr->period;
+
+            if( o_flags & TMR_FLAG_IS_AUTO_RELOAD ){
+                m_tmr_local[port].hal_handle.Init.Period = attr->period;
+            } else {
+                m_tmr_local[port].hal_handle.Init.Period = (u32)-1; //set to the max
+            }
             m_tmr_local[port].hal_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 
             if( HAL_TIM_Base_Init(&m_tmr_local[port].hal_handle) != HAL_OK ){
@@ -218,9 +223,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
                     return -1;
                 }
             }
-
         }
-
     }
 
     if( o_flags & TMR_FLAG_SET_CHANNEL ){
@@ -328,7 +331,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
                     &(attr->pin_assignment),
                     MCU_CONFIG_PIN_ASSIGNMENT(tmr_config_t, handle),
                     MCU_PIN_ASSIGNMENT_COUNT(tmr_pin_assignment_t),
-                    CORE_PERIPH_TMR, port, 0, 0) < 0 ){
+                    CORE_PERIPH_TMR, port, 0, 0, 0) < 0 ){
             return -1;
         }
     }
@@ -559,6 +562,10 @@ void mcu_core_tim3_isr(){
 
 void mcu_core_tim4_isr(){
     tmr_isr(3);
+}
+
+void mcu_core_tim5_isr(){
+    tmr_isr(4);
 }
 
 #endif

@@ -5,7 +5,7 @@ cmake_minimum_required (VERSION 3.6)
 set(SOURCES_PREFIX ${CMAKE_SOURCE_DIR}/src)
 add_subdirectory(src)
 file(GLOB LDSCRIPT_SOURCES "${CMAKE_SOURCE_DIR}/ldscript/*")
-set(SHARED_SOURCELIST ${SOURCES} ${LDSCRIPT_SOURCES} ${CMAKE_SOURCE_DIR}/include/stm32_arch.h)
+set(SHARED_SOURCELIST ${SOURCES} ${LDSCRIPT_SOURCES} ${CMAKE_SOURCE_DIR}/include/stm32_arch.h ${CMAKE_SOURCE_DIR}/README.md)
 
 
 if( ${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin" )

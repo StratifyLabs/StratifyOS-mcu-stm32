@@ -204,7 +204,7 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 				&(uart->attr->pin_assignment),
 				MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
 				MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t),
-				CORE_PERIPH_UART, port, 0, 0) < 0 ){
+                CORE_PERIPH_UART, port, 0, 0, 0) < 0 ){
 			return -1;
 		}
 

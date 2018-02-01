@@ -73,8 +73,6 @@ void clear_callbacks(){
 
 }
 
-#define configure_pin 0
-
 void mcu_usb_dev_power_on(const devfs_handle_t * handle){
 	if ( usb_local.ref_count == 0 ){
 		//Set callbacks to NULL
@@ -133,7 +131,7 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 				&(attr->pin_assignment),
 				MCU_CONFIG_PIN_ASSIGNMENT(usb_config_t, handle),
 				MCU_PIN_ASSIGNMENT_COUNT(usb_pin_assignment_t),
-				CORE_PERIPH_USB, port, configure_pin, 0) < 0 ){
+                CORE_PERIPH_USB, port, 0, 0, 0) < 0 ){
 			return -1;
 		}
 

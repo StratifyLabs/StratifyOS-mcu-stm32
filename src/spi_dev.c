@@ -173,8 +173,8 @@ int mcu_spi_setattr(const devfs_handle_t * handle, void * ctl){
             }
 //#endif
 
+            //get as close to the target freq as possible without going over
             prescalar = pclk / attr->freq;
-
             if( prescalar < 2 ){
                 spi_local[port].hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
             } else if( prescalar < 4 ){
@@ -250,7 +250,7 @@ int mcu_spi_setattr(const devfs_handle_t * handle, void * ctl){
                 &(attr->pin_assignment),
                 MCU_CONFIG_PIN_ASSIGNMENT(spi_config_t, handle),
                 MCU_PIN_ASSIGNMENT_COUNT(spi_pin_assignment_t),
-                CORE_PERIPH_SPI, port, 0, 0) < 0 ){
+                CORE_PERIPH_SPI, port, 0, 0, 0) < 0 ){
         return -1;
     }
 

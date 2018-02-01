@@ -217,12 +217,11 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
 		return -1;
 	}
 
-	alternate_function =	hal_get_alternate_function(pin.port, pin.pin, function, periph_port);
+    alternate_function = hal_get_alternate_function(pin.port, pin.pin, function, periph_port);
 
 	if( alternate_function < 0 ){
 		return -1;
 	}
-
 
 	GPIO_InitStruct.Pin = (1<<pin.pin);
 	GPIO_InitStruct.Mode = mode;
