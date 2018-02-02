@@ -134,7 +134,8 @@ int mcu_i2c_getinfo(const devfs_handle_t * handle, void * ctl){
             I2C_FLAG_IS_SLAVE_ADDR0 |
             I2C_FLAG_IS_SLAVE_ADDR1 |
             I2C_FLAG_IS_SLAVE_ADDR2 |
-            I2C_FLAG_IS_SLAVE_ADDR3;
+            I2C_FLAG_IS_SLAVE_ADDR3 |
+            I2C_FLAG_RESET;
 
     info->freq = 400000;
 
@@ -248,6 +249,11 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
         i2c->o_flags = o_flags;
         i2c->slave_addr[0] = (attr->slave_addr[0].addr8[0]);
         i2c->slave_addr[1] = (attr->slave_addr[1].addr8[0]);
+    }
+
+    if( o_flags & I2C_FLAG_RESET ){
+        //force a reset of the I2C
+        i2c_clear_busy_flag_erratum(port, i2c);
     }
 
     return 0;

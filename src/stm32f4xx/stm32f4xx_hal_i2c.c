@@ -3476,7 +3476,7 @@ void HAL_I2C_ER_IRQHandler(I2C_HandleTypeDef *hi2c)
       hi2c->ErrorCode |= HAL_I2C_ERROR_AF;
 
       /* Do not generate a STOP in case of Slave receive non acknowledge during transfer (mean not at the end of transfer) */
-      if(hi2c->Mode == HAL_I2C_MODE_MASTER)
+      if( (hi2c->Mode == HAL_I2C_MODE_MASTER) || (hi2c->Mode == HAL_I2C_MODE_MEM) )
       {
         /* Generate Stop */
         SET_BIT(hi2c->Instance->CR1,I2C_CR1_STOP);
