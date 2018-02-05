@@ -113,6 +113,7 @@ int mcu_usb_getinfo(const devfs_handle_t * handle, void * ctl){
 
 int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 	int port = handle->port;
+    int i;
 
 	const usb_attr_t * attr = mcu_select_attr(handle, ctl);
 	if( attr == 0 ){
@@ -164,11 +165,19 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 
         //this needs an MCU definition to define the number of endpoints and the amount of RAM available 1.25K for at least some STM32F4xx
 		//these need to be pulled from MCU FIFO
+#if 0
 		HAL_PCDEx_SetRxFiFo(&usb_local.hal_handle, 128);  //size is in 32-bit words for all fifo - 512
 		HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, 0, 32); //128 / 640
 		HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, 1, 32); //128 / 768
 		HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, 2, 32); //128 / 896
 		HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, 3, 64); //256 / 1152
+#endif
+        HAL_PCDEx_SetRxFiFo(&usb_local.hal_handle, attr->rx_fifo_word_size);  //size is in 32-bit words for all fifo - 512
+        for(i=0; i < USB_TX_FIFO_WORD_SIZE_COUNT; i++){
+            if( attr->tx_fifo_word_size[i] > 0 ){
+                HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, i, attr->tx_fifo_word_size[i]);
+            }
+        }
 
 		HAL_PCD_Start(&usb_local.hal_handle);
 	}
