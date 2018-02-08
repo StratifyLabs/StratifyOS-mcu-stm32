@@ -34,6 +34,8 @@ int mcu_core_setpinfunc(const devfs_handle_t * handle, void * arg){
 			argp->periph_port);
 }
 
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(core, CORE_VERSION, I_MCU_TOTAL + I_CORE_TOTAL, mcu_core_setpinfunc, mcu_core_setclkout, mcu_core_setclkdivide, mcu_core_getmcuboardconfig)
+
 int mcu_core_open(const devfs_handle_t * handle){ return 0; }
 int mcu_core_close(const devfs_handle_t * handle){ return 0; }
 

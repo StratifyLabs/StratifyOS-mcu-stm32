@@ -29,6 +29,8 @@ u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
 
 static int execute_handler(mcu_event_handler_t * handler, u32 o_events, u32 value);
 
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi, SPI_VERSION, I_MCU_TOTAL + I_SPI_TOTAL, mcu_spi_swap)
+
 
 int mcu_spi_open(const devfs_handle_t * handle){
     int port = handle->port;

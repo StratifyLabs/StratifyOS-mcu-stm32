@@ -50,6 +50,8 @@ u8 const uart_irqs[UART_PORTS] = MCU_UART_IRQS;
 static void exec_readcallback(int port, USART_TypeDef * uart_regs, u32 o_events);
 static void exec_writecallback(int port, USART_TypeDef * uart_regs, u32 o_events);
 
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(uart, UART_VERSION, I_MCU_TOTAL + I_UART_TOTAL, mcu_uart_get, mcu_uart_put, mcu_uart_flush)
+
 int mcu_uart_open(const devfs_handle_t * handle){
 	int port = handle->port;
 	if ( uart_local[port].ref_count == 0 ){

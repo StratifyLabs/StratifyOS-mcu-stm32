@@ -73,6 +73,9 @@ void clear_callbacks(){
 
 }
 
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(usb, USB_VERSION, I_MCU_TOTAL + I_USB_TOTAL, mcu_usb_isconnected)
+
+
 int mcu_usb_open(const devfs_handle_t * handle){
 	if ( usb_local.ref_count == 0 ){
 		//Set callbacks to NULL

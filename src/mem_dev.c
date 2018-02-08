@@ -35,6 +35,8 @@ static int get_ram_page(int addr);
 static int get_ram_page_size(int page);
 static int get_ram_page_addr(int page);
 
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(mem, MEM_VERSION, I_MCU_TOTAL + I_MEM_TOTAL, mcu_mem_erasepage, mcu_mem_getpageinfo, mcu_mem_writepage)
+
 int mcu_mem_open(const devfs_handle_t * handle){ return 0; }
 int mcu_mem_close(const devfs_handle_t * handle){ return 0; }
 

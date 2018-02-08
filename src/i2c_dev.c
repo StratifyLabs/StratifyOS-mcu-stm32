@@ -62,6 +62,8 @@ typedef struct {
 static void post_configure_pin(const mcu_pin_t * pin, void* arg);
 #endif
 
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(i2c, I2C_VERSION)
+
 int mcu_i2c_open(const devfs_handle_t * handle){
     int port = handle->port;
     i2c_local_t * i2c = i2c_local + port;

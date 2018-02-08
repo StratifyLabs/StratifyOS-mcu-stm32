@@ -72,6 +72,8 @@ void clear_actions(int port){
     memset(m_tmr_local[port].handler, 0, (NUM_OCS+NUM_ICS)*sizeof(mcu_event_handler_t));
 }
 
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(tmr, TMR_VERSION, I_MCU_TOTAL + I_TMR_TOTAL, mcu_tmr_setchannel, mcu_tmr_getchannel, mcu_tmr_set, mcu_tmr_get, mcu_tmr_enable, mcu_tmr_disable)
+
 int mcu_tmr_open(const devfs_handle_t * handle){
     int port = handle->port;
     if ( m_tmr_local[port].ref_count == 0 ){

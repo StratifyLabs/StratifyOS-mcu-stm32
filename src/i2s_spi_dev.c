@@ -25,6 +25,8 @@
 
 static int execute_handler(mcu_event_handler_t * handler, u32 o_events);
 
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi, I2S_VERSION, I_MCU_TOTAL + I_I2S_TOTAL, mcu_i2s_spi_mute, mcu_i2s_spi_unmute)
+
 int mcu_i2s_spi_open(const devfs_handle_t * handle){
     u32 port = handle->port;
     //same as SPI
@@ -63,7 +65,6 @@ int mcu_i2s_spi_unmute(const devfs_handle_t * handle, void * ctl){
 
 int mcu_i2s_spi_setattr(const devfs_handle_t * handle, void * ctl){
     int port = handle->port;
-    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 
 
     const i2s_attr_t * attr = mcu_select_attr(handle, ctl);
@@ -146,6 +147,7 @@ int mcu_i2s_spi_setattr(const devfs_handle_t * handle, void * ctl){
 
         //this might be better implemented in the "core" driver for controlling the clocks
 #if defined RCC_PERIPHCLK_I2S
+        RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
         PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
         PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
         PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
