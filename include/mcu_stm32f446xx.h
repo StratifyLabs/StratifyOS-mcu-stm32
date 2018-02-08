@@ -46,6 +46,12 @@
 #define MCU_SPI_REGS { SPI1, SPI2, SPI3, SPI4 }
 #define MCU_SPI_IRQS { SPI1_IRQn, SPI2_IRQn, SPI3_IRQn, SPI4_IRQn }
 
+//Has I2S on SPI1, SPI2, and SPI3
+#define MCU_I2S_ON_SPI1 1
+#define MCU_I2S_ON_SPI2 1
+#define MCU_I2S_ON_SPI3 1
+#define MCU_I2S_ON_SPI4 0
+
 #define MCU_SAI_API 0
 #define MCU_SAI_PORTS 2
 #define MCU_SAI_REGS { SAI1, SAI2 }

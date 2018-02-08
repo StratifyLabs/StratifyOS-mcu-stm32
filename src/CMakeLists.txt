@@ -8,8 +8,9 @@ set(SOURCES
   ${SOURCES_PREFIX}/core_startup.c
   ${SOURCES_PREFIX}/fault_dev.c
   ${SOURCES_PREFIX}/flash_dev.c
-  ${SOURCES_PREFIX}/i2c_dev.c
-  ${SOURCES_PREFIX}/stm32_flash.c
+	${SOURCES_PREFIX}/i2c_dev.c
+	${SOURCES_PREFIX}/i2s_spi_dev.c
+	${SOURCES_PREFIX}/stm32_flash.c
   ${SOURCES_PREFIX}/mcu_dev.c
   ${SOURCES_PREFIX}/mem_dev.c
   ${SOURCES_PREFIX}/mpu_dev.c
@@ -20,4 +21,5 @@ set(SOURCES
   ${SOURCES_PREFIX}/usb_otg_fs_dev.c
   ${SOURCES_PREFIX}/wdt.c
 	${SOURCES_PREFIX}/stm32_local.h
-  PARENT_SCOPE)
+	${SOURCES_PREFIX}/spi_local.h
+	PARENT_SCOPE)

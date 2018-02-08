@@ -43,7 +43,7 @@ GPIO_TypeDef * const hal_get_pio_regs(u8 port){
     return 0;
 }
 
-void mcu_pio_dev_power_on(const devfs_handle_t * handle){
+int mcu_pio_open(const devfs_handle_t * handle){
     int port = handle->port;
     if ( m_mcu_pio_local[port].ref_count == 0 ){
         m_mcu_pio_local[port].handler.callback = NULL;
@@ -63,9 +63,10 @@ void mcu_pio_dev_power_on(const devfs_handle_t * handle){
         }
     }
     m_mcu_pio_local[port].ref_count++;
+    return 0;
 }
 
-void mcu_pio_dev_power_off(const devfs_handle_t * handle){
+int mcu_pio_close(const devfs_handle_t * handle){
     int port = handle->port;
     if ( m_mcu_pio_local[port].ref_count > 0 ){
         if ( m_mcu_pio_local[port].ref_count == 1 ){
@@ -75,6 +76,7 @@ void mcu_pio_dev_power_off(const devfs_handle_t * handle){
         }
         m_mcu_pio_local[port].ref_count--;
     }
+    return 0;
 }
 
 int mcu_pio_dev_is_powered(const devfs_handle_t * handle){
@@ -85,7 +87,7 @@ int mcu_pio_dev_is_powered(const devfs_handle_t * handle){
     return 0;
 }
 
-int mcu_pio_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
+int mcu_pio_write(const devfs_handle_t * handle, devfs_async_t * wop){
     mcu_action_t * action;
 
     if( wop->nbyte != sizeof(mcu_action_t) ){
@@ -96,6 +98,11 @@ int mcu_pio_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
     action = (mcu_action_t*)wop->buf;
     action->handler = wop->handler;
     return mcu_pio_setaction(handle, action);
+}
+
+int mcu_pio_read(const devfs_handle_t * cfg, devfs_async_t * async){
+    errno = ENOTSUP;
+    return -1;
 }
 
 int mcu_pio_setaction(const devfs_handle_t * handle, void * ctl){

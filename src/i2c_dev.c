@@ -54,13 +54,15 @@ static void exec_slave_callback(i2c_local_t * i2c, u32 o_events, u32 value);
 
 static void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c);
 
+#if 0
 typedef struct {
     u8 port;
     u8 is_pullup;
 } post_configure_pin_t;
 static void post_configure_pin(const mcu_pin_t * pin, void* arg);
+#endif
 
-void mcu_i2c_dev_power_on(const devfs_handle_t * handle){
+int mcu_i2c_open(const devfs_handle_t * handle){
     int port = handle->port;
     i2c_local_t * i2c = i2c_local + port;
     if ( i2c->ref_count == 0 ){
@@ -85,9 +87,10 @@ void mcu_i2c_dev_power_on(const devfs_handle_t * handle){
         cortexm_enable_irq((void*)(u32)(i2c_er_irqs[port]));
     }
     i2c_local[port].ref_count++;
+    return 0;
 }
 
-void mcu_i2c_dev_power_off(const devfs_handle_t * handle){
+int mcu_i2c_close(const devfs_handle_t * handle){
     int port = handle->port;
     i2c_local_t * i2c = i2c_local + port;
     if ( i2c->ref_count > 0 ){
@@ -114,11 +117,7 @@ void mcu_i2c_dev_power_off(const devfs_handle_t * handle){
         }
         i2c_local[port].ref_count--;
     }
-}
-
-int mcu_i2c_dev_is_powered(const devfs_handle_t * handle){
-    int port = handle->port;
-    return ( i2c_local[port].ref_count != 0 );
+    return 0;
 }
 
 int mcu_i2c_getinfo(const devfs_handle_t * handle, void * ctl){
@@ -200,7 +199,9 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
     }
 
     if( o_flags & (I2C_FLAG_SET_MASTER | I2C_FLAG_SET_SLAVE) ){
+#if 0
         post_configure_pin_t post_configure;
+#endif
         const void * pin_assignment;
 
         if( o_flags & I2C_FLAG_STRETCH_CLOCK ){
@@ -212,12 +213,15 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
         }
 
         i2c->o_flags = o_flags;
+#if 0
         post_configure.port = port;
         if( o_flags & I2C_FLAG_IS_PULLUP ){
             post_configure.is_pullup = 1;
         } else {
             post_configure.is_pullup = 0;
         }
+#endif
+
 
         //force a start and stop condition to clear the busy bit
         pin_assignment = mcu_select_pin_assignment(&attr->pin_assignment,
@@ -259,6 +263,7 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
     return 0;
 }
 
+#if 0
 void post_configure_pin(const mcu_pin_t * pin, void* arg){
     post_configure_pin_t * post_configure = arg;
 
@@ -273,12 +278,8 @@ void post_configure_pin(const mcu_pin_t * pin, void* arg){
 
 
 }
+#endif
 
-
-
-int mcu_i2c_reset(const devfs_handle_t * handle, void * ctl){
-    return 0;
-}
 
 int mcu_i2c_geterr(const devfs_handle_t * handle, void * ctl){
     int port = handle->port;
@@ -307,7 +308,7 @@ int mcu_i2c_setaction(const devfs_handle_t * handle, void * ctl){
     return 0;
 }
 
-int mcu_i2c_dev_write(const devfs_handle_t * handle, devfs_async_t * async){
+int mcu_i2c_write(const devfs_handle_t * handle, devfs_async_t * async){
     int ret;
     i2c_local_t * i2c = i2c_local + handle->port;
     int addr_size;
@@ -340,7 +341,7 @@ int mcu_i2c_dev_write(const devfs_handle_t * handle, devfs_async_t * async){
     return -1;
 }
 
-int mcu_i2c_dev_read(const devfs_handle_t * handle, devfs_async_t * async){
+int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
     int ret = HAL_OK;
     i2c_local_t * i2c = i2c_local + handle->port;
     int addr_size;

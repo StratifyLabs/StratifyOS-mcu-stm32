@@ -50,7 +50,7 @@ u8 const uart_irqs[UART_PORTS] = MCU_UART_IRQS;
 static void exec_readcallback(int port, USART_TypeDef * uart_regs, u32 o_events);
 static void exec_writecallback(int port, USART_TypeDef * uart_regs, u32 o_events);
 
-void mcu_uart_dev_power_on(const devfs_handle_t * handle){
+int mcu_uart_open(const devfs_handle_t * handle){
 	int port = handle->port;
 	if ( uart_local[port].ref_count == 0 ){
 
@@ -93,11 +93,10 @@ void mcu_uart_dev_power_on(const devfs_handle_t * handle){
 	}
 	uart_local[port].ref_count++;
 
-
-
+    return 0;
 }
 
-void mcu_uart_dev_power_off(const devfs_handle_t * handle){
+int mcu_uart_close(const devfs_handle_t * handle){
 	int port = handle->port;
 
 	if ( uart_local[port].ref_count > 0 ){
@@ -137,7 +136,8 @@ void mcu_uart_dev_power_off(const devfs_handle_t * handle){
 			uart_local[port].hal_handle.Instance = 0;
 		}
 		uart_local[port].ref_count--;
-	}
+    }
+    return 0;
 }
 
 int mcu_uart_dev_is_powered(const devfs_handle_t * handle){
@@ -316,7 +316,7 @@ int mcu_uart_getall(const devfs_handle_t * handle, void * ctl){
 	return mcu_uart_get(handle, ctl); //only has a one byte buffer
 }
 
-int mcu_uart_dev_read(const devfs_handle_t * handle, devfs_async_t * async){
+int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 	int port = handle->port;
 	uart_local_t * uart = uart_local + port;
 
@@ -362,7 +362,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	mcu_execute_event_handler(&uart->read, MCU_EVENT_FLAG_DATA_READY, &uart_event);
 }
 
-int mcu_uart_dev_write(const devfs_handle_t * handle, devfs_async_t * async){
+int mcu_uart_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
 	int port = handle->port;
 	uart_local_t * uart = uart_local + port;

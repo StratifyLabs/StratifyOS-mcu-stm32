@@ -27,11 +27,8 @@ static int get_last_bootloader_page(){
 	return stm32_flash_get_sector(FLASH_CODE_END);
 }
 
-void flash_dev_power_on(const devfs_handle_t * handle){}
-void flash_dev_power_off(const devfs_handle_t * handle){}
-int flash_dev_is_powered(const devfs_handle_t * handle){
-	return 1;
-}
+int mcu_flash_open(const devfs_handle_t * handle){ return 0; }
+int mcu_flash_close(const devfs_handle_t * handle){ return 0; }
 
 int mcu_flash_getinfo(const devfs_handle_t * handle, void * ctl){
 	return 0;
@@ -157,7 +154,12 @@ int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
 
 }
 
-int mcu_flash_dev_read(const devfs_handle_t * cfg, devfs_async_t * async){
+int mcu_flash_write(const devfs_handle_t * cfg, devfs_async_t * async){
+    errno = ENOTSUP;
+    return -1;
+}
+
+int mcu_flash_read(const devfs_handle_t * cfg, devfs_async_t * async){
 	int ret = 0;
 	if( stm32_flash_is_flash(async->loc, async->nbyte) ){
 		memcpy(async->buf, (const void*)async->loc, async->nbyte);

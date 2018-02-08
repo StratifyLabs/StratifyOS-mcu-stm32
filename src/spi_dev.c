@@ -17,27 +17,20 @@
  *
  */
 
-#include "stm32_local.h"
+#include "spi_local.h"
 #include <mcu/spi.h>
+
 
 #if MCU_SPI_PORTS > 0
 
-typedef struct {
-    SPI_HandleTypeDef hal_handle; //must be first
-    mcu_event_handler_t handler;
-    int * nbyte_ptr;
-    u8 is_full_duplex;
-    u8 ref_count;
-} spi_local_t;
-
-static spi_local_t spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
-
-static SPI_TypeDef * const spi_regs[MCU_SPI_PORTS] = MCU_SPI_REGS;
-static u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
+spi_local_t spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
+SPI_TypeDef * const spi_regs[MCU_SPI_PORTS] = MCU_SPI_REGS;
+u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
 
 static int execute_handler(mcu_event_handler_t * handler, u32 o_events, u32 value);
 
-void mcu_spi_dev_power_on(const devfs_handle_t * handle){
+
+int mcu_spi_open(const devfs_handle_t * handle){
     int port = handle->port;
     if ( spi_local[port].ref_count == 0 ){
 
@@ -77,10 +70,11 @@ void mcu_spi_dev_power_on(const devfs_handle_t * handle){
         spi_local[port].handler.callback = NULL;
     }
     spi_local[port].ref_count++;
+    return 0;
 
 }
 
-void mcu_spi_dev_power_off(const devfs_handle_t * handle){
+int mcu_spi_close(const devfs_handle_t * handle){
     int port = handle->port;
     if ( spi_local[port].ref_count > 0 ){
         if ( spi_local[port].ref_count == 1 ){
@@ -121,13 +115,8 @@ void mcu_spi_dev_power_off(const devfs_handle_t * handle){
         }
         spi_local[port].ref_count--;
     }
+    return 0;
 }
-
-int mcu_spi_dev_is_powered(const devfs_handle_t * handle){
-    int port = handle->port;
-    return ( spi_local[port].ref_count != 0 );
-}
-
 
 int mcu_spi_getinfo(const devfs_handle_t * handle, void * ctl){
     spi_info_t * info = ctl;
@@ -157,6 +146,8 @@ int mcu_spi_setattr(const devfs_handle_t * handle, void * ctl){
     }
 
     u32 o_flags = attr->o_flags;
+
+    spi_local[port].is_i2s = 0;
 
     if( o_flags & SPI_FLAG_SET_MASTER ){
         spi_local[port].hal_handle.Init.Mode = SPI_MODE_MASTER;
@@ -299,7 +290,7 @@ int mcu_spi_setaction(const devfs_handle_t * handle, void * ctl){
     return 0;
 }
 
-int mcu_spi_dev_write(const devfs_handle_t * handle, devfs_async_t * async){
+int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
     int ret;
     int port = handle->port;
 
@@ -325,7 +316,7 @@ int mcu_spi_dev_write(const devfs_handle_t * handle, devfs_async_t * async){
     return 0;
 }
 
-int mcu_spi_dev_read(const devfs_handle_t * handle, devfs_async_t * async){
+int mcu_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
     int ret;
     int port = handle->port;
 
@@ -385,19 +376,54 @@ void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
 }
 
 void mcu_core_spi1_isr(){
+    //No I2S on SPI 1
+#if MCU_I2S_ON_SPI1 != 0
+    if( spi_local[0].is_i2s ){
+        HAL_I2S_IRQHandler(&spi_local[0].i2s_hal_handle);
+    } else {
+        HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
+    }
+#else
     HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
+#endif
 }
 
 void mcu_core_spi2_isr(){
+
+    mcu_debug_root_printf("SPI%d\n", spi_local[1].is_i2s);
+#if MCU_I2S_ON_SPI2 != 0
+    if( spi_local[1].is_i2s ){
+        HAL_I2S_IRQHandler(&spi_local[1].i2s_hal_handle);
+    } else {
+        HAL_SPI_IRQHandler(&spi_local[1].hal_handle);
+    }
+#else
     HAL_SPI_IRQHandler(&spi_local[1].hal_handle);
+#endif
 }
 
 void mcu_core_spi3_isr(){
+#if MCU_I2S_ON_SPI3 != 0
+    if( spi_local[2].is_i2s ){
+        HAL_I2S_IRQHandler(&spi_local[2].i2s_hal_handle);
+    } else {
+        HAL_SPI_IRQHandler(&spi_local[2].hal_handle);
+    }
+#else
     HAL_SPI_IRQHandler(&spi_local[2].hal_handle);
+#endif
 }
 
 void mcu_core_spi4_isr(){
+#if MCU_I2S_ON_SPI4 != 0
+    if( spi_local[3].is_i2s ){
+        HAL_I2S_IRQHandler(&spi_local[3].i2s_hal_handle);
+    } else {
+        HAL_SPI_IRQHandler(&spi_local[3].hal_handle);
+    }
+#else
     HAL_SPI_IRQHandler(&spi_local[3].hal_handle);
+#endif
 }
 
 #if MCU_SPI_PORTS > 4

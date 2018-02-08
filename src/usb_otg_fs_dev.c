@@ -73,7 +73,7 @@ void clear_callbacks(){
 
 }
 
-void mcu_usb_dev_power_on(const devfs_handle_t * handle){
+int mcu_usb_open(const devfs_handle_t * handle){
 	if ( usb_local.ref_count == 0 ){
 		//Set callbacks to NULL
 		usb_local.connected = 0;
@@ -84,9 +84,10 @@ void mcu_usb_dev_power_on(const devfs_handle_t * handle){
 		cortexm_enable_irq((void*)(u32)(usb_irqs[0]));  //Enable USB IRQ
 	}
 	usb_local.ref_count++;
+    return 0;
 }
 
-void mcu_usb_dev_power_off(const devfs_handle_t * handle){
+int mcu_usb_close(const devfs_handle_t * handle){
 	if ( usb_local.ref_count > 0 ){
 		if ( usb_local.ref_count == 1 ){
 			HAL_PCD_Stop(&usb_local.hal_handle);
@@ -96,12 +97,8 @@ void mcu_usb_dev_power_off(const devfs_handle_t * handle){
 		}
 		usb_local.ref_count--;
 	}
+    return 0;
 }
-
-int mcu_usb_dev_is_powered(const devfs_handle_t * handle){
-	return usb_local.hal_handle.Instance != 0;
-}
-
 
 int mcu_usb_getinfo(const devfs_handle_t * handle, void * ctl){
 	usb_info_t * info = ctl;
@@ -285,7 +282,7 @@ int mcu_usb_setaction(const devfs_handle_t * handle, void * ctl){
 	return ret;
 }
 
-int mcu_usb_dev_read(const devfs_handle_t * handle, devfs_async_t * rop){
+int mcu_usb_read(const devfs_handle_t * handle, devfs_async_t * rop){
 	int ret;
 	int loc = rop->loc;
 
@@ -322,7 +319,7 @@ int mcu_usb_dev_read(const devfs_handle_t * handle, devfs_async_t * rop){
 	return ret;
 }
 
-int mcu_usb_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
+int mcu_usb_write(const devfs_handle_t * handle, devfs_async_t * wop){
 	//Asynchronous write
 	int ep;
 	int loc = wop->loc;

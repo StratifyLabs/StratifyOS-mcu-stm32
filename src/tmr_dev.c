@@ -72,7 +72,7 @@ void clear_actions(int port){
     memset(m_tmr_local[port].handler, 0, (NUM_OCS+NUM_ICS)*sizeof(mcu_event_handler_t));
 }
 
-void mcu_tmr_dev_power_on(const devfs_handle_t * handle){
+int mcu_tmr_open(const devfs_handle_t * handle){
     int port = handle->port;
     if ( m_tmr_local[port].ref_count == 0 ){
         clear_actions(port);
@@ -99,10 +99,11 @@ void mcu_tmr_dev_power_on(const devfs_handle_t * handle){
         }
     }
     m_tmr_local[port].ref_count++;
+    return 0;
 }
 
 
-void mcu_tmr_dev_power_off(const devfs_handle_t * handle){
+int mcu_tmr_close(const devfs_handle_t * handle){
     int port = handle->port;
     if ( m_tmr_local[port].ref_count > 0 ){
         if ( m_tmr_local[port].ref_count == 1 ){
@@ -131,12 +132,9 @@ void mcu_tmr_dev_power_off(const devfs_handle_t * handle){
             m_tmr_local[port].ref_count--;
         }
     }
+    return 0;
 }
 
-int mcu_tmr_dev_is_powered(const devfs_handle_t * handle){
-    int port = handle->port;
-    return ( m_tmr_local[port].ref_count != 0);
-}
 
 int mcu_tmr_getinfo(const devfs_handle_t * handle, void * ctl){
     tmr_info_t * info = ctl;
@@ -407,7 +405,7 @@ int mcu_tmr_getchannel(const devfs_handle_t * handle, void * ctl){
     return 0;
 }
 
-int mcu_tmr_dev_write(const devfs_handle_t * handle, devfs_async_t * wop){
+int mcu_tmr_write(const devfs_handle_t * handle, devfs_async_t * wop){
     errno = ENOTSUP;
     return -1;
 }
@@ -479,7 +477,7 @@ int mcu_tmr_setaction(const devfs_handle_t * handle, void * ctl){
     return 0;
 }
 
-int mcu_tmr_dev_read(const devfs_handle_t * handle, devfs_async_t * rop){
+int mcu_tmr_read(const devfs_handle_t * handle, devfs_async_t * rop){
     errno = ENOTSUP;
     return -1;
 }
