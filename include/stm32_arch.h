@@ -35,6 +35,24 @@
 #include "mcu_stm32f401xc.h"
 #endif
 
+#if defined __stm32f411xe
+#define CORE_M4 1
+#define ARM_MATH_CM4 1
+#if !defined STM32F411xE
+#define STM32F411xE 1
+#endif
+#include "mcu_stm32f411xe.h"
+#endif
+
+#if defined __stm32f417xx
+#define CORE_M4 1
+#define ARM_MATH_CM4 1
+#if !defined STM32F417xx
+#define STM32F417xx 1
+#endif
+#include "mcu_stm32f417xx.h"
+#endif
+
 
 
 #endif /* STM32_ARCH_H_ */

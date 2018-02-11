@@ -478,7 +478,6 @@ static void mcu_i2c_er_isr(int port) {
 
 void mcu_core_i2c1_ev_isr(){ mcu_i2c_ev_isr(0); }
 void mcu_core_i2c1_er_isr(){ mcu_i2c_er_isr(0); }
-#endif
 #if MCU_I2C_PORTS > 1
 void mcu_core_i2c2_ev_isr(){ mcu_i2c_ev_isr(1); }
 void mcu_core_i2c2_er_isr(){ mcu_i2c_er_isr(1); }
@@ -582,4 +581,5 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
     i2c->hal_handle.Instance->CR1 |= 0x0001;
 }
 
+#endif
 
