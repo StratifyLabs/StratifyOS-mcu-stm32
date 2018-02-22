@@ -434,7 +434,6 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c){
 
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c){
     i2c_local_t * i2c = (i2c_local_t*)hi2c;
-    mcu_debug_root_printf("Error: 0x%lX\n", hi2c->ErrorCode);
     if( hi2c->ErrorCode & HAL_I2C_ERROR_ARLO ){
         i2c->err = I2C_ERROR_ARBITRATION_LOST;
     } else if ( hi2c->ErrorCode & HAL_I2C_ERROR_BERR ){
@@ -472,7 +471,6 @@ static void mcu_i2c_ev_isr(int port) {
 
 static void mcu_i2c_er_isr(int port) {
     i2c_local_t * i2c = i2c_local + port;
-    mcu_debug_root_printf("Er: 0x%lX\n", i2c->hal_handle.Mode);
     HAL_I2C_ER_IRQHandler(&i2c->hal_handle);
 }
 

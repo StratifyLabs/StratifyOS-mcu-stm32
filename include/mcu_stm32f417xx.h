@@ -19,7 +19,7 @@
 
 #include <mcu/types.h>
 #include "cmsis/stm32f4xx.h"
-#include "cmsis/stm32f411xe.h"
+#include "cmsis/stm32f417xx.h"
 
 
 #define MCU_NO_HARD_FAULT 1
@@ -42,16 +42,16 @@
 #define MCU_CORE_PORTS 1
 #define MCU_EEPROM_PORTS 0
 #define MCU_SPI_API 0
-#define MCU_SPI_PORTS 5
-#define MCU_SPI_REGS { SPI1, SPI2, SPI3, SPI4, SPI5 }
-#define MCU_SPI_IRQS { SPI1_IRQn, SPI2_IRQn, SPI3_IRQn, SPI4_IRQn, SPI5_IRQn }
+#define MCU_SPI_PORTS 3
+#define MCU_SPI_REGS { SPI1, SPI2, SPI3 }
+#define MCU_SPI_IRQS { SPI1_IRQn, SPI2_IRQn, SPI3_IRQn }
 
 //I2S is available on 2 SPI ports SPI2 and SPI3
-#define MCU_I2S_ON_SPI1 1
+#define MCU_I2S_ON_SPI1 0
 #define MCU_I2S_ON_SPI2 1
 #define MCU_I2S_ON_SPI3 1
-#define MCU_I2S_ON_SPI4 1
-#define MCU_I2S_ON_SPI5 1
+#define MCU_I2S_ON_SPI4 0
+#define MCU_I2S_ON_SPI5 0
 
 #define MCU_SAI_API 0
 #define MCU_SAI_PORTS 0
@@ -79,7 +79,7 @@
 
 #define DEV_USB_LOGICAL_ENDPOINT_COUNT 4
 
-#define MCU_LAST_IRQ SPI4_IRQn
+#define MCU_LAST_IRQ FPU_IRQn
 #define MCU_MIDDLE_IRQ_PRIORITY 8
 
 #define MCU_RAM_PAGES 56

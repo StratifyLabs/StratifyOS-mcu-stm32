@@ -239,7 +239,6 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
 
 void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
     //called on overflow and underrun
-    mcu_debug_root_printf("I2S E\n");
     spi_local_t * local = (spi_local_t *)hi2s;
     execute_handler(&local->handler, MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
 }

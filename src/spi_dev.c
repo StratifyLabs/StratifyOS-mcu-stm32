@@ -391,8 +391,6 @@ void mcu_core_spi1_isr(){
 }
 
 void mcu_core_spi2_isr(){
-
-    mcu_debug_root_printf("SPI%d\n", spi_local[1].is_i2s);
 #if MCU_I2S_ON_SPI2 != 0
     if( spi_local[1].is_i2s ){
         HAL_I2S_IRQHandler(&spi_local[1].i2s_hal_handle);

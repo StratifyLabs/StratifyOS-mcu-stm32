@@ -171,10 +171,10 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(dma1_stream5),
 		_ISR(dma1_stream6),
 		_ISR(adc), //18
-        _ISR(can_tx),
-        _ISR(can_rx0), //20
-        _ISR(can_rx1),
-        _ISR(can_sce),
+        _ISR(can1_tx),
+        _ISR(can1_rx0), //20
+        _ISR(can1_rx1),
+        _ISR(can1_sce),
 		_ISR(exti9_5), //23
 		_ISR(tim1_brk_tim9),
 		_ISR(tim1_up_tim10),
@@ -230,7 +230,7 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
         _ISR(otg_hs_ep1_in),
         _ISR(otg_hs_wkup),
         _ISR(otg_hs),
-        _ISR(dmci),
+        _ISR(dcmi),
         _ISR(cryp),
         _ISR(hash), //80
         _ISR(fpu), //81

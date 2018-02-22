@@ -21,6 +21,7 @@ set(SOURCES
   ${SOURCES_PREFIX}/usb_otg_fs_dev.c
   ${SOURCES_PREFIX}/wdt.c
 	${SOURCES_PREFIX}/stm32_local.h
+	${SOURCES_PREFIX}/stm32_flash.h
 	${SOURCES_PREFIX}/stm32_pin_local.h
 	${SOURCES_PREFIX}/spi_local.h
 	PARENT_SCOPE)

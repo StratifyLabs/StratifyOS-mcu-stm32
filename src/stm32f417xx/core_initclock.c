@@ -33,7 +33,7 @@ int mcu_core_initclock(int div){
 
 	__HAL_RCC_PWR_CLK_ENABLE();
     //SCALE3 is good up to 120MHz (this chip is 100MHz)
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
 
 
 	//0.95MHz < osc / PLLM < 2.1MHz
