@@ -46,5 +46,9 @@
 #define E_SDIO(port) ENTRY(CORE_PERIPH_SDIO,(port-1))
 #define E_TRAC(port) ENTRY(CORE_PERIPH_TRACE,(port-1))
 #define E_FMP_(port) ENTRY(CORE_PERIPH_I2C,(port-1))
+#define E_DFSD(port) ENTRY(CORE_PERIPH_DFSDM,(port-1))
+#define E_FI2C(port) ENTRY(CORE_PERIPH_FMP_I2C,(port-1))
+#define E_ENET(port) ENTRY(CORE_PERIPH_ENET,(port-1))
+#define E_DCMI(port) ENTRY(CORE_PERIPH_ENET,(port-1))
 
 #endif /* STM32_PIN_LOCAL_H_ */

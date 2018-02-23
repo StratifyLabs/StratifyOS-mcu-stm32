@@ -193,9 +193,11 @@ u32 mcu_core_get_reset_src(){
     u32 src_reg = RCC->CSR;
     RCC->CSR |= RCC_CSR_RMVF; //clear flags
 
+#if defined RCC_CSR_BORRSTF
     if ( src_reg & RCC_CSR_BORRSTF ){
         return CORE_FLAG_IS_RESET_BOR;
     }
+#endif
 
     if ( src_reg & (RCC_CSR_IWDGRSTF|RCC_CSR_WWDGRSTF) ){
         return CORE_FLAG_IS_RESET_WDT;
