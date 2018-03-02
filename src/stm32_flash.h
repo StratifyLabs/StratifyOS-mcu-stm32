@@ -46,6 +46,7 @@ extern u32 _sram_start;
 #define FLASH_CODE_START ((u32)&_text)
 #define FLASH_CODE_END ((u32)&_etext + (u32)&_edata - (u32)&_data)
 #define FLASH_SIZE ((u32)&_flash_size)
+#define FLASH_PAGE_COUNT ((u32)&_flash_pages)
 
 int stm32_flash_get_sector_size(u32 sector);
 int stm32_flash_get_sector_addr(u32 sector);

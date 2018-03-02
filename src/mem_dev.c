@@ -48,9 +48,9 @@ int mcu_mem_getsyspage(){
 
 int mcu_mem_getinfo(const devfs_handle_t * handle, void * ctl){
 	mem_info_t * info = ctl;
-	info->flash_pages = (u32)&_flash_pages;
+    info->flash_pages = FLASH_PAGE_COUNT;
 	info->flash_size = FLASH_SIZE;
-	info->ram_pages = (u32)&_flash_pages;
+    info->ram_pages = SRAM_PAGES;
 	info->ram_size = SRAM_SIZE;
 	return 0;
 }
@@ -81,6 +81,7 @@ int mcu_mem_getpageinfo(const devfs_handle_t * handle, void * ctl){
 
 		size = stm32_flash_get_sector_size(ctlp->num);
 		addr = stm32_flash_get_sector_addr(ctlp->num);
+
 		if ( (addr + size) > (FLASH_SIZE + FLASH_START) ){
 			return -1; //this page does not exist on this part
 		}

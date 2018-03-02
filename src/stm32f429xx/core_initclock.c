@@ -32,8 +32,8 @@ int mcu_core_initclock(int div){
     //RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 
 	__HAL_RCC_PWR_CLK_ENABLE();
-    //SCALE3 is good up to 120MHz (this chip is 100MHz)
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+    //SCALE1 is good up to 168MHz (this chip can do 180MHz)
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
 
 	//0.95MHz < osc / PLLM < 2.1MHz
@@ -45,8 +45,8 @@ int mcu_core_initclock(int div){
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 	RCC_OscInitStruct.PLL.PLLM = 4;
-	RCC_OscInitStruct.PLL.PLLN = 168;
-    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+    RCC_OscInitStruct.PLL.PLLN = 168;
+    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
 	RCC_OscInitStruct.PLL.PLLQ = 7;
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
 		return -1;

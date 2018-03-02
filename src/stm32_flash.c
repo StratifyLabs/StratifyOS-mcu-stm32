@@ -84,21 +84,26 @@ int stm32_flash_get_sector_size(u32 sector){
 		return 16*1024;
 	} else if( sector == 4 ){
 		return 64*1024;
-	} else {
+    } else if( sector < 12 ){
 		return 128*1024;
-	}
+    } else {
+        return stm32_flash_get_sector_size(sector - 12);
+    }
 }
 
 int stm32_flash_get_sector_addr(u32 sector){
 	u32 offset = 0;
 	if ( sector <= 4 ){
-		offset = sector*16*1024;
+        offset = sector*16;
 	} else if( sector == 5 ){
-		offset = 4*16*1024 + 64*1024;
-	} else {
-		offset = 4*16*1024 + 64*1024 + ((sector - 5) * 128*1024);
-	}
-	return offset + FLASH_START;
+        offset = 4*16 + 64;
+    } else if( sector < 12 ){
+        offset = 4*16 + 64 + ((sector - 5) * 128);
+    } else {
+        //12 to 23 are mapped the same
+        return (stm32_flash_get_sector_addr(sector - 12) + 1024*1024);
+    }
+    return offset*1024 + FLASH_START;
 }
 
 int stm32_flash_is_flash(u32 addr, u32 size){
@@ -125,17 +130,24 @@ int stm32_flash_get_sector(u32 addr){
 	u32 offset;
 	u32 sector;
 
+    //up to 12 sectors with 1MB
 	//4 16KB pages
 	//1 64KB page
-	//3 128KB pages
+    //7 128KB pages
 
-	offset = addr - FLASH_START;
-	if ( offset <= 4*16*1024 ){
-		sector = offset / (16*1024);
-	} else if( offset < 4*16*1024 + 64*1024 ){
+    //up to 12 more sectors with 2MB part (make a recursive call)
+
+    offset = (addr - FLASH_START) / 1024;
+    if ( offset <= 4*16 ){
+        sector = offset / (16);
+    } else if( offset < 4*16 + 64 ){
 		sector = 4;
 	} else {
-		sector = (offset - (4*16*1024 + 64*1024))/(128*1024) + 5;
+        if( offset < 1024 ){ //1MB
+            sector = (offset - (4*16 + 64))/(128) + 5;
+        } else {
+            sector = stm32_flash_get_sector(addr - 1024*1024) + 12;
+        }
 	}
 
 	return sector;
