@@ -72,6 +72,34 @@
 #include "mcu_stm32f417xx.h"
 #endif
 
+#if defined __stm32f723xx
+#define CORE_M7 1
+#define ARM_MATH_CM7 1
+#if !defined STM32F723xx
+#define STM32F723xx 1
+#endif
+#include "mcu_stm32f723xx.h"
+#endif
+
+#if defined __stm32f746xx
+#define CORE_M7 1
+#define ARM_MATH_CM7 1
+#if !defined STM32F746xx
+#define STM32F746xx 1
+#endif
+#include "mcu_stm32f746xx.h"
+#endif
+
+#if defined __stm32f767xx
+#define CORE_M7 1
+#define ARM_MATH_CM7 1
+#if !defined STM32F767xx
+#define STM32F767xx 1
+#endif
+#include "mcu_stm32f767xx.h"
+#endif
+
+
 
 
 #endif /* STM32_ARCH_H_ */

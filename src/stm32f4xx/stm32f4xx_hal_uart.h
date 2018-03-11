@@ -237,9 +237,9 @@ typedef struct
 /** @defgroup UART_Parity UART Parity
   * @{
   */ 
-#define HAL_UART_PARITY_NONE                    0x00000000U
-#define HAL_UART_PARITY_EVEN                    ((uint32_t)USART_CR1_PCE)
-#define HAL_UART_PARITY_ODD                     ((uint32_t)(USART_CR1_PCE | USART_CR1_PS)) 
+#define UART_PARITY_NONE                    0x00000000U
+#define UART_PARITY_EVEN                    ((uint32_t)USART_CR1_PCE)
+#define UART_PARITY_ODD                     ((uint32_t)(USART_CR1_PCE | USART_CR1_PS))
 /**
   * @}
   */ 

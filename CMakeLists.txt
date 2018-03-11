@@ -19,8 +19,7 @@ project(${SOS_LIB_NAME} C ASM)
 
 install(DIRECTORY include/ DESTINATION include/mcu/arch/stm32)
 
-set(SOS_LIB_INCLUDE_DIRECTORIES include src stm32f4xx include/cmsis)
-
+#[[
 set(STM32_VARIANT stm32f446xx)
 set(STM32_VARIANT_DEFINE STM32F446xx)
 include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
@@ -44,5 +43,21 @@ include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
 set(STM32_VARIANT stm32f429xx)
 set(STM32_VARIANT_DEFINE STM32F429xx)
 include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
+]]#
+
+set(STM32_VARIANT stm32f723xx)
+set(STM32_VARIANT_DEFINE STM32F723xx)
+set(STM32_ARCH_FPU v7em_f5sh)
+include(${CMAKE_SOURCE_DIR}/stm32f7.cmake)
+
+set(STM32_VARIANT stm32f746xx)
+set(STM32_VARIANT_DEFINE STM32F746xx)
+set(STM32_ARCH_FPU v7em_f5sh)
+include(${CMAKE_SOURCE_DIR}/stm32f7.cmake)
+
+set(STM32_VARIANT stm32f767xx)
+set(STM32_VARIANT_DEFINE STM32F767xx)
+set(STM32_ARCH_FPU v7em_f5dh)
+include(${CMAKE_SOURCE_DIR}/stm32f7.cmake)
 
 install(DIRECTORY ldscript/ DESTINATION lib/ldscripts)

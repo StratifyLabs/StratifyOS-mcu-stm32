@@ -80,13 +80,17 @@ int mcu_i2s_spi_setattr(const devfs_handle_t * handle, void * ctl){
 
 
     if( o_flags & (I2S_FLAG_SET_MASTER|I2S_FLAG_SET_MASTER) ){
+#if defined I2S_FULLDUPLEXMODE_ENABLE
         spi_local[port].i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
+#endif
 
         if( o_flags & I2S_FLAG_SET_SLAVE ){
             if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
                 spi_local[port].i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_TX;
                 if( o_flags & I2S_FLAG_IS_RECEIVER ){
+#if defined I2S_FULLDUPLEXMODE_ENABLE
                     spi_local[port].i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
+#endif
                 }
             } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
                 spi_local[port].i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_RX;
@@ -95,7 +99,9 @@ int mcu_i2s_spi_setattr(const devfs_handle_t * handle, void * ctl){
             if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
                 spi_local[port].i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_TX;
                 if( o_flags & I2S_FLAG_IS_RECEIVER ){
+#if defined I2S_FULLDUPLEXMODE_ENABLE
                     spi_local[port].i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
+#endif
                 }
             } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
                 spi_local[port].i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_RX;

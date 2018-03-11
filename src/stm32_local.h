@@ -25,7 +25,6 @@
 
 #define USE_FULL_LL_DRIVER
 
-
 #include "stm32_arch.h"
 
 #include <errno.h>
@@ -35,7 +34,11 @@
 #include <mcu/pio.h>
 #include <mcu/debug.h>
 
+#if defined STM32F4
 #include "stm32f4xx/stm32f4xx_hal_conf.h"
+#elif defined STM32F7
+#include "stm32f7xx/stm32f7xx_hal_conf.h"
+#endif
 
 int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int periph_port, int mode, int speed, int pull);
 GPIO_TypeDef * const hal_get_pio_regs(u8 port);

@@ -190,11 +190,11 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 			uart->hal_handle.Init.StopBits = UART_STOPBITS_2;
 		}
 
-		uart->hal_handle.Init.Parity = HAL_UART_PARITY_NONE;
+        uart->hal_handle.Init.Parity = UART_PARITY_NONE;
 		if( o_flags & UART_FLAG_IS_PARITY_EVEN ){
-			uart->hal_handle.Init.Parity = HAL_UART_PARITY_EVEN;
+            uart->hal_handle.Init.Parity = UART_PARITY_EVEN;
 		} else if( o_flags & UART_FLAG_IS_PARITY_ODD ){
-			uart->hal_handle.Init.Parity = HAL_UART_PARITY_ODD;
+            uart->hal_handle.Init.Parity = UART_PARITY_ODD;
 		}
 
 		uart->hal_handle.Init.Mode = UART_MODE_TX_RX;

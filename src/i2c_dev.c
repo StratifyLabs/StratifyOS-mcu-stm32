@@ -173,14 +173,20 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
         i2c->hal_handle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
         i2c->hal_handle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
         i2c->hal_handle.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
+#if defined I2C_DUTYCYCLE_2
         i2c->hal_handle.Init.DutyCycle = I2C_DUTYCYCLE_2;
+#endif
         i2c->hal_handle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
         i2c->hal_handle.Init.OwnAddress1 = 0;
         i2c->hal_handle.Init.OwnAddress2 = 0;
     }
 
     if( o_flags & I2C_FLAG_SET_MASTER ){
+#if defined STM32F7
+        i2c->hal_handle.Init.Timing = freq;
+#else
         i2c->hal_handle.Init.ClockSpeed = freq;
+#endif
 
     } else if( o_flags & I2C_FLAG_SET_SLAVE ){
 
@@ -211,7 +217,9 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
         }
 
         if( freq < 100000 ){
+#if defined I2C_DUTYCYCLE_16_9
             i2c->hal_handle.Init.DutyCycle = I2C_DUTYCYCLE_16_9;
+#endif
         }
 
         i2c->o_flags = o_flags;
