@@ -1,4 +1,4 @@
-flash_page_count = 24;
+flash_page_count = 8;
 
 
 MEMORY {

@@ -88,7 +88,7 @@
 #define MCU_LAST_IRQ SPDIF_RX_IRQn
 #define MCU_MIDDLE_IRQ_PRIORITY 8
 
-#define MCU_RAM_PAGES 176
+#define MCU_RAM_PAGES 240
 #define MCU_DELAY_FACTOR 12
 
 #ifdef __cplusplus

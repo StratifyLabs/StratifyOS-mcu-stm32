@@ -65,7 +65,7 @@ int mcu_mem_setaction(const devfs_handle_t * handle, void * ctl){
 
 int mcu_mem_getpageinfo(const devfs_handle_t * handle, void * ctl){
 	u32 size = 0;
-	int32_t addr = 0;
+    int addr = 0;
 	mem_pageinfo_t * ctlp = ctl;
 
 
@@ -81,6 +81,9 @@ int mcu_mem_getpageinfo(const devfs_handle_t * handle, void * ctl){
 
 		size = stm32_flash_get_sector_size(ctlp->num);
 		addr = stm32_flash_get_sector_addr(ctlp->num);
+        if( addr < 0 ){
+            return -1;
+        }
 
 		if ( (addr + size) > (FLASH_SIZE + FLASH_START) ){
 			return -1; //this page does not exist on this part
@@ -124,6 +127,10 @@ int mcu_mem_erasepage(const devfs_handle_t * handle, void * ctl){
 	addr = stm32_flash_get_sector_addr(page);  //this gets the beginning of the page
 	int last_boot_page = get_last_boot_page();
 	int page_size;
+
+    if( addr < 0 ){
+        return -1;
+    }
 
 	page_size = stm32_flash_get_sector_size(page);
 

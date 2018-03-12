@@ -19,7 +19,6 @@ project(${SOS_LIB_NAME} C ASM)
 
 install(DIRECTORY include/ DESTINATION include/mcu/arch/stm32)
 
-#[[
 set(STM32_VARIANT stm32f446xx)
 set(STM32_VARIANT_DEFINE STM32F446xx)
 include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
@@ -43,7 +42,6 @@ include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
 set(STM32_VARIANT stm32f429xx)
 set(STM32_VARIANT_DEFINE STM32F429xx)
 include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
-]]#
 
 set(STM32_VARIANT stm32f723xx)
 set(STM32_VARIANT_DEFINE STM32F723xx)
