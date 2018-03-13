@@ -1,4 +1,3 @@
-
 flash_page_count = 8;
 
 MEMORY {

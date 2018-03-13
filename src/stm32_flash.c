@@ -21,7 +21,7 @@
 
 #if defined STM32_FLASH_LAYOUT_32_32_32_32_128_256_256_256
 static const u16 stm32_flash_layout[] = {
-    32, 32, 32, 32, 128, 256, 256, 256
+    32, 32, 32, 32, 128, 256, 256, 256, 256, 256, 256, 256
 };
 #elif defined STM32_FLASH_LAYOUT_16_16_16_16_64_128_128_128
 const u16 stm32_flash_layout[] = {

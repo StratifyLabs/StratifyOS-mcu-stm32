@@ -375,6 +375,7 @@ int mcu_uart_write(const devfs_handle_t * handle, devfs_async_t * async){
 		return -1;
 	}
 
+    uart->write = async->handler;
 	ret = HAL_UART_Transmit_IT(&uart->hal_handle, async->buf, async->nbyte);
 	if( ret == HAL_OK ){
 		return 0;
@@ -428,6 +429,19 @@ void mcu_core_uart5_isr(){
 #if MCU_UART_PORTS > 5
 void mcu_core_usart6_isr(){
 	mcu_uart_isr(5);
+}
+#endif
+
+#if MCU_UART_PORTS > 6
+void mcu_core_uart7_isr(){
+    mcu_uart_isr(6);
+}
+#endif
+
+
+#if MCU_UART_PORTS > 7
+void mcu_core_uart8_isr(){
+    mcu_uart_isr(7);
 }
 #endif
 

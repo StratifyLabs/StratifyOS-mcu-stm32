@@ -1,6 +1,5 @@
 cmake_minimum_required (VERSION 3.6)
 
-
 #Add sources to the project
 set(SOURCES_PREFIX ${CMAKE_SOURCE_DIR}/src)
 add_subdirectory(src)
@@ -19,43 +18,72 @@ project(${SOS_LIB_NAME} C ASM)
 
 install(DIRECTORY include/ DESTINATION include/mcu/arch/stm32)
 
-set(STM32_VARIANT stm32f446xx)
-set(STM32_VARIANT_DEFINE STM32F446xx)
-include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
+set(F401 1)
+set(F412 1)
+set(F417 1)
+set(F429 1)
+set(F446 1)
+set(F723 1)
+set(F746 1)
+set(F767 1)
 
+if(F401)
 set(STM32_VARIANT stm32f401xc)
 set(STM32_VARIANT_DEFINE STM32F401xC)
 include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
+endif()
 
+if(F411)
 set(STM32_VARIANT stm32f411xe)
 set(STM32_VARIANT_DEFINE STM32F411xE)
 include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
+endif()
 
+if(F412)
 set(STM32_VARIANT stm32f412zx)
 set(STM32_VARIANT_DEFINE STM32F412Zx)
 include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
+endif()
 
+if(F417)
 set(STM32_VARIANT stm32f417xx)
 set(STM32_VARIANT_DEFINE STM32F417xx)
 include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
+endif()
 
+if(F429)
 set(STM32_VARIANT stm32f429xx)
 set(STM32_VARIANT_DEFINE STM32F429xx)
 include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
+endif()
 
+if(F446)
+set(STM32_VARIANT stm32f446xx)
+set(STM32_VARIANT_DEFINE STM32F446xx)
+include(${CMAKE_SOURCE_DIR}/stm32f4.cmake)
+endif()
+
+
+
+if(F723)
 set(STM32_VARIANT stm32f723xx)
 set(STM32_VARIANT_DEFINE STM32F723xx)
 set(STM32_ARCH_FPU v7em_f5sh)
 include(${CMAKE_SOURCE_DIR}/stm32f7.cmake)
+endif()
 
+if(F746)
 set(STM32_VARIANT stm32f746xx)
 set(STM32_VARIANT_DEFINE STM32F746xx)
 set(STM32_ARCH_FPU v7em_f5sh)
 include(${CMAKE_SOURCE_DIR}/stm32f7.cmake)
+endif()
 
+if(F767)
 set(STM32_VARIANT stm32f767xx)
 set(STM32_VARIANT_DEFINE STM32F767xx)
 set(STM32_ARCH_FPU v7em_f5dh)
 include(${CMAKE_SOURCE_DIR}/stm32f7.cmake)
+endif()
 
 install(DIRECTORY ldscript/ DESTINATION lib/ldscripts)
