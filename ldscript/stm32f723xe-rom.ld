@@ -6,5 +6,5 @@ MEMORY {
 	 sysmem : ORIGIN = 0x20000000, LENGTH = 64K
 }
 
-INCLUDE ldscripts/stm32f4xx.ld
+INCLUDE ldscripts/stm32f7xx.ld
 

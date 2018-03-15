@@ -29,11 +29,10 @@ int mcu_core_initclock(int div){
 
 	RCC_OscInitTypeDef RCC_OscInitStruct;
 	RCC_ClkInitTypeDef RCC_ClkInitStruct;
-    //RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 
 	__HAL_RCC_PWR_CLK_ENABLE();
     //SCALE3 is good up to 120MHz (this chip is 100MHz)
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
 
 	//0.95MHz < osc / PLLM < 2.1MHz
@@ -45,9 +44,9 @@ int mcu_core_initclock(int div){
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 	RCC_OscInitStruct.PLL.PLLM = 4;
-	RCC_OscInitStruct.PLL.PLLN = 168;
-    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
-	RCC_OscInitStruct.PLL.PLLQ = 7;
+    RCC_OscInitStruct.PLL.PLLN = 96;
+    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+    RCC_OscInitStruct.PLL.PLLQ = 4;
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
 		return -1;
 	}
@@ -60,22 +59,12 @@ int mcu_core_initclock(int div){
             RCC_CLOCKTYPE_PCLK2;
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    //APB1 is max 42MHz
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-    //APB2 is Max 84MHz
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK){
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK){
 		return -1;
 	}
-
-#if 0
-	//PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_CLK48;
-	//PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48CLKSOURCE_PLLQ;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK){
-		return -1;
-	}
-#endif
 
 	SystemCoreClock = mcu_board_config.core_cpu_freq;
 

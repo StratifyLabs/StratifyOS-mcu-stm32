@@ -33,22 +33,28 @@
 
 #if MCU_UART_PORTS > 0
 
+enum {
+    UART_LOCAL_FLAG_IS_INCOMING_ENABLED = (1<<0),
+    UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE = (1<<1)
+};
+
 typedef struct {
 	UART_HandleTypeDef hal_handle;
 	mcu_event_handler_t write;
 	mcu_event_handler_t read;
-	u16 received_len;
-	u16 bytes_received;
 	u8 ref_count;
 	const uart_attr_t * attr;
+    u8 o_flags;
+    u8 incoming;
+    u8 incoming_received;
 } uart_local_t;
 
 static uart_local_t uart_local[UART_PORTS] MCU_SYS_MEM;
 USART_TypeDef * const uart_regs_table[UART_PORTS] = MCU_UART_REGS;
 u8 const uart_irqs[UART_PORTS] = MCU_UART_IRQS;
 
-static void exec_readcallback(int port, USART_TypeDef * uart_regs, u32 o_events);
-static void exec_writecallback(int port, USART_TypeDef * uart_regs, u32 o_events);
+static void exec_readcallback(uart_local_t * uart, u32 o_events);
+static void exec_writecallback(uart_local_t * uart, u32 o_events);
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(uart, UART_VERSION, I_MCU_TOTAL + I_UART_TOTAL, mcu_uart_get, mcu_uart_put, mcu_uart_flush)
 
@@ -218,47 +224,55 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 	return 0;
 }
 
-static void exec_readcallback(int port, USART_TypeDef * uart_regs, u32 o_events){
+static void exec_readcallback(uart_local_t * uart, u32 o_events){
 	uart_event_t uart_event;
-	mcu_execute_event_handler(&(uart_local[port].read), o_events, &uart_event);
+    uart_event.value = uart->incoming_received;
+    mcu_execute_event_handler(&(uart->read), o_events, &uart_event);
 
 	//if the callback is NULL now, disable the interrupt
-	if( uart_local[port].read.callback == NULL ){
-		//uart_regs->IER &= ~UIER_RBRIE; //disable the receive interrupt
+    if( uart->read.callback == NULL ){
+
 	}
 }
 
-static void exec_writecallback(int port, USART_TypeDef * uart_regs, u32 o_events){
+static void exec_writecallback(uart_local_t * uart, u32 o_events){
 	uart_event_t uart_event;
-	//uart_local[port].tx_bufp = NULL;
 	//call the write callback
-	mcu_execute_event_handler(&(uart_local[port].write), o_events, &uart_event);
+    mcu_execute_event_handler(&(uart->write), o_events, &uart_event);
 
 	//if the callback is NULL now, disable the interrupt
-	if( uart_local[port].write.callback == NULL ){
-		//uart_regs->IER &= ~UIER_ETBEI; //disable the transmit interrupt
-	}
+    if( uart->write.callback == NULL ){
+
+    }
 }
 
 int mcu_uart_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = (mcu_action_t*)ctl;
 	int port = handle->port;
-
-	USART_TypeDef * uart_regs = uart_regs_table[port];
+    uart_local_t * uart = uart_local + port;
 
 	if( action->handler.callback == 0 ){
 		//if there is an ongoing operation -- cancel it
 
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
 			//execute the read callback if not null
-			exec_readcallback(port, uart_regs, MCU_EVENT_FLAG_CANCELED);
-			uart_local[port].read.callback = 0;
-			//uart_regs->IER &= ~UIER_RBRIE; //disable the receive interrupt
+            if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_ENABLED ){
+                uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_ENABLED;
+#if defined STM32F4
+                HAL_UART_AbortReceive_IT(&uart->hal_handle);
+#endif
+            }
+
+            exec_readcallback(uart, MCU_EVENT_FLAG_CANCELED);
+            uart->read.callback = 0;
 		}
 
 		if( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
-			exec_writecallback(port, uart_regs, MCU_EVENT_FLAG_CANCELED);
-			uart_local[port].write.callback = 0;
+#if defined STM32F4
+            HAL_UART_AbortTransmit_IT(&uart->hal_handle);
+#endif
+            exec_writecallback(uart, MCU_EVENT_FLAG_CANCELED);
+            uart->write.callback = 0;
 		}
 
 	} else {
@@ -268,13 +282,18 @@ int mcu_uart_setaction(const devfs_handle_t * handle, void * ctl){
 		}
 
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
-			uart_local[port].read = action->handler;
-			//uart_regs->IER |= (UIER_RBRIE);  //enable the receiver interrupt
-			//uart_local[port].rx_bufp = NULL; //the callback will need to read the incoming data
+            uart->read = action->handler;
+
+            //enable the receiver so that the action is called when a byte arrives
+            uart->o_flags |= UART_LOCAL_FLAG_IS_INCOMING_ENABLED;
+            uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
+            if( HAL_UART_Receive_IT(&uart->hal_handle, &uart->incoming, 1) != HAL_OK ){
+                return -1;
+            }
 		}
 
 		if ( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
-			uart_local[port].write = action->handler;
+            uart->write = action->handler;
 		}
 	}
 
@@ -306,12 +325,23 @@ int mcu_uart_get(const devfs_handle_t * handle, void * ctl){
 	int port = handle->port;
 	uart_local_t * uart = uart_local + port;
 
+
+    //if action was set return uart->incoming;
+    if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_ENABLED ){
+        if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE ){
+            uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
+            *dest = uart->incoming_received;
+            return 0;
+        }
+        return -ENODATA;
+    }
+
+
 	if( HAL_UART_Receive(&uart->hal_handle, dest, 1, 0) == HAL_OK ){
 		return 0;
 	}
 
-	errno = ENODATA;
-	return -1;
+    return -ENODATA;
 }
 
 int mcu_uart_getall(const devfs_handle_t * handle, void * ctl){
@@ -333,6 +363,7 @@ int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 	//check to see if a byte is ready right now
 	if( mcu_uart_get(handle, async->buf) == 0 ){
+        //got one byte
 		return 1;
 	}
 
@@ -361,6 +392,14 @@ int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	uart_local_t * uart = (uart_local_t*)huart;
 	uart_event_t uart_event;
+
+    if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_ENABLED ){
+        uart->o_flags |= UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
+        uart->incoming_received = uart->incoming;
+        uart_event.value = uart->incoming_received;
+        HAL_UART_Receive_IT(&uart->hal_handle, &uart->incoming, 1);
+    }
+
 	mcu_execute_event_handler(&uart->read, MCU_EVENT_FLAG_DATA_READY, &uart_event);
 }
 
@@ -385,15 +424,16 @@ int mcu_uart_write(const devfs_handle_t * handle, devfs_async_t * async){
 	return -1;
 }
 
+
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	uart_local_t * uart = (uart_local_t*)huart;
 	uart_event_t uart_event;
+    uart_event.value = 0;
 	mcu_execute_event_handler(&uart->write, MCU_EVENT_FLAG_WRITE_COMPLETE, &uart_event);
 }
 
 
 void mcu_uart_isr(int port){
-	//first determine if this is a UART0 interrupt
 	uart_local_t * uart = uart_local + port;
 	HAL_UART_IRQHandler(&uart->hal_handle);
 }
