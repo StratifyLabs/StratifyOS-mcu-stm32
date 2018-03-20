@@ -26,6 +26,7 @@
 #define ENTRY_GET_PORT(entry) ( entry >> 8)
 
 #define E_TMR_(port) ENTRY(CORE_PERIPH_TMR,(port-1))
+#define E_LPTM(port) ENTRY(CORE_PERIPH_TMR,(port-1))
 #define E_TMR(port) ENTRY(CORE_PERIPH_TMR,(port-1))
 #define E_UART(port) ENTRY(CORE_PERIPH_UART,(port-1))
 #define E_USRT(port) ENTRY(CORE_PERIPH_UART,(port-1))

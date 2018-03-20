@@ -9,3 +9,4 @@ MEMORY {
 
 INCLUDE ldscripts/stm32f7xx.ld
 
+PROVIDE ( _unique_id = 0x1FF0F420 );

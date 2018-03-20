@@ -139,7 +139,14 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 		usb_local.hal_handle.Init.dev_endpoints = DEV_USB_LOGICAL_ENDPOINT_COUNT;
 		usb_local.hal_handle.Init.speed = PCD_SPEED_FULL;
 		usb_local.hal_handle.Init.dma_enable = DISABLE;
-		usb_local.hal_handle.Init.ep0_mps = attr->max_packet_size;
+        usb_local.hal_handle.Init.ep0_mps = DEP0CTL_MPS_64;
+        if ( attr->max_packet_size <= 8 ){
+            usb_local.hal_handle.Init.ep0_mps = DEP0CTL_MPS_8;
+        } else if ( attr->max_packet_size <= 16 ){
+            usb_local.hal_handle.Init.ep0_mps = DEP0CTL_MPS_16;
+        } else if ( attr->max_packet_size <= 32 ){
+            usb_local.hal_handle.Init.ep0_mps = DEP0CTL_MPS_32;
+        }
 		usb_local.hal_handle.Init.phy_itface = PCD_PHY_EMBEDDED;
 
 		usb_local.hal_handle.Init.Sof_enable = DISABLE;
@@ -147,6 +154,7 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 		usb_local.hal_handle.Init.lpm_enable = DISABLE;
 		usb_local.hal_handle.Init.vbus_sensing_enable = DISABLE;
 		usb_local.hal_handle.Init.use_dedicated_ep1 = DISABLE;
+        usb_local.hal_handle.Init.battery_charging_enable = DISABLE;
 
 		if( attr->o_flags & USB_FLAG_IS_SOF_ENABLED ){
 			usb_local.hal_handle.Init.Sof_enable = ENABLE;
@@ -163,15 +171,6 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 
         HAL_PCD_Init(&usb_local.hal_handle);
 
-        //this needs an MCU definition to define the number of endpoints and the amount of RAM available 1.25K for at least some STM32F4xx
-		//these need to be pulled from MCU FIFO
-#if 0
-		HAL_PCDEx_SetRxFiFo(&usb_local.hal_handle, 128);  //size is in 32-bit words for all fifo - 512
-		HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, 0, 32); //128 / 640
-		HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, 1, 32); //128 / 768
-		HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, 2, 32); //128 / 896
-		HAL_PCDEx_SetTxFiFo(&usb_local.hal_handle, 3, 64); //256 / 1152
-#endif
         HAL_PCDEx_SetRxFiFo(&usb_local.hal_handle, attr->rx_fifo_word_size);  //size is in 32-bit words for all fifo - 512
         for(i=0; i < USB_TX_FIFO_WORD_SIZE_COUNT; i++){
             if( attr->tx_fifo_word_size[i] > 0 ){
@@ -469,7 +468,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 	dest_buffer = mcu_board_config.usb_rx_buffer + usb_local.rx_buffer_offset[0];
 	usb_local.rx_count[0] = sizeof(usbd_setup_packet_t);
 	memcpy(dest_buffer, hpcd->Setup, usb_local.rx_count[0]);
-	//mcu_debug_root_printf("Setup\n");
+    //mcu_debug_root_printf("Setup\n");
 
 	mcu_execute_event_handler(usb_local.read + 0, MCU_EVENT_FLAG_SETUP, &event);
 
