@@ -22,10 +22,6 @@
 
 //requires mcu_core_osc_freq, mcu_board_config.core_cpu_freq, and mcu_board_config.core_periph_freq to be defined ext
 int mcu_core_initclock(int div){
-	//u8 clk_src = 0;
-	//u32 fosc = mcu_board_config.core_osc_freq;
-	//int pdiv = mcu_board_config.core_cpu_freq / mcu_board_config.core_periph_freq;
-	//u32 fclk = mcu_board_config.core_cpu_freq / div;
 
 	RCC_OscInitTypeDef RCC_OscInitStruct;
 	RCC_ClkInitTypeDef RCC_ClkInitStruct;
@@ -51,11 +47,7 @@ int mcu_core_initclock(int div){
     }
 
 
-    RCC_ClkInitStruct.ClockType =
-            RCC_CLOCKTYPE_HCLK |
-            RCC_CLOCKTYPE_SYSCLK |
-            RCC_CLOCKTYPE_PCLK1 |
-            RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;

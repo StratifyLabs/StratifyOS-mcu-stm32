@@ -17,6 +17,8 @@
 #ifndef STM32_ARCH_H_
 #define STM32_ARCH_H_
 
+#include <mcu/types.h>
+
 #if defined __stm32f401xc
 #define CORE_M4 1
 #define ARM_MATH_CM4 1
@@ -107,6 +109,24 @@
 #include "mcu_stm32f767xx.h"
 #endif
 
+
+typedef struct MCU_PACK {
+    u32 o_flags;
+    u16 clock_pllm;
+    u16 clock_plln;
+    u16 clock_pllp;
+    u16 clock_pllq;
+    u16 clock_ahb_clock_divider;
+    u16 clock_apb1_clock_divider;
+    u16 clock_apb2_clock_divider;
+    u16 clock_48_clock_selection;
+    u16 clock_voltage_scale;
+    u16 clock_flash_latency;
+} stm32_arch_config_t;
+
+enum {
+    STM32_CONFIG_FLAG_IS_HSE_ON = (1<<0)
+};
 
 
 
