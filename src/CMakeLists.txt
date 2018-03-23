@@ -11,7 +11,8 @@ set(SOURCES
 	${SOURCES_PREFIX}/i2c_dev.c
 	${SOURCES_PREFIX}/i2s_spi_dev.c
 	${SOURCES_PREFIX}/stm32_flash.c
-  ${SOURCES_PREFIX}/mcu_dev.c
+	${SOURCES_PREFIX}/stm32_local.c
+	${SOURCES_PREFIX}/mcu_dev.c
   ${SOURCES_PREFIX}/mem_dev.c
   ${SOURCES_PREFIX}/mpu_dev.c
   ${SOURCES_PREFIX}/pio_dev.c

@@ -44,4 +44,10 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
 GPIO_TypeDef * const hal_get_pio_regs(u8 port);
 int hal_get_alternate_function(int gpio_port, int pin, core_periph_t function, int periph_port);
 
+u32 stm32_local_decode_flash_latency(u16 value);
+u32 stm32_local_decode_voltage_scale(u16 value);
+u32 stm32_local_decode_sysclk_divider(u16 value);
+u32 stm32_local_decode_hclk_divider(u16 value);
+u32 stm32_local_decode_hclk_divider(u16 value);
+
 #endif /* STM32_LOCAL_H_ */
