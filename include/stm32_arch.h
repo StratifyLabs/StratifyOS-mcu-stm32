@@ -116,17 +116,53 @@ typedef struct MCU_PACK {
     u16 clock_plln;
     u16 clock_pllp;
     u16 clock_pllq;
+    u16 clock_pllr;
     u16 clock_ahb_clock_divider;
     u16 clock_apb1_clock_divider;
     u16 clock_apb2_clock_divider;
-    u16 clock_48_clock_selection;
     u16 clock_voltage_scale;
     u16 clock_flash_latency;
-} stm32_arch_config_t;
+    u16 usb_rx_buffer_size;
+    void * usb_rx_buffer;
+} stm32_config_t;
 
 enum {
-    STM32_CONFIG_FLAG_IS_HSE_ON = (1<<0)
+    STM32_CONFIG_FLAG_IS_HSE_ON = (1<<0),
+    STM32_CONFIG_FLAG_IS_48_CLOCK_PLLQ = 0, //default values
 };
+
+
+#define STM32_NUCLEO144_DECLARE_MCU_BOARD_CONFIG(cpu_frequency, event_handler_value, arch_config_value) \
+    const mcu_board_config_t mcu_board_config = { \
+    .core_cpu_freq = cpu_frequency, \
+    .usb_max_packet_zero = 64, \
+    .debug_uart_port = 2, \
+    .debug_uart_attr = { \
+        .pin_assignment = { \
+            .rx = {3, 9}, \
+            .tx = {3, 8}, \
+            .cts = {0xff, 0xff}, \
+            .rts = {0xff, 0xff} \
+        }, \
+        .freq = 115200, \
+        .o_flags = UART_FLAG_SET_LINE_CODING_DEFAULT, \
+        .width = 8 \
+    }, \
+    .o_flags = MCU_BOARD_CONFIG_FLAG_LED_ACTIVE_HIGH, \
+    .event_handler = event_handler_value, \
+    .led = {1, 7}, \
+    .arch_config = arch_config_value }
+
+#define STM32_NUCLEO144_DECLARE_BOOT_BOARD_CONFIG(link_transport_driver_value) \
+    extern u32 _flash_start; \
+    const bootloader_board_config_t boot_board_config = { \
+            .sw_req_loc = 0x20004000, \
+            .sw_req_value = 0x55AA55AA, \
+            .program_start_addr = 0x40000 + (u32)&_flash_start, \
+            .hw_req = {2, 13}, \
+            .o_flags = BOOT_BOARD_CONFIG_FLAG_HW_REQ_ACTIVE_HIGH, \
+            .link_transport_driver = link_transport_driver_value, \
+            .id = __HARDWARE_ID }
 
 
 

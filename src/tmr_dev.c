@@ -151,7 +151,6 @@ int mcu_tmr_getinfo(const devfs_handle_t * handle, void * ctl){
             TMR_FLAG_IS_CHANNEL_SET_OUTPUT_ON_MATCH |
             TMR_FLAG_IS_CHANNEL_PWM_MODE;
     info->o_events = 0;
-    //info->freq = mcu_board_config.core_periph_freq / (tmr_regs_table[port]->PR+1);
 
 
     return 0;
@@ -192,8 +191,18 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
             }
 
             //Set the prescalar so that the freq is correct
-            if ( freq < mcu_board_config.core_periph_freq ){
-                m_tmr_local[port].hal_handle.Init.Prescaler = ((mcu_board_config.core_periph_freq + freq/2) / freq);
+            //get the peripheral clock frequency
+
+            u32 pclk;
+            if( (port == 1) || (port == 8) || (port == 9) || (port == 10) || (port == 11) ){
+                pclk = HAL_RCC_GetPCLK1Freq()*2; //timer clocks are double pclks
+            } else {
+                pclk = HAL_RCC_GetPCLK2Freq()*2;
+            }
+
+
+            if ( freq < pclk ){
+                m_tmr_local[port].hal_handle.Init.Prescaler = ((pclk + freq/2) / freq);
             } else {
                 m_tmr_local[port].hal_handle.Init.Prescaler = 0;
             }

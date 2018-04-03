@@ -22,15 +22,17 @@
 
 //requires mcu_core_osc_freq, mcu_board_config.core_cpu_freq, and mcu_board_config.core_periph_freq to be defined ext
 int mcu_core_initclock(int div){
-    const stm32_arch_config_t * config = mcu_board_config.arch_config;
+    const stm32_config_t * config = mcu_board_config.arch_config;
 
 	RCC_OscInitTypeDef RCC_OscInitStruct;
 	RCC_ClkInitTypeDef RCC_ClkInitStruct;
+
 
 	__HAL_RCC_PWR_CLK_ENABLE();
     __HAL_PWR_VOLTAGESCALING_CONFIG(stm32_local_decode_voltage_scale(config->clock_voltage_scale-1));
 
 
+    //if HSE flag is on
 	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
 	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -39,6 +41,9 @@ int mcu_core_initclock(int div){
     RCC_OscInitStruct.PLL.PLLN = config->clock_plln;
     RCC_OscInitStruct.PLL.PLLP = config->clock_pllp;
     RCC_OscInitStruct.PLL.PLLQ = config->clock_pllq;
+#if STM32_LOCAL_HAS_RCC_PLLR
+    RCC_OscInitStruct.PLL.PLLR = config->clock_pllr;
+#endif
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
 		return -1;
 	}
@@ -57,6 +62,16 @@ int mcu_core_initclock(int div){
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, stm32_local_decode_flash_latency(config->clock_flash_latency)) != HAL_OK){
 		return -1;
 	}
+
+
+#if STM32_LOCAL_HAS_PERIPH_CLOCK_48
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_CLK48;
+    PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48CLKSOURCE_PLLQ;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK){
+        return -1;
+    }
+#endif
 
 	SystemCoreClock = mcu_board_config.core_cpu_freq;
 

@@ -40,6 +40,21 @@
 #include "stm32f7xx/stm32f7xx_hal_conf.h"
 #endif
 
+
+#if defined(STM32F410Tx) || defined(STM32F410Cx) || defined(STM32F410Rx) || defined(STM32F446xx) || defined(STM32F469xx) ||\
+    defined(STM32F479xx) || defined(STM32F412Zx) || defined(STM32F412Vx) || defined(STM32F412Rx) || defined(STM32F412Cx) ||\
+    defined(STM32F413xx) || defined(STM32F423xx)
+#define STM32_LOCAL_HAS_RCC_PLLR 1
+#endif
+
+#if defined(STM32F446xx) || defined(STM32F410Tx) || defined(STM32F410Cx) || defined(STM32F410Rx) || \
+    defined(STM32F412Zx) || defined(STM32F412Vx) || defined(STM32F412Rx) || defined(STM32F412Cx) || defined(STM32F413xx) || defined(STM32F423xx) || \
+    defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) || defined(STM32F469xx) || defined(STM32F479xx) || \
+    defined(STM32F405xx) || defined(STM32F415xx) || defined(STM32F407xx) || defined(STM32F417xx) || \
+    defined(STM32F401xC) || defined(STM32F401xE) || defined(STM32F411xE)
+#define STM32_LOCAL_HAS_PERIPH_CLOCK_48 1
+#endif
+
 int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int periph_port, int mode, int speed, int pull);
 GPIO_TypeDef * const hal_get_pio_regs(u8 port);
 int hal_get_alternate_function(int gpio_port, int pin, core_periph_t function, int periph_port);
