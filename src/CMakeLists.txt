@@ -20,8 +20,8 @@ set(SOURCES
   ${SOURCES_PREFIX}/spi_dev.c
   ${SOURCES_PREFIX}/tmr_dev.c
   ${SOURCES_PREFIX}/uart_dev.c
-  ${SOURCES_PREFIX}/usb_otg_fs_dev.c
-  ${SOURCES_PREFIX}/wdt.c
+	${SOURCES_PREFIX}/usb_otg_fs_dev.c
+	${SOURCES_PREFIX}/wdt.c
 	${SOURCES_PREFIX}/stm32_local.h
 	${SOURCES_PREFIX}/stm32_flash.h
 	${SOURCES_PREFIX}/stm32_pin_local.h

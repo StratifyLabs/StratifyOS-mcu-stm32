@@ -24,19 +24,19 @@
 int mcu_core_initclock(int div){
     const stm32_config_t * config = mcu_board_config.arch_config;
 
-	RCC_OscInitTypeDef RCC_OscInitStruct;
-	RCC_ClkInitTypeDef RCC_ClkInitStruct;
+    RCC_OscInitTypeDef RCC_OscInitStruct;
+    RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
 
-	__HAL_RCC_PWR_CLK_ENABLE();
+    __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_PWR_VOLTAGESCALING_CONFIG(stm32_local_decode_voltage_scale(config->clock_voltage_scale-1));
 
 
     //if HSE flag is on
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLM = config->clock_pllm;
     RCC_OscInitStruct.PLL.PLLN = config->clock_plln;
     RCC_OscInitStruct.PLL.PLLP = config->clock_pllp;
@@ -44,9 +44,17 @@ int mcu_core_initclock(int div){
 #if STM32_LOCAL_HAS_RCC_PLLR
     RCC_OscInitStruct.PLL.PLLR = config->clock_pllr;
 #endif
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
-		return -1;
-	}
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
+        return -1;
+    }
+
+#if defined STM32F7
+    if( config->o_flags & STM32_CONFIG_FLAG_IS_OVERDRIVE_ON ){
+        if (HAL_PWREx_EnableOverDrive() != HAL_OK){
+            return -1;
+        }
+    }
+#endif
 
 
     RCC_ClkInitStruct.ClockType =
@@ -60,34 +68,36 @@ int mcu_core_initclock(int div){
     RCC_ClkInitStruct.APB2CLKDivider = stm32_local_decode_hclk_divider(config->clock_apb2_clock_divider);
 
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, stm32_local_decode_flash_latency(config->clock_flash_latency)) != HAL_OK){
-		return -1;
-	}
+        return -1;
+    }
 
 
 #if STM32_LOCAL_HAS_PERIPH_CLOCK_48
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_CLK48;
     PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48CLKSOURCE_PLLQ;
+
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK){
         return -1;
     }
+
 #endif
 
-	SystemCoreClock = mcu_board_config.core_cpu_freq;
+    SystemCoreClock = mcu_board_config.core_cpu_freq;
 
-	return 0;
+    return 0;
 }
 
 //this overrides the weak function in the STM32 HAL library so that Stratify OS can take care of the SYS tick
 HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority){
-	return HAL_OK;
+    return HAL_OK;
 }
 
 void HAL_Delay(__IO uint32_t Delay){
-	u32 value = SysTick->VAL;
-	while( SysTick->VAL && (value - SysTick->VAL < Delay) ){
-		;
-	}
+    u32 value = SysTick->VAL;
+    while( SysTick->VAL && (value - SysTick->VAL < Delay) ){
+        ;
+    }
 }
 
 /*! @} */

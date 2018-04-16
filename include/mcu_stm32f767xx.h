@@ -89,7 +89,7 @@
 #define MCU_MIDDLE_IRQ_PRIORITY 8
 
 #define MCU_RAM_PAGES 368
-#define MCU_DELAY_FACTOR 1
+#define MCU_DELAY_FACTOR 3
 
 #ifdef __cplusplus
 extern "C" {

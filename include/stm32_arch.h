@@ -129,6 +129,7 @@ typedef struct MCU_PACK {
 enum {
     STM32_CONFIG_FLAG_IS_HSE_ON = (1<<0),
     STM32_CONFIG_FLAG_IS_48_CLOCK_PLLQ = 0, //default values
+    STM32_CONFIG_FLAG_IS_OVERDRIVE_ON = (1<<1)
 };
 
 

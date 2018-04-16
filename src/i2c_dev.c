@@ -331,9 +331,9 @@ int mcu_i2c_write(const devfs_handle_t * handle, devfs_async_t * async){
     i2c->master = async->handler;
 
     if( i2c->o_flags & I2C_FLAG_IS_PTR_16 ){
-        addr_size = 2;
+        addr_size = I2C_MEMADD_SIZE_16BIT;
     } else {
-        addr_size = 1;
+        addr_size = I2C_MEMADD_SIZE_8BIT;
     }
 
     if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){
@@ -363,9 +363,9 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 
     if( i2c->o_flags & I2C_FLAG_IS_PTR_16 ){
-        addr_size = 2;
+        addr_size = I2C_MEMADD_SIZE_16BIT;
     } else {
-        addr_size = 1;
+        addr_size = I2C_MEMADD_SIZE_8BIT;
     }
 
     if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){

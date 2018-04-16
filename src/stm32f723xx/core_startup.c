@@ -242,7 +242,7 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
         _ISR(otg_hs_ep1_out),
         _ISR(otg_hs_ep1_in), //75
         _ISR(otg_hs_wkup),
-        _ISR(otg_hs),
+        _ISR(otg_hs), //77
         _ISR(dcmi),
         mcu_core_default_isr, //79
         _ISR(hash_rng), //80

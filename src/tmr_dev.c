@@ -95,6 +95,21 @@ int mcu_tmr_open(const devfs_handle_t * handle){
         case 4:
             __HAL_RCC_TIM5_CLK_ENABLE();
             break;
+#if defined __HAL_RCC_TIM6_CLK_ENABLE
+            case 5:
+                __HAL_RCC_TIM6_CLK_ENABLE();
+                break;
+#endif
+#if defined __HAL_RCC_TIM7_CLK_ENABLE
+            case 6:
+                __HAL_RCC_TIM7_CLK_ENABLE();
+                break;
+#endif
+#if defined __HAL_RCC_TIM8_CLK_ENABLE
+            case 7:
+                __HAL_RCC_TIM8_CLK_ENABLE();
+                break;
+#endif
         }
         if( tmr_irqs[port] != (u8)-1 ){
             cortexm_enable_irq((void*)(u32)(tmr_irqs[port]));
@@ -130,6 +145,21 @@ int mcu_tmr_close(const devfs_handle_t * handle){
             case 4:
                 __HAL_RCC_TIM5_CLK_DISABLE();
                 break;
+#if defined __HAL_RCC_TIM6_CLK_DISABLE
+            case 5:
+                __HAL_RCC_TIM6_CLK_DISABLE();
+                break;
+#endif
+#if defined __HAL_RCC_TIM7_CLK_DISABLE
+            case 6:
+                __HAL_RCC_TIM7_CLK_DISABLE();
+                break;
+#endif
+#if defined __HAL_RCC_TIM8_CLK_DISABLE
+            case 7:
+                __HAL_RCC_TIM8_CLK_DISABLE();
+                break;
+#endif
             }
             m_tmr_local[port].ref_count--;
         }
@@ -195,11 +225,16 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 
             u32 pclk;
             if( (port == 1) || (port == 8) || (port == 9) || (port == 10) || (port == 11) ){
-                pclk = HAL_RCC_GetPCLK1Freq()*2; //timer clocks are double pclks
+                pclk = HAL_RCC_GetPCLK1Freq(); //timer clocks are double pclks
+                if( pclk <= mcu_board_config.core_cpu_freq/2 ){
+                    pclk = pclk * 2;
+                }
             } else {
-                pclk = HAL_RCC_GetPCLK2Freq()*2;
+                pclk = HAL_RCC_GetPCLK2Freq();
+                if( pclk <= mcu_board_config.core_cpu_freq/2 ){
+                    pclk = pclk * 2;
+                }
             }
-
 
             if ( freq < pclk ){
                 m_tmr_local[port].hal_handle.Init.Prescaler = ((pclk + freq/2) / freq);
