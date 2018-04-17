@@ -18,7 +18,6 @@
  */
 
 #include <mcu/debug.h>
-#include <errno.h>
 #include <stdbool.h>
 #include "stm32_local.h"
 #include "cortexm/cortexm.h"
@@ -278,8 +277,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
         TIM_IC_InitTypeDef init_ic;
 
         if( chan >= NUM_OCS ){
-            errno = EINVAL;
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
 
         channel_configure_type = CHANNEL_TYPE_NONE;
@@ -410,14 +408,12 @@ int mcu_tmr_setchannel(const devfs_handle_t * handle, void * ctl){
     if( req->loc & MCU_CHANNEL_FLAG_IS_INPUT ){
         chan = req->loc & ~MCU_CHANNEL_FLAG_IS_INPUT;
         if ( chan >= NUM_ICS ){
-            errno = EINVAL;
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
     } else {
         chan = req->loc;
         if ( chan >= NUM_OCS ){
-            errno = EINVAL;
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
     }
 
@@ -436,14 +432,12 @@ int mcu_tmr_getchannel(const devfs_handle_t * handle, void * ctl){
     if( req->loc & MCU_CHANNEL_FLAG_IS_INPUT ){
         chan = req->loc & ~MCU_CHANNEL_FLAG_IS_INPUT;
         if ( chan >= NUM_ICS ){
-            errno = EINVAL;
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
     } else {
         chan = req->loc;
         if ( chan >= NUM_OCS ){
-            errno = EINVAL;
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
     }
 
@@ -452,8 +446,7 @@ int mcu_tmr_getchannel(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_tmr_write(const devfs_handle_t * handle, devfs_async_t * wop){
-    errno = ENOTSUP;
-    return -1;
+    return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 
@@ -469,14 +462,10 @@ int mcu_tmr_setaction(const devfs_handle_t * handle, void * ctl){
     chan = action->channel & ~MCU_CHANNEL_FLAG_IS_INPUT;
 
     if( chan >= NUM_OCS ){
-        errno = EINVAL;
-        return -1;
+        return SYSFS_SET_RETURN(EINVAL);
     }
 
     tim_channel = tmr_channels[chan];
-
-
-
 
     if ( o_events == MCU_EVENT_FLAG_NONE ){ //Check to see if all actions are disabled for the channel
         m_tmr_local[port].handler[chan].callback = 0;
@@ -524,8 +513,7 @@ int mcu_tmr_setaction(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_tmr_read(const devfs_handle_t * handle, devfs_async_t * rop){
-    errno = ENOTSUP;
-    return -1;
+    return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int mcu_tmr_set(const devfs_handle_t * handle, void * ctl){

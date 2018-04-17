@@ -17,7 +17,6 @@
  * 
  */
 
-#include <errno.h>
 #include <cortexm/cortexm.h>
 #include <mcu/mem.h>
 #include <mcu/debug.h>
@@ -59,8 +58,7 @@ int mcu_mem_setattr(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_mem_setaction(const devfs_handle_t * handle, void * ctl){
-	errno = ENOTSUP;
-	return -1;
+    return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int mcu_mem_getpageinfo(const devfs_handle_t * handle, void * ctl){
@@ -137,26 +135,23 @@ int mcu_mem_erasepage(const devfs_handle_t * handle, void * ctl){
 	//protect the OS and the bootloader from being erased
 	if( page <= last_boot_page ){
 		mcu_debug_root_printf("Can't erase page (BOOT) %d in 0x%lX %d\n", page, addr, page_size);
-		errno = EROFS;
-		return -1;
+        return SYSFS_SET_RETURN(EROFS);
 	}
 
 	if( stm32_flash_is_flash(addr, page_size) == 0 ){
 		mcu_debug_root_printf("Can't erase page (FLASH) %d in 0x%lX %d\n", page, addr, page_size);
-		errno = EROFS;
-		return -1;
+        return SYSFS_SET_RETURN(EROFS);
 	}
 
 	if( stm32_flash_is_code(addr, page_size) ){
 		mcu_debug_root_printf("Can't erase page (CODE) %d in 0x%lX %d\n", page, addr, page_size);
-		errno = EROFS;
-		return -1;
+        return SYSFS_SET_RETURN(EROFS);
 	}
 
 
 	err = stm32_flash_erase_sector(page);
 	if( err < 0 ){
-		errno = EIO;
+        err = SYSFS_SET_RETURN(EIO);
 	}
 	return err;
 }
@@ -184,18 +179,15 @@ int mcu_mem_writepage(const devfs_handle_t * handle, void * ctl){
 
 	if ( write_page <= last_boot_page ){
 		mcu_debug_root_printf("Can't write to 0x%lX boot page %d %d\n", wattr->addr, write_page, last_boot_page);
-		errno = EROFS;
-		return -1;
+        return SYSFS_SET_RETURN(EROFS);
 	}
 
 	if( ((wattr->addr + nbyte >= FLASH_CODE_START) && (wattr->addr <= FLASH_CODE_END)) ){
-		errno = EROFS;
-		return -1;
+        return SYSFS_SET_RETURN(EROFS);
 	}
 
 	if ( wattr->addr >= (FLASH_SIZE + FLASH_START) ){
-		errno = EINVAL;
-		return -11;
+        return SYSFS_SET_RETURN(EINVAL);
 	}
 
 	if ( wattr->addr + nbyte > (FLASH_SIZE + FLASH_START) ){
@@ -205,8 +197,7 @@ int mcu_mem_writepage(const devfs_handle_t * handle, void * ctl){
 
 	if ( stm32_flash_blank_check(wattr->addr,  nbyte) ){
 		mcu_debug_root_printf("not blank 0x%lX\n", wattr->addr);
-		errno = EROFS;
-		return -1;
+        return SYSFS_SET_RETURN(EROFS);
 	}
 
 	err = stm32_flash_write(wattr->addr, wattr->buf, nbyte);
@@ -224,8 +215,7 @@ int mcu_mem_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 		return wop->nbyte;
 	}
 
-	errno = EINVAL;
-	return -1;
+    return SYSFS_SET_RETURN(EINVAL);
 }
 
 int mcu_mem_read(const devfs_handle_t * cfg, devfs_async_t * rop){
@@ -234,8 +224,7 @@ int mcu_mem_read(const devfs_handle_t * cfg, devfs_async_t * rop){
 		memcpy(rop->buf, (const void*)rop->loc, rop->nbyte);
 		return rop->nbyte;
 	}
-	errno = EINVAL;
-	return -1;
+    return SYSFS_SET_RETURN(EINVAL);
 }
 
 //RAM paging

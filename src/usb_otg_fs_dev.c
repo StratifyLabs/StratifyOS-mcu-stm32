@@ -17,7 +17,6 @@
  *
  */
 
-#include <errno.h>
 #include <fcntl.h>
 #include <mcu/usb.h>
 #include <mcu/pio.h>
@@ -108,9 +107,11 @@ int mcu_usb_close(const devfs_handle_t * handle){
             if( port == 0 ){
                 __HAL_RCC_USB_OTG_FS_CLK_DISABLE();
             } else {
+#if MCU_USB_PORTS > 1
                 __HAL_RCC_OTGPHYC_CLK_DISABLE();
                 __HAL_RCC_USB_OTG_HS_CLK_DISABLE();
                 __HAL_RCC_USB_OTG_HS_ULPI_CLK_DISABLE();
+#endif
             }
         }
         usb_local[port].ref_count--;
@@ -311,7 +312,7 @@ int mcu_usb_setaction(const devfs_handle_t * handle, void * ctl){
     }
 
     if( ret < 0 ){
-        errno = EINVAL;
+        ret = SYSFS_SET_RETURN(EINVAL);
     }
     return ret;
 }
@@ -322,21 +323,18 @@ int mcu_usb_read(const devfs_handle_t * handle, devfs_async_t * rop){
     int loc = rop->loc;
 
     if ( loc > (DEV_USB_LOGICAL_ENDPOINT_COUNT-1) ){
-        errno = EINVAL;
-        return -1;
+        return SYSFS_SET_RETURN(EINVAL);
     }
 
     if( usb_local[port].read[loc].callback ){
-        errno = EBUSY;
-        return -1;
+        return SYSFS_SET_RETURN(EBUSY);
     }
 
     //Synchronous read (only if data is ready) otherwise 0 is returned
     if ( usb_local[port].read_ready & (1<<loc) ){
         ret = mcu_usb_root_read_endpoint(handle, loc, rop->buf);
         if( ret == 0 ){
-            errno = EAGAIN;
-            return -1;
+            return SYSFS_SET_RETURN(EAGAIN);
         }
     } else {
         rop->nbyte = 0;
@@ -350,8 +348,7 @@ int mcu_usb_read(const devfs_handle_t * handle, devfs_async_t * rop){
             usb_local[port].read[loc].context = rop->handler.context;
             ret = 0;
         } else {
-            errno = EAGAIN;
-            ret = -1;
+            return SYSFS_SET_RETURN(EAGAIN);
         }
     }
 
@@ -368,13 +365,11 @@ int mcu_usb_write(const devfs_handle_t * handle, devfs_async_t * wop){
     ep = (loc & 0x7F);
 
     if ( ep > (DEV_USB_LOGICAL_ENDPOINT_COUNT-1) ){
-        errno = EINVAL;
-        return -1;
+        return SYSFS_SET_RETURN(EINVAL);
     }
 
     if ( usb_local[port].write[ep].callback ){
-        errno = EBUSY;
-        return -1;
+        return SYSFS_SET_RETURN(EBUSY);
     }
 
     usb_local[port].write_pending |= (1<<ep);
@@ -409,7 +404,6 @@ void usb_wakeup(int port){
 }
 
 void usb_set_address(const devfs_handle_t * handle, u32 addr){
-    mcu_debug_root_printf("Set Address: 0x%lX\n", addr);
     HAL_PCD_SetAddress(&usb_local[handle->port].hal_handle, addr);
 }
 
@@ -452,7 +446,6 @@ void usb_reset_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
 }
 
 void usb_stall_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
-    mcu_debug_root_printf("Stall:0x%lX\n", endpoint_num);
     HAL_PCD_EP_SetStall(&usb_local[handle->port].hal_handle, endpoint_num);
 }
 
@@ -513,7 +506,6 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
     dest_buffer = stm32_config->usb_rx_buffer + usb->rx_buffer_offset[0];
     usb->rx_count[0] = sizeof(usbd_setup_packet_t);
     memcpy(dest_buffer, hpcd->Setup, usb->rx_count[0]);
-    //mcu_debug_root_printf("Setup\n");
 
     mcu_execute_event_handler(usb->read + 0, MCU_EVENT_FLAG_SETUP, &event);
 
@@ -576,7 +568,6 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
     usb_local_t * usb = (usb_local_t *)hpcd;
     u32 mps = mcu_board_config.usb_max_packet_zero;
 
-    mcu_debug_root_printf("USB RESET\n");
 
     usb->rx_buffer_used = mps;
     for(i=0; i < DEV_USB_LOGICAL_ENDPOINT_COUNT; i++){
@@ -588,7 +579,6 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
-    mcu_debug_root_printf("USB SUSPEND\n");
     __HAL_PCD_GATE_PHYCLOCK(hpcd);
 }
 
@@ -606,19 +596,16 @@ void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd){
     usb_local_t * usb = (usb_local_t *)hpcd;
-    mcu_debug_root_printf("Connect\n");
     usb->connected = 1;
     //execute special event handler
 }
 
 void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd){
     usb_local_t * usb = (usb_local_t *)hpcd;
-    mcu_debug_root_printf("Disconnect\n");
     usb->connected = 0;
 }
 
 void mcu_core_otg_fs_isr(){
-    mcu_debug_root_printf("FS INTR\n");
     HAL_PCD_IRQHandler(&usb_local[0].hal_handle);
 }
 

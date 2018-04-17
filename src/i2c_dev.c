@@ -243,13 +243,12 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
         if( (i2c->pin_assignment.scl.port != 0xff) && (i2c->pin_assignment.sda.port != 0xff) ){
             i2c_clear_busy_flag_erratum(port, i2c);
         } else {
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
 
 
         if( HAL_I2C_Init(&i2c->hal_handle) < 0 ){
-            errno = EINVAL;
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
 
 
@@ -324,8 +323,7 @@ int mcu_i2c_write(const devfs_handle_t * handle, devfs_async_t * async){
     int addr_size;
 
     if( i2c->master.callback ){
-        errno = EBUSY;
-        return -1;
+        return SYSFS_SET_RETURN(EBUSY);
     }
 
     i2c->master = async->handler;
@@ -357,8 +355,7 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
     int addr_size;
 
     if( i2c->master.callback ){
-        errno = EBUSY;
-        return -1;
+        return SYSFS_SET_RETURN(EBUSY);
     }
 
 

@@ -17,7 +17,6 @@
  *
  */
 
-#include <errno.h>
 #include <mcu/pio.h>
 #include <mcu/core.h>
 
@@ -94,8 +93,7 @@ int mcu_pio_write(const devfs_handle_t * handle, devfs_async_t * wop){
     mcu_action_t * action;
 
     if( wop->nbyte != sizeof(mcu_action_t) ){
-        errno = EINVAL;
-        return -1;
+        return SYSFS_SET_RETURN(EINVAL);
     }
 
     action = (mcu_action_t*)wop->buf;
@@ -104,8 +102,7 @@ int mcu_pio_write(const devfs_handle_t * handle, devfs_async_t * wop){
 }
 
 int mcu_pio_read(const devfs_handle_t * cfg, devfs_async_t * async){
-    errno = ENOTSUP;
-    return -1;
+    return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int mcu_pio_setaction(const devfs_handle_t * handle, void * ctl){
@@ -116,8 +113,7 @@ int mcu_pio_setaction(const devfs_handle_t * handle, void * ctl){
 
 int mcu_pio_getinfo(const devfs_handle_t * handle, void * ctl){
     //read the direction pin status
-    errno = ENOTSUP;
-    return -1;
+    return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int mcu_pio_setattr(const devfs_handle_t * handle, void * ctl){

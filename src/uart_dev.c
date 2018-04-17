@@ -17,7 +17,6 @@
  *
  */
 
-#include <errno.h>
 #include <fcntl.h>
 #include "stm32_local.h"
 #include "cortexm/cortexm.h"
@@ -354,8 +353,7 @@ int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 
 	if( uart->read.callback ){
-		errno = EBUSY;
-		return -1;
+        return SYSFS_SET_RETURN(EBUSY);
 	}
 
 	//this driver will only read one byte at a time
@@ -368,8 +366,7 @@ int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 	}
 
 	if ( async->flags & O_NONBLOCK ){
-		errno = EAGAIN;
-		return -1;
+        return SYSFS_SET_RETURN(EAGAIN);
 	} else {
 		//no bytes
 		if( cortexm_validate_callback(async->handler.callback) < 0 ){
@@ -385,8 +382,7 @@ int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 	//this needs to read 1 byte at a time
 
 	uart->read.callback = 0;
-	errno = EIO;
-	return -1;
+    return SYSFS_SET_RETURN(EIO);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
@@ -410,8 +406,7 @@ int mcu_uart_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 
 	if( uart->write.callback ){
-		errno = EBUSY;
-		return -1;
+        return SYSFS_SET_RETURN(EBUSY);
 	}
 
     uart->write = async->handler;
@@ -420,8 +415,7 @@ int mcu_uart_write(const devfs_handle_t * handle, devfs_async_t * async){
 		return 0;
 	}
 
-	errno = EIO;
-	return -1;
+    return SYSFS_SET_RETURN(EIO);
 }
 
 

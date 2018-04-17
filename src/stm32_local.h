@@ -27,7 +27,6 @@
 
 #include "stm32_arch.h"
 
-#include <errno.h>
 #include <fcntl.h>
 #include <cortexm/cortexm.h>
 #include <mcu/core.h>

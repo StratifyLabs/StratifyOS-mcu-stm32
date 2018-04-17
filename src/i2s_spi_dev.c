@@ -144,8 +144,7 @@ int mcu_i2s_spi_setattr(const devfs_handle_t * handle, void * ctl){
         case 96000: spi_local[port].i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_96K; break;
         case 192000: spi_local[port].i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_192K; break;
         default:
-            errno = EINVAL;
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
 
         spi_local[port].i2s_hal_handle.Init.CPOL = I2S_CPOL_LOW;

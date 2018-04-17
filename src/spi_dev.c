@@ -194,8 +194,7 @@ int mcu_spi_setattr(const devfs_handle_t * handle, void * ctl){
 
 
     if( attr->width > 8 ){
-        errno = EINVAL;
-        return -1 - offsetof(spi_attr_t, width);
+        return SYSFS_SET_RETURN(EINVAL);
     }
 
     spi_local[port].hal_handle.Init.CLKPolarity = SPI_POLARITY_LOW;
@@ -215,9 +214,8 @@ int mcu_spi_setattr(const devfs_handle_t * handle, void * ctl){
         spi_local[port].hal_handle.Init.DataSize = SPI_DATASIZE_8BIT;
     } else if( attr->width == 16 ){
         spi_local[port].hal_handle.Init.DataSize = SPI_DATASIZE_16BIT;
-    }else {
-        errno = EINVAL;
-        return -1 - offsetof(spi_attr_t, width);
+    } else {
+        return SYSFS_SET_RETURN(EINVAL);
     }
 
     spi_local[port].hal_handle.Init.Direction = SPI_DIRECTION_2LINES;

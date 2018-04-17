@@ -18,7 +18,6 @@
  */
 
 #include <string.h>
-#include <errno.h>
 #include <mcu/flash.h>
 #include "stm32_flash.h"
 
@@ -54,8 +53,7 @@ int mcu_flash_getpageinfo(const devfs_handle_t * handle, void * ctl){
 		ctlp->addr = addr;
 		ctlp->size = size;
 	} else {
-		errno = EINVAL;
-		ret = -1;
+        ret = SYSFS_SET_RETURN(EINVAL);
 	}
 	return ret;
 }
@@ -78,8 +76,7 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 
 	if ( page <= last_page ){
 		//Never erase the bootloader
-		errno = EROFS;
-		return -1;
+        return SYSFS_SET_RETURN(EROFS);
 	}
 
 
@@ -87,8 +84,7 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 	page_size = stm32_flash_get_sector_size(page);
 
 	if( stm32_flash_is_flash(addr, page_size) == 0 ){
-		errno = EINVAL;
-		return -1;
+        return SYSFS_SET_RETURN(EINVAL);
 	}
 
 
@@ -101,7 +97,7 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 
 	err = stm32_flash_erase_sector(page);
 	if( err < 0 ){
-		errno = EIO;
+        err = SYSFS_SET_RETURN(EIO);
 	}
 
 	return err;
@@ -129,20 +125,17 @@ int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
 	//is dest in flash?
 	if( stm32_flash_is_flash(wattr->addr, nbyte) == 0 ){
 		//not if flash
-		errno = EINVAL;
-		return -1;
+        return SYSFS_SET_RETURN(EINVAL);
 	}
 
 	//will dest overwrite bootloader?
 	if( ((wattr->addr + nbyte >= FLASH_CODE_START) && (wattr->addr <= FLASH_CODE_END)) ){
-		errno = EROFS;
-		return -1;
+        return SYSFS_SET_RETURN(EROFS);
 	}
 
 
 	if ( stm32_flash_blank_check(wattr->addr,  nbyte) ){
-		errno = EROFS;
-		return -1;
+        return SYSFS_SET_RETURN(EROFS);
 	}
 
 	err = stm32_flash_write(wattr->addr, wattr->buf, nbyte);
@@ -155,8 +148,7 @@ int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_flash_write(const devfs_handle_t * cfg, devfs_async_t * async){
-    errno = ENOTSUP;
-    return -1;
+    return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int mcu_flash_read(const devfs_handle_t * cfg, devfs_async_t * async){
