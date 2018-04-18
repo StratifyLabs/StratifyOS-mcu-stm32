@@ -520,36 +520,36 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 
     // 3. Check SCL and SDA High level in GPIOx_IDR.
     do {
-        value = mcu_pio_get(&scl_pio_handle, 0);
+        mcu_pio_get(&scl_pio_handle, &value);
     } while( (value & scl_pio_attr.o_pinmask) == 0);
 
     do {
-        value = mcu_pio_get(&sda_pio_handle, 0);
+        mcu_pio_get(&sda_pio_handle, &value);
     } while( (value & sda_pio_attr.o_pinmask) == 0);
 
     // 4. Configure the SDA I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
     mcu_pio_clrmask(&sda_pio_handle, (void*)sda_pio_attr.o_pinmask);
     //  5. Check SDA Low level in GPIOx_IDR.
     do {
-        value = mcu_pio_get(&sda_pio_handle, 0);
+        mcu_pio_get(&sda_pio_handle, &value);
     } while( (value & sda_pio_attr.o_pinmask) != 0);
     // 6. Configure the SCL I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
     mcu_pio_clrmask(&scl_pio_handle, (void*)scl_pio_attr.o_pinmask);
     //  7. Check SCL Low level in GPIOx_IDR.
     do {
-        value = mcu_pio_get(&scl_pio_handle, 0);
+        mcu_pio_get(&scl_pio_handle, &value);
     } while( (value & scl_pio_attr.o_pinmask) != 0);
     // 8. Configure the SCL I/O as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
     mcu_pio_setmask(&scl_pio_handle, (void*)scl_pio_attr.o_pinmask);
     // 9. Check SCL High level in GPIOx_IDR.
     do {
-        value = mcu_pio_get(&scl_pio_handle, 0);
+        mcu_pio_get(&scl_pio_handle, &value);
     } while( (value & scl_pio_attr.o_pinmask) == 0);
     // 10. Configure the SDA I/O as General Purpose Output Open-Drain , High level (Write 1 to GPIOx_ODR).
     mcu_pio_setmask(&sda_pio_handle, (void*)sda_pio_attr.o_pinmask);
     // 11. Check SDA High level in GPIOx_IDR.
     do {
-        value = mcu_pio_get(&sda_pio_handle, 0);
+        mcu_pio_get(&sda_pio_handle, &value);
     } while( (value & sda_pio_attr.o_pinmask) == 0);
 
 

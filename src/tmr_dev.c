@@ -95,19 +95,19 @@ int mcu_tmr_open(const devfs_handle_t * handle){
             __HAL_RCC_TIM5_CLK_ENABLE();
             break;
 #if defined __HAL_RCC_TIM6_CLK_ENABLE
-            case 5:
-                __HAL_RCC_TIM6_CLK_ENABLE();
-                break;
+        case 5:
+            __HAL_RCC_TIM6_CLK_ENABLE();
+            break;
 #endif
 #if defined __HAL_RCC_TIM7_CLK_ENABLE
-            case 6:
-                __HAL_RCC_TIM7_CLK_ENABLE();
-                break;
+        case 6:
+            __HAL_RCC_TIM7_CLK_ENABLE();
+            break;
 #endif
 #if defined __HAL_RCC_TIM8_CLK_ENABLE
-            case 7:
-                __HAL_RCC_TIM8_CLK_ENABLE();
-                break;
+        case 7:
+            __HAL_RCC_TIM8_CLK_ENABLE();
+            break;
 #endif
         }
         if( tmr_irqs[port] != (u8)-1 ){
@@ -525,10 +525,12 @@ int mcu_tmr_set(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_tmr_get(const devfs_handle_t * handle, void * ctl){
-    TIM_TypeDef * regs;
-    int port = handle->port;
-    regs = tmr_regs_table[port];
-    return regs->CNT;
+    u32 * value = ctl;
+    if( value ){
+        *value = tmr_regs_table[handle->port]->CNT;
+        return SYSFS_RETURN_SUCCESS;
+    }
+    return SYSFS_SET_RETURN(EINVAL);
 }
 
 static void tmr_isr(int port); //This is speed optimized

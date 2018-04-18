@@ -178,9 +178,12 @@ int mcu_pio_clrmask(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_pio_get(const devfs_handle_t * handle, void * ctl){
-    int port = handle->port;
-    GPIO_TypeDef * regs = m_pio_regs_table[port];
-    return regs->IDR;
+    u32 * value = ctl;
+    if( value ){
+        *value = m_pio_regs_table[handle->port]->IDR;
+        return SYSFS_RETURN_SUCCESS;
+    }
+    return SYSFS_SET_RETURN(EINVAL);
 }
 
 int mcu_pio_set(const devfs_handle_t * handle, void * ctl){
