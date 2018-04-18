@@ -35,8 +35,8 @@ const alternate_function_entry_t alternate_function_table[TOTAL_PINS] = {
 		{{ RESERVED_, E_TMR_(2), E_TMR_(5), RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_USRT(2), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA0
 		{{ RESERVED_, E_TMR_(2), E_TMR_(5), RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_USRT(2), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA1
 		{{ RESERVED_, E_TMR_(2), E_TMR_(5), E_TMR_(9), RESERVED_, RESERVED_, RESERVED_, E_USRT(2), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA2
-		{{ RESERVED_, E_TMR_(2), E_TMR_(5), E_TMR_(9), RESERVED_, RESERVED_, E_SPI_(3), E_USRT(2), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA3
-		{{ RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SPI_(1), RESERVED_, E_USRT(2), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA4
+        {{ RESERVED_, E_TMR_(2), E_TMR_(5), E_TMR_(9), RESERVED_, RESERVED_, RESERVED_, E_USRT(2), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA3
+        {{ RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SPI_(1), E_SPI_(3), E_USRT(2), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA4
 		{{ RESERVED_, E_TMR_(2), RESERVED_, RESERVED_, RESERVED_, E_SPI_(1), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA5
 		{{ RESERVED_, E_TMR_(1), E_TMR_(3), RESERVED_, RESERVED_, E_SPI_(1), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA6
 		{{ RESERVED_, E_TMR_(1), E_TMR_(3), RESERVED_, RESERVED_, E_SPI_(1), RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA7
@@ -189,9 +189,9 @@ const alternate_function_entry_t alternate_function_table[TOTAL_PINS] = {
 int hal_get_alternate_function(int gpio_port, int pin, core_periph_t function, int periph_port){
 	int i;
 	alternate_function_entry_t entry;
-	u16 value = gpio_port * 16 + pin;
+    int value = gpio_port * 16 + pin;
 	i = -1;
-	if( value < TOTAL_PINS ){
+    if( (u32)value < TOTAL_PINS ){
 		entry = alternate_function_table[value];
 		value = -1;
 		for(i = 0; i < TOTAL_ENTRIES; i++){
@@ -203,7 +203,7 @@ int hal_get_alternate_function(int gpio_port, int pin, core_periph_t function, i
 			}
 		}
 	}
-	return i;
+    return value;
 }
 
 int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int periph_port, int mode, int speed, int pull){

@@ -29,15 +29,20 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi, I2S_VERSION, I_MCU_TOTAL + I_I2S_TOTAL,
 
 int mcu_i2s_spi_open(const devfs_handle_t * handle){
     u32 port = handle->port;
-    //same as SPI
-    mcu_spi_open(handle);
+    if( port < MCU_SPI_PORTS ){
 
-    //ensure Instance is correctly assigned
-    if ( spi_local[port].ref_count == 0 ){
-        spi_local[port].i2s_hal_handle.Instance = spi_regs[port];
+        //same as SPI
+        if( mcu_spi_open(handle) < 0 ){
+            return SYSFS_SET_RETURN(EINVAL);
+        }
+
+        //ensure Instance is correctly assigned
+        if ( spi_local[port].ref_count == 0 ){
+            spi_local[port].i2s_hal_handle.Instance = spi_regs[port];
+        }
+        return 0;
     }
-
-    return 0;
+    return SYSFS_SET_RETURN(EINVAL);
 }
 
 int mcu_i2s_spi_close(const devfs_handle_t * handle){
@@ -69,7 +74,7 @@ int mcu_i2s_spi_setattr(const devfs_handle_t * handle, void * ctl){
 
     const i2s_attr_t * attr = mcu_select_attr(handle, ctl);
     if( attr == 0 ){
-        return -1;
+        return SYSFS_SET_RETURN(EINVAL);
     }
 
     u32 o_flags = attr->o_flags;
@@ -79,7 +84,7 @@ int mcu_i2s_spi_setattr(const devfs_handle_t * handle, void * ctl){
     spi_local[port].is_i2s = 1;
 
 
-    if( o_flags & (I2S_FLAG_SET_MASTER|I2S_FLAG_SET_MASTER) ){
+    if( o_flags & (I2S_FLAG_SET_MASTER|I2S_FLAG_SET_SLAVE) ){
 #if defined I2S_FULLDUPLEXMODE_ENABLE
         spi_local[port].i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
 #endif
@@ -157,7 +162,7 @@ int mcu_i2s_spi_setattr(const devfs_handle_t * handle, void * ctl){
         PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
         PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
         if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK){
-          return -1;
+            return SYSFS_SET_RETURN(EIO);
         }
 #endif
 
@@ -166,11 +171,11 @@ int mcu_i2s_spi_setattr(const devfs_handle_t * handle, void * ctl){
                     MCU_CONFIG_PIN_ASSIGNMENT(i2s_config_t, handle),
                     MCU_PIN_ASSIGNMENT_COUNT(i2s_pin_assignment_t),
                     CORE_PERIPH_SPI, port, 0, 0, 0) < 0 ){
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
 
         if( HAL_I2S_Init(&spi_local[port].i2s_hal_handle) != HAL_OK ){
-            return -1;
+            return SYSFS_SET_RETURN(EIO);
         }
     }
 
@@ -196,8 +201,15 @@ int mcu_i2s_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
     spi_local[port].handler = async->handler;
     ret = HAL_I2S_Transmit_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte);
 
-    if( ret != HAL_OK ){
-        return -1;
+
+    if( ret == HAL_BUSY ){
+        return SYSFS_SET_RETURN(EIO);
+    } else if( ret == HAL_ERROR ){
+        return SYSFS_SET_RETURN(EIO);
+    } else if( ret == HAL_TIMEOUT ){
+        return SYSFS_SET_RETURN(EIO);
+    } else if( ret != HAL_OK ){
+        return SYSFS_SET_RETURN(EIO);
     }
 
     return 0;
@@ -214,9 +226,14 @@ int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
     spi_local[port].nbyte_ptr = &(async->nbyte);
     spi_local[port].handler = async->handler;
     ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte);
-
-    if( ret != HAL_OK ){
-        return -1;
+    if( ret == HAL_BUSY ){
+        return SYSFS_SET_RETURN(EIO);
+    } else if( ret == HAL_ERROR ){
+        return SYSFS_SET_RETURN(EIO);
+    } else if( ret == HAL_TIMEOUT ){
+        return SYSFS_SET_RETURN(EIO);
+    } else if( ret != HAL_OK ){
+        return SYSFS_SET_RETURN(EIO);
     }
 
     return 0;

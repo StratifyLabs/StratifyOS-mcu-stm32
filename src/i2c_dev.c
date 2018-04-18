@@ -155,7 +155,7 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 
     const i2c_attr_t * attr = mcu_select_attr(handle, ctl);
     if( attr == 0 ){
-        return -1;
+        return SYSFS_SET_RETURN(EINVAL);
     }
 
     u32 o_flags = attr->o_flags;
