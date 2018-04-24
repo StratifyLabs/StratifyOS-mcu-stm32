@@ -32,7 +32,7 @@ typedef struct {
 
 static pio_local_t m_mcu_pio_local[MCU_PIO_PORTS] MCU_SYS_MEM;
 static GPIO_TypeDef * const m_pio_regs_table[MCU_PIO_PORTS] = MCU_PIO_REGS;
-static u8 const m_pio_irqs[MCU_PIO_PORTS] = MCU_PIO_IRQS;
+//static u8 const m_pio_irqs[MCU_PIO_PORTS] = MCU_PIO_IRQS;
 
 //this function is used by other modules to access pio regs
 GPIO_TypeDef * const hal_get_pio_regs(u8 port){

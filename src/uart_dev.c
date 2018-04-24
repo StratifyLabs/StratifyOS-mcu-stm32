@@ -172,7 +172,7 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 	uart_local_t * uart = uart_local + port;
 	uart->attr = mcu_select_attr(handle, ctl);
 	if( uart->attr == 0 ){
-		return -1;
+        return SYSFS_SET_RETURN(EINVAL);
 	}
 
 	o_flags = uart->attr->o_flags;
@@ -212,12 +212,12 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 				MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
 				MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t),
                 CORE_PERIPH_UART, port, 0, 0, 0) < 0 ){
-			return -1;
-		}
+            return SYSFS_SET_RETURN(EINVAL);
+        }
 
 		if( HAL_UART_Init(&uart->hal_handle) != HAL_OK ){
-			return -1;
-		}
+            return SYSFS_SET_RETURN(EIO);
+        }
 	}
 
 	return 0;
@@ -277,8 +277,8 @@ int mcu_uart_setaction(const devfs_handle_t * handle, void * ctl){
 	} else {
 
 		if( cortexm_validate_callback(action->handler.callback) < 0 ){
-			return -1;
-		}
+            return SYSFS_SET_RETURN(EPERM);
+        }
 
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             uart->read = action->handler;
@@ -287,7 +287,7 @@ int mcu_uart_setaction(const devfs_handle_t * handle, void * ctl){
             uart->o_flags |= UART_LOCAL_FLAG_IS_INCOMING_ENABLED;
             uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
             if( HAL_UART_Receive_IT(&uart->hal_handle, &uart->incoming, 1) != HAL_OK ){
-                return -1;
+                return SYSFS_SET_RETURN(EIO);
             }
 		}
 
@@ -306,8 +306,8 @@ int mcu_uart_put(const devfs_handle_t * handle, void * ctl){
 	uart_local_t * uart = uart_local + port;
 
 	if( HAL_UART_Transmit(&uart->hal_handle, &c, 1, HAL_MAX_DELAY) != HAL_OK ){
-		return -1;
-	}
+        return SYSFS_SET_RETURN(EIO);
+    }
 
 	return 0;
 }
@@ -332,7 +332,7 @@ int mcu_uart_get(const devfs_handle_t * handle, void * ctl){
             *dest = uart->incoming_received;
             return 0;
         }
-        return -ENODATA;
+        return SYSFS_SET_RETURN(ENODATA);
     }
 
 
@@ -340,7 +340,7 @@ int mcu_uart_get(const devfs_handle_t * handle, void * ctl){
 		return 0;
 	}
 
-    return -ENODATA;
+    return SYSFS_SET_RETURN(ENODATA);
 }
 
 int mcu_uart_getall(const devfs_handle_t * handle, void * ctl){
@@ -370,8 +370,8 @@ int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 	} else {
 		//no bytes
 		if( cortexm_validate_callback(async->handler.callback) < 0 ){
-			return -1;
-		}
+            return SYSFS_SET_RETURN(EPERM);
+        }
 
 		uart->read = async->handler;
 		if( HAL_UART_Receive_IT(&uart->hal_handle, async->buf, async->nbyte) == HAL_OK ){

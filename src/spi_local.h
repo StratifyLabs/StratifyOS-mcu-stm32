@@ -1,4 +1,4 @@
-/* Copyright 2011-2017 Tyler Gilbert;
+/* Copyright 2011-2018 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -20,26 +20,41 @@
 #ifndef SPI_LOCAL_H_
 #define SPI_LOCAL_H_
 
-#include "stm32_local.h"
+#include <sos/dev/spi.h>
 
-typedef struct {
+#include "stm32_dma.h"
+
+typedef struct MCU_PACK {
     union { //must be first
         SPI_HandleTypeDef hal_handle;
         I2S_HandleTypeDef i2s_hal_handle;
     };
-    mcu_event_handler_t handler;
-    int * nbyte_ptr;
+    devfs_async_t * write;
+    devfs_async_t * read;
     u8 is_full_duplex;
     u8 is_i2s;
     u8 ref_count;
+    u8 resd;
 } spi_local_t;
 
+typedef struct {
+    spi_local_t spi;
+    stm32_dma_channel_t dma_rx_channel;
+    stm32_dma_channel_t dma_tx_channel;
+} spi_dma_local_t;
+
 extern spi_local_t spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
+extern spi_dma_local_t spi_dma_local[MCU_SPI_PORTS] MCU_SYS_MEM;
 extern SPI_TypeDef * const spi_regs[MCU_SPI_PORTS];
 extern u8 const spi_irqs[MCU_SPI_PORTS];
 
-void mcu_spi_dev_power_on(const devfs_handle_t * handle);
-void mcu_spi_dev_power_off(const devfs_handle_t * handle);
-int mcu_spi_dev_is_powered(const devfs_handle_t * handle);
+SPI_TypeDef * spi_local_open(int port);
+void spi_local_close(int port);
+int spi_local_setattr(const devfs_handle_t * handle, void * ctl, spi_local_t * spi);
+int spi_local_setaction(const devfs_handle_t * handle, void * ctl, spi_local_t * spi, int interrupt_number);
+int spi_local_swap(const devfs_handle_t * handle, void * ctl, spi_local_t * spi);
+int spi_local_execute_handler(devfs_async_t ** async, u32 o_events, u32 value, int ret);
+
+
 
 #endif /* SPI_LOCAL_H_ */

@@ -18,6 +18,7 @@
  */
 
 #include "spi_local.h"
+
 #include <mcu/i2s.h>
 #include <mcu/spi.h>
 
@@ -192,14 +193,31 @@ int mcu_i2s_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
     int port = handle->port;
 
     //check to see if SPI bus is busy -- check to see if the interrupt is enabled?
+    if( spi_local[port].write ){
+        return SYSFS_SET_RETURN(EBUSY);
+    }
 
     if( async->nbyte == 0 ){
         return 0;
     }
 
-    spi_local[port].nbyte_ptr = &(async->nbyte);
-    spi_local[port].handler = async->handler;
-    ret = HAL_I2S_Transmit_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte);
+    spi_local[port].write = async;
+    if( spi_local[port].is_full_duplex ){
+
+        if( spi_local[port].read->nbyte < async->nbyte ){
+            return SYSFS_SET_RETURN(EINVAL);
+        }
+
+
+        ret = HAL_I2SEx_TransmitReceive_IT(
+                    &spi_local[port].i2s_hal_handle,
+                    async->buf,
+                    spi_local[port].read->buf,
+                    async->nbyte);
+
+    } else {
+        ret = HAL_I2S_Transmit_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte);
+    }
 
 
     if( ret == HAL_BUSY ){
@@ -219,13 +237,21 @@ int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
     int ret;
     int port = handle->port;
 
+    if( spi_local[port].read ){
+        return SYSFS_SET_RETURN(EBUSY);
+    }
+
     if( async->nbyte == 0 ){
         return 0;
     }
 
-    spi_local[port].nbyte_ptr = &(async->nbyte);
-    spi_local[port].handler = async->handler;
-    ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte);
+    spi_local[port].read = async;
+    if( spi_local[port].is_full_duplex ){
+        ret = HAL_OK;
+    } else {
+        ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte);
+    }
+
     if( ret == HAL_BUSY ){
         return SYSFS_SET_RETURN(EIO);
     } else if( ret == HAL_ERROR ){
@@ -248,21 +274,32 @@ int execute_handler(mcu_event_handler_t * handler, u32 o_events){
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){}
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
-    spi_local_t * local = (spi_local_t *)hi2s;
-    execute_handler(&local->handler, MCU_EVENT_FLAG_WRITE_COMPLETE);
+    spi_local_t * spi = (spi_local_t *)hi2s;
+    if( spi->write ){
+        execute_handler(&spi->write->handler, MCU_EVENT_FLAG_WRITE_COMPLETE);
+    }
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){}
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
-    spi_local_t * local = (spi_local_t *)hi2s;
-    execute_handler(&local->handler, MCU_EVENT_FLAG_DATA_READY);
+    spi_local_t * spi = (spi_local_t *)hi2s;
+    if( spi->read ){
+        execute_handler(&spi->read->handler, MCU_EVENT_FLAG_DATA_READY);
+    }
 }
 
 void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
     //called on overflow and underrun
-    spi_local_t * local = (spi_local_t *)hi2s;
-    execute_handler(&local->handler, MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    spi_local_t * spi = (spi_local_t *)hi2s;
+    if( spi->write ){
+        spi->write->nbyte = SYSFS_SET_RETURN(EIO);
+        execute_handler(&spi->write->handler, MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    }
+    if( spi->read ){
+        spi->read->nbyte = SYSFS_SET_RETURN(EIO);
+        execute_handler(&spi->read->handler, MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    }
 }
 
 

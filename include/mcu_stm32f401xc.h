@@ -81,7 +81,7 @@
 #define MCU_LAST_IRQ SPI4_IRQn
 #define MCU_MIDDLE_IRQ_PRIORITY 8
 
-#define MCU_RAM_PAGES 56
+#define MCU_RAM_PAGES 48
 #define MCU_DELAY_FACTOR 12
 
 #ifdef __cplusplus

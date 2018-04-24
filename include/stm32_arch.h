@@ -132,6 +132,17 @@ enum {
     STM32_CONFIG_FLAG_IS_OVERDRIVE_ON = (1<<1)
 };
 
+typedef struct {
+    u8 dma_number;
+    u8 stream_number;
+    u8 channel_number;
+    u8 priority;
+} stm32_dma_config_t;
+
+typedef struct {
+    void * rx_overflow_buffer;
+    u32 rx_overflow_buffer_size;
+} stm32_dma_state_t;
 
 #define STM32_NUCLEO144_DECLARE_MCU_BOARD_CONFIG(cpu_frequency, event_handler_value, arch_config_value) \
     const mcu_board_config_t mcu_board_config = { \

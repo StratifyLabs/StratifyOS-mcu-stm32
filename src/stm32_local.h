@@ -49,6 +49,7 @@
 #endif
 
 #elif defined STM32F7
+#include "stm32f7xx/stm32f7xx_hal_conf.h"
 
 #if defined(STM32F723xx)
 #define STM32_LOCAL_HAS_PERIPH_CLOCK_48 1
