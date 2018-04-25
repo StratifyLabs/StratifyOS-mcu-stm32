@@ -24,31 +24,21 @@
 
 #if MCU_SPI_PORTS > 0
 
+#define DMA_INTERRUPT_NUMBER 0
+
 spi_dma_local_t spi_dma_local[MCU_SPI_PORTS] MCU_SYS_MEM;
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi_dma, SPI_VERSION, I_MCU_TOTAL + I_SPI_TOTAL, mcu_spi_dma_swap)
 
 int mcu_spi_dma_open(const devfs_handle_t * handle){
-    int port = handle->port;
-    if ( spi_dma_local[port].spi.ref_count == 0 ){
-        spi_dma_local[port].spi.hal_handle.Instance = spi_local_open(port);
-        spi_dma_local[port].spi.read = NULL;
-        spi_dma_local[port].spi.write = NULL;
-    }
-    spi_dma_local[port].spi.ref_count++;
-    return 0;
+
+    //send DMA interrupt number
+    return spi_local_open(&spi_dma_local[handle->port].spi, handle, DMA_INTERRUPT_NUMBER);
 
 }
 
 int mcu_spi_dma_close(const devfs_handle_t * handle){
-    int port = handle->port;
-    if ( spi_dma_local[port].spi.ref_count > 0 ){
-        if ( spi_dma_local[port].spi.ref_count == 1 ){
-            spi_local_close(port);
-        }
-        spi_dma_local[port].spi.ref_count--;
-    }
-    return 0;
+    return spi_local_close(&spi_dma_local[handle->port].spi, handle, DMA_INTERRUPT_NUMBER);
 }
 
 int mcu_spi_dma_getinfo(const devfs_handle_t * handle, void * ctl){
@@ -101,16 +91,16 @@ int mcu_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
     __HAL_LINKDMA((&spi_dma_local[port].spi.hal_handle), hdmarx, spi_dma_local[port].dma_rx_channel.handle);
 
-    return spi_local_setattr(handle, ctl, &spi_dma_local[handle->port].spi);
+    return spi_local_setattr(&spi_dma_local[handle->port].spi, handle, ctl);
 }
 
 int mcu_spi_dma_swap(const devfs_handle_t * handle, void * ctl){
-    return spi_local_swap(handle, ctl, &spi_dma_local[handle->port].spi);
+    return spi_local_swap(&spi_dma_local[handle->port].spi, handle, ctl);
 }
 
 int mcu_spi_dma_setaction(const devfs_handle_t * handle, void * ctl){
     //need to pass the interrupt number
-    return spi_local_setaction(handle, ctl, &spi_dma_local[handle->port].spi, 0);
+    return spi_local_setaction(&spi_dma_local[handle->port].spi, handle, ctl, DMA_INTERRUPT_NUMBER);
 }
 
 int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
@@ -118,7 +108,7 @@ int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
     int port = handle->port;
 
     //check to see if SPI bus is busy -- check to see if the interrupt is enabled?
-    if( spi_dma_local[port].spi.write ){
+    if( spi_dma_local[port].spi.transfer_handler.write ){
         return SYSFS_SET_RETURN(EBUSY);
     }
 
@@ -127,21 +117,24 @@ int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
         return 0;
     }
 
-    spi_dma_local[port].spi.write = async;
+    spi_dma_local[port].spi.transfer_handler.write = async;
 
-    if( spi_dma_local[port].spi.is_full_duplex && spi_dma_local[port].spi.read ){
-
-        if( spi_dma_local[port].spi.read->nbyte < async->nbyte ){
+    if( spi_dma_local[port].spi.is_full_duplex && spi_dma_local[port].spi.transfer_handler.read ){
+        if( spi_dma_local[port].spi.transfer_handler.read->nbyte < async->nbyte ){
             return SYSFS_SET_RETURN(EINVAL);
         }
-
-        ret = HAL_SPI_TransmitReceive_DMA(&spi_dma_local[port].spi.hal_handle, async->buf, async->buf, async->nbyte);
+        ret = HAL_SPI_TransmitReceive_DMA(
+                    &spi_dma_local[port].spi.hal_handle,
+                    async->buf,
+                    spi_dma_local[port].spi.transfer_handler.read->buf,
+                    async->nbyte);
     } else {
         ret = HAL_SPI_Transmit_DMA(&spi_dma_local[port].spi.hal_handle, async->buf, async->nbyte);
     }
 
     if( ret != HAL_OK ){
-        return SYSFS_SET_RETURN(EIO);
+        spi_dma_local[port].spi.transfer_handler.write = 0;
+        return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }
 
     return 0;
@@ -151,7 +144,7 @@ int mcu_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     int ret;
     int port = handle->port;
 
-    if( spi_dma_local[port].spi.read ){
+    if( spi_dma_local[port].spi.transfer_handler.read ){
         return SYSFS_SET_RETURN(EBUSY);
     }
 
@@ -159,7 +152,7 @@ int mcu_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
         return 0;
     }
 
-    spi_dma_local[port].spi.read = async;
+    spi_dma_local[port].spi.transfer_handler.read = async;
 
     if( spi_dma_local[port].spi.is_full_duplex ){
         //just set up the buffer
@@ -169,13 +162,12 @@ int mcu_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     }
 
     if( ret != HAL_OK ){
-        return SYSFS_SET_RETURN(EIO);
+        spi_dma_local[port].spi.transfer_handler.read = 0;
+        return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }
 
     return 0;
 }
-
-
 
 #endif
 

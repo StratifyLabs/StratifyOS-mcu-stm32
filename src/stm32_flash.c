@@ -40,7 +40,7 @@ int stm32_flash_write(u32 addr, const void * buf, int nbyte){
     int err;
     const u32 * pbuf = buf;
 
-    cortexm_disable_interrupts(NULL);
+    cortexm_disable_interrupts();
     HAL_FLASH_Unlock();
     for(i=0; i < nbyte; i+=4){
         err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr + i, *pbuf++);
@@ -49,7 +49,7 @@ int stm32_flash_write(u32 addr, const void * buf, int nbyte){
         }
     }
     HAL_FLASH_Lock();
-    cortexm_enable_interrupts(NULL);
+    cortexm_enable_interrupts();
 
     if( err != HAL_OK ){
         err = -1;

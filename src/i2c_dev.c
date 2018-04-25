@@ -85,8 +85,8 @@ int mcu_i2c_open(const devfs_handle_t * handle){
         }
         i2c->master.callback = 0;
         i2c->hal_handle.Instance = i2c_regs_table[port];
-        cortexm_enable_irq((void*)(u32)(i2c_irqs[port]));
-        cortexm_enable_irq((void*)(u32)(i2c_er_irqs[port]));
+        cortexm_enable_irq(i2c_irqs[port]);
+        cortexm_enable_irq(i2c_er_irqs[port]);
     }
     i2c_local[port].ref_count++;
     return 0;
@@ -99,8 +99,8 @@ int mcu_i2c_close(const devfs_handle_t * handle){
         if ( i2c->ref_count == 1 ){
             i2c->master.callback = 0;
             i2c->hal_handle.Instance = 0;
-            cortexm_disable_irq((void*)(u32)(i2c_irqs[port]));
-            cortexm_disable_irq((void*)(u32)(i2c_er_irqs[port]));
+            cortexm_disable_irq(i2c_irqs[port]);
+            cortexm_disable_irq(i2c_er_irqs[port]);
             switch(port){
             case 0:
                 __HAL_RCC_I2C1_CLK_DISABLE();
@@ -299,7 +299,7 @@ int mcu_i2c_setaction(const devfs_handle_t * handle, void * ctl){
     mcu_action_t * action = (mcu_action_t*)ctl;
     int port = handle->port;
 
-    cortexm_set_irq_prio(i2c_irqs[port], action->prio);
+    cortexm_set_irq_priority(i2c_irqs[port], action->prio);
 
     if( action->handler.callback == 0 ){
         //i2c_local[port].slave.handler.callback = 0;

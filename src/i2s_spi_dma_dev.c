@@ -27,8 +27,6 @@
 
 #if MCU_SPI_PORTS > 0
 
-static int execute_handler(mcu_event_handler_t * handler, u32 o_events);
-
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi, I2S_VERSION, I_MCU_TOTAL + I_I2S_TOTAL, mcu_i2s_spi_dma_mute, mcu_i2s_spi_dma_unmute)
 
 int mcu_i2s_spi_dma_open(const devfs_handle_t * handle){
@@ -77,7 +75,7 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
     //setup the DMA
 
-    return i2s_spi_local_setattr(handle, ctl, &spi_dma_local[handle->port].spi);
+    return i2s_spi_local_setattr(&spi_dma_local[handle->port].spi, handle, ctl);
 }
 
 
@@ -95,21 +93,21 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
         return 0;
     }
 
-    spi_dma_local[port].spi.write = async;
-    if( spi_dma_local[port].spi.is_full_duplex && spi_dma_local[port].spi.read ){
+    spi_dma_local[port].spi.transfer_handler.write = async;
+    if( spi_dma_local[port].spi.is_full_duplex && spi_dma_local[port].spi.transfer_handler.read ){
 
 #if defined STM32F7
         return SYSFS_SET_RETURN(ENOTSUP);
 #else
 
-        if( spi_dma_local[port].spi.read->nbyte < async->nbyte ){
+        if( spi_dma_local[port].spi.transfer_handler.read->nbyte < async->nbyte ){
             return SYSFS_SET_RETURN(EINVAL);
         }
 
         ret = HAL_I2SEx_TransmitReceive_DMA(
                     &spi_dma_local[port].spi.i2s_hal_handle,
                     async->buf,
-                    spi_dma_local[port].spi.read->buf,
+                    spi_dma_local[port].spi.transfer_handler.read->buf,
                     async->nbyte);
 #endif
     } else {
@@ -138,7 +136,7 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
         return 0;
     }
 
-    spi_local[port].read = async;
+    spi_local[port].transfer_handler.read = async;
 
     //Receive is going to
     if( spi_local[port].is_full_duplex ){
@@ -160,39 +158,25 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     return 0;
 }
 
-int execute_handler(mcu_event_handler_t * handler, u32 o_events){
-    i2s_event_t event;
-    event.value = 0;
-    return mcu_execute_event_handler(handler, o_events, &event);
-}
-
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){}
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * local = (spi_local_t *)hi2s;
-    if( local->write ){
-        execute_handler(&local->write->handler, MCU_EVENT_FLAG_WRITE_COMPLETE);
-    }
+    mcu_execute_write_handler(&local->transfer_handler, 0, hi2s->TxXferSize);
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){}
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * local = (spi_local_t *)hi2s;
-    if( local->read ){
-        execute_handler(&local->read->handler, MCU_EVENT_FLAG_DATA_READY);
-    }
+    mcu_execute_read_handler(&local->transfer_handler, 0, hi2s->TxXferSize);
 }
 
 void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
     //called on overflow and underrun
     spi_local_t * local = (spi_local_t *)hi2s;
-    if( local->read ){
-        execute_handler(&local->read->handler, MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
-    }
-    if( local->write ){
-        execute_handler(&local->write->handler, MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
-    }
+
+    mcu_execute_transfer_handlers(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), hi2s->TxXferSize);
 }
 
 

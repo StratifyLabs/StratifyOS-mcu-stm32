@@ -27,31 +27,12 @@ spi_local_t spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi, SPI_VERSION, I_MCU_TOTAL + I_SPI_TOTAL, mcu_spi_swap)
 
-
 int mcu_spi_open(const devfs_handle_t * handle){
-    int port = handle->port;
-    if ( spi_local[port].ref_count == 0 ){
-        spi_local[port].read = NULL;
-        spi_local[port].write = NULL;
-        spi_local[port].hal_handle.Instance = spi_local_open(port);
-        cortexm_enable_irq((void*)(u32)(spi_irqs[port]));
-    }
-    spi_local[port].ref_count++;
-    return 0;
-
+    return spi_local_open(spi_local + handle->port, handle, spi_irqs[handle->port]);
 }
 
 int mcu_spi_close(const devfs_handle_t * handle){
-    int port = handle->port;
-    if ( spi_local[port].ref_count > 0 ){
-        if ( spi_local[port].ref_count == 1 ){
-            cortexm_disable_irq((void*)(u32)(spi_irqs[port]));
-            spi_local_close(port);
-
-        }
-        spi_local[port].ref_count--;
-    }
-    return 0;
+    return spi_local_close(spi_local + handle->port, handle, spi_irqs[handle->port]);
 }
 
 int mcu_spi_getinfo(const devfs_handle_t * handle, void * ctl){
@@ -72,37 +53,28 @@ int mcu_spi_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_spi_setattr(const devfs_handle_t * handle, void * ctl){
-    return spi_local_setattr(handle, ctl, spi_local + handle->port);
+    return spi_local_setattr(spi_local + handle->port, handle, ctl);
 }
 
 int mcu_spi_swap(const devfs_handle_t * handle, void * ctl){
-    return spi_local_swap(handle, ctl, spi_local + handle->port);
+    return spi_local_swap(spi_local + handle->port, handle, ctl);
 }
 
 
 int mcu_spi_setaction(const devfs_handle_t * handle, void * ctl){
     int port = handle->port;
-    return spi_local_setaction(handle, ctl, spi_local + port, spi_irqs[port]);
+    return spi_local_setaction(spi_local + handle->port, handle, ctl, spi_irqs[port]);
 }
 
 int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
     int ret;
-    int port = handle->port;
+    const int port = handle->port;
 
-    //check to see if SPI bus is busy -- check to see if the interrupt is enabled?
-    if( spi_local[port].write ){
-        return SYSFS_SET_RETURN(EBUSY);
-    }
+    DEVFS_DRIVER_IS_BUSY(spi_local[port].transfer_handler.write, async);
 
-    if( async->nbyte == 0 ){
-        return 0;
-    }
+    if( spi_local[port].is_full_duplex && spi_local[port].transfer_handler.read ){
 
-    spi_local[port].write = async;
-
-    if( spi_local[port].is_full_duplex && spi_local[port].read ){
-
-        if( spi_local[port].read->nbyte < async->nbyte ){
+        if( spi_local[port].transfer_handler.read->nbyte < async->nbyte ){
             return SYSFS_SET_RETURN(EINVAL);
         }
 
@@ -110,24 +82,15 @@ int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
         ret = HAL_SPI_TransmitReceive_IT(
                     &spi_local[port].hal_handle,
                     async->buf,
-                    spi_local[port].read->buf,
+                    spi_local[port].transfer_handler.read->buf,
                     async->nbyte);
     } else {
         ret = HAL_SPI_Transmit_IT(&spi_local[port].hal_handle, async->buf, async->nbyte);
     }
 
     if( ret != HAL_OK ){
-        spi_local[port].write = 0;
-    }
-
-    if( ret == HAL_BUSY ){
-        return SYSFS_SET_RETURN(EBUSY);
-    } else if( ret == HAL_ERROR ){
-        return SYSFS_SET_RETURN(EIO);
-    } else if( ret == HAL_TIMEOUT ){
-        return SYSFS_SET_RETURN(ETIMEDOUT);
-    } else if( ret != HAL_OK ){
-        return SYSFS_SET_RETURN(EIO);
+        spi_local[port].transfer_handler.write = 0;
+        return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }
 
     return 0;
@@ -135,17 +98,9 @@ int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 int mcu_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
     int ret;
-    int port = handle->port;
+    const int port = handle->port;
 
-    if( spi_local[port].read ){
-        return SYSFS_SET_RETURN(EBUSY);
-    }
-
-    if( async->nbyte == 0 ){
-        return 0;
-    }
-
-    spi_local[port].read = async;
+    DEVFS_DRIVER_IS_BUSY(spi_local[port].transfer_handler.read, async);
 
     if( spi_local[port].is_full_duplex ){
         ret = HAL_OK;
@@ -154,17 +109,8 @@ int mcu_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
     }
 
     if( ret != HAL_OK ){
-        spi_local[port].read = 0;
-    }
-
-    if( ret == HAL_BUSY ){
-        return SYSFS_SET_RETURN(EBUSY);
-    } else if( ret == HAL_ERROR ){
-        return SYSFS_SET_RETURN(EIO);
-    } else if( ret == HAL_TIMEOUT ){
-        return SYSFS_SET_RETURN(ETIMEDOUT);
-    } else if( ret != HAL_OK ){
-        return SYSFS_SET_RETURN(EIO);
+        spi_local[port].transfer_handler.read = 0;
+        return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }
 
     return 0;

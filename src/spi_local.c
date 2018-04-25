@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert; 
+/* Copyright 2011-2018 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -23,82 +23,105 @@
 
 #if MCU_SPI_PORTS > 0
 
+static int spi_execute_read_handler(devfs_transfer_handler_t * transfer_handler, int nbyte);
+static int spi_execute_write_handler(devfs_transfer_handler_t * transfer_handler, int nbyte);
+static void spi_execute_transfer_handlers(devfs_transfer_handler_t * transfer_handler, int nbyte, u32 o_flags);
+
 SPI_TypeDef * const spi_regs[MCU_SPI_PORTS] = MCU_SPI_REGS;
 u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
 
-SPI_TypeDef * spi_local_open(int port){
-    //turn on RCC clock
-    switch(port){
-    case 0:
-        __HAL_RCC_SPI1_CLK_ENABLE();
-        break;
+int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle, int interrupt_number){
+    int port = handle->port;
+    if( port < MCU_SPI_PORTS ){
+        if ( spi->ref_count == 0 ){
+            //turn on RCC clock
+            switch(port){
+            case 0:
+                __HAL_RCC_SPI1_CLK_ENABLE();
+                break;
 #if MCU_SPI_PORTS > 1
-    case 1:
-        __HAL_RCC_SPI2_CLK_ENABLE();
-        break;
+            case 1:
+                __HAL_RCC_SPI2_CLK_ENABLE();
+                break;
 #endif
 #if MCU_SPI_PORTS > 2
-    case 2:
-        __HAL_RCC_SPI3_CLK_ENABLE();
-        break;
+            case 2:
+                __HAL_RCC_SPI3_CLK_ENABLE();
+                break;
 #endif
 #if MCU_SPI_PORTS > 3
-    case 3:
-        __HAL_RCC_SPI4_CLK_ENABLE();
-        break;
+            case 3:
+                __HAL_RCC_SPI4_CLK_ENABLE();
+                break;
 #endif
 #if MCU_SPI_PORTS > 4
-    case 4:
-        __HAL_RCC_SPI5_CLK_ENABLE();
-        break;
+            case 4:
+                __HAL_RCC_SPI5_CLK_ENABLE();
+                break;
 #endif
 #if MCU_SPI_PORTS > 5
-    case 5:
-        __HAL_RCC_SPI6_CLK_ENABLE();
-        break;
+            case 5:
+                __HAL_RCC_SPI6_CLK_ENABLE();
+                break;
 #endif
+            }
+            spi->transfer_handler.read = NULL;
+            spi->transfer_handler.write = NULL;
+            spi->hal_handle.Instance = spi_regs[port];
+            cortexm_enable_irq(interrupt_number);
+        }
+        spi->ref_count++;
+        return 0;
     }
-    return spi_regs[port];
+
+    return SYSFS_SET_RETURN(EINVAL);
 }
 
-void spi_local_close(int port){
+int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle, int interrupt_number){
+    int port = handle->port;
+    if ( spi->ref_count > 0 ){
+        if ( spi->ref_count == 1 ){
+            cortexm_disable_irq(interrupt_number);
 
-    cortexm_disable_irq((void*)(u32)(spi_irqs[port]));
-
-    //turn off RCC clock
-    switch(port){
-    case 0:
-        __HAL_RCC_SPI1_CLK_DISABLE();
-        break;
+            //turn off RCC clock
+            switch(port){
+            case 0:
+                __HAL_RCC_SPI1_CLK_DISABLE();
+                break;
 #if MCU_SPI_PORTS > 1
-    case 1:
-        __HAL_RCC_SPI2_CLK_DISABLE();
-        break;
+            case 1:
+                __HAL_RCC_SPI2_CLK_DISABLE();
+                break;
 #endif
 #if MCU_SPI_PORTS > 2
-    case 2:
-        __HAL_RCC_SPI3_CLK_DISABLE();
-        break;
+            case 2:
+                __HAL_RCC_SPI3_CLK_DISABLE();
+                break;
 #endif
 #if MCU_SPI_PORTS > 3
-    case 3:
-        __HAL_RCC_SPI4_CLK_DISABLE();
-        break;
+            case 3:
+                __HAL_RCC_SPI4_CLK_DISABLE();
+                break;
 #endif
 #if MCU_SPI_PORTS > 4
-    case 4:
-        __HAL_RCC_SPI5_CLK_DISABLE();
-        break;
+            case 4:
+                __HAL_RCC_SPI5_CLK_DISABLE();
+                break;
 #endif
 #if MCU_SPI_PORTS > 5
-    case 5:
-        __HAL_RCC_SPI6_CLK_DISABLE();
-        break;
+            case 5:
+                __HAL_RCC_SPI6_CLK_DISABLE();
+                break;
 #endif
+            }
+
+        }
+        spi->ref_count--;
     }
+    return 0;
 }
 
-int spi_local_setattr(const devfs_handle_t * handle, void * ctl, spi_local_t * spi){
+int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * ctl){
     u32 pclk;
     u32 prescalar;
 
@@ -200,7 +223,7 @@ int spi_local_setattr(const devfs_handle_t * handle, void * ctl, spi_local_t * s
     return 0;
 }
 
-int spi_local_swap(const devfs_handle_t * handle, void * ctl, spi_local_t * spi){
+int spi_local_swap(spi_local_t * spi, const devfs_handle_t * handle, void * ctl){
     u8 tx_data;
     u8 rx_data;
     int ret;
@@ -213,33 +236,39 @@ int spi_local_swap(const devfs_handle_t * handle, void * ctl, spi_local_t * spi)
     return rx_data;
 }
 
-int spi_local_setaction(const devfs_handle_t * handle, void * ctl, spi_local_t * spi, int interrupt_number){
+int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void * ctl, int interrupt_number){
     mcu_action_t * action = (mcu_action_t*)ctl;
 
     if(action->handler.callback == 0){
         if (action->o_events & MCU_EVENT_FLAG_DATA_READY){
-            spi_local_execute_handler(&spi->read, MCU_EVENT_FLAG_CANCELED, 0, -1);
+            spi_execute_read_handler(&spi->transfer_handler, -1);
         }
 
         if (action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE){
-            spi_local_execute_handler(&spi->write, MCU_EVENT_FLAG_CANCELED, 0, -1);
+            spi_execute_write_handler(&spi->transfer_handler, -1);
         }
     }
 
-    cortexm_set_irq_prio(interrupt_number, action->prio);
+    cortexm_set_irq_priority(interrupt_number, action->prio);
     return 0;
 }
 
-int spi_local_execute_handler(devfs_async_t ** async_ptr, u32 o_events, u32 value, int ret){
+int spi_execute_read_handler(devfs_transfer_handler_t * transfer_handler, int nbyte){
     spi_event_data_t event;
-    if( *async_ptr != 0 ){
-        devfs_async_t * async = *async_ptr;
-        *async_ptr = 0;
-        async->nbyte = ret;
-        event.value = value;
-        return mcu_execute_event_handler(&async->handler, o_events, &event);
-    }
-    return 0;
+    event.value = nbyte;
+    return mcu_execute_read_handler(transfer_handler, &event, nbyte);
+}
+
+int spi_execute_write_handler(devfs_transfer_handler_t * transfer_handler, int nbyte){
+    spi_event_data_t event;
+    event.value = nbyte;
+    return mcu_execute_write_handler(transfer_handler, &event, nbyte);
+}
+
+void spi_execute_transfer_handlers(devfs_transfer_handler_t * transfer_handler, int nbyte, u32 o_flags){
+    spi_event_data_t event;
+    event.value = nbyte;
+    mcu_execute_transfer_handlers(transfer_handler, &event, o_flags, nbyte);
 }
 
 
@@ -247,39 +276,37 @@ int spi_local_execute_handler(devfs_async_t ** async_ptr, u32 o_events, u32 valu
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
-    spi_local_execute_handler(&spi->write, MCU_EVENT_FLAG_WRITE_COMPLETE, hspi->TxXferCount, hspi->TxXferSize);
+    spi_execute_write_handler(&spi->transfer_handler, hspi->TxXferSize);
 }
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
-    spi_local_execute_handler(&spi->read, MCU_EVENT_FLAG_DATA_READY, hspi->RxXferCount, hspi->RxXferSize);
+    spi_execute_read_handler(&spi->transfer_handler, hspi->RxXferSize);
 }
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
-    spi_local_execute_handler(&spi->write, MCU_EVENT_FLAG_WRITE_COMPLETE, hspi->TxXferCount, hspi->TxXferSize);
-    spi_local_execute_handler(&spi->read, MCU_EVENT_FLAG_DATA_READY, hspi->RxXferCount, hspi->RxXferSize);
+    spi_execute_transfer_handlers(&spi->transfer_handler, hspi->TxXferSize, 0);
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
     spi_local_t * spi = (spi_local_t*)hspi;
-    spi_local_execute_handler(&spi->write,
-                              MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR,
-                              0,
-                              SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode));
 
-    spi_local_execute_handler(&spi->read,
-                              MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR,
-                              0,
-                              SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode | 0x80));
+    spi_execute_transfer_handlers(
+                &spi->transfer_handler,
+                SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode),
+                MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
 }
 
 void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
     spi_local_t * spi = (spi_local_t*)hspi;
-    spi_local_execute_handler(&spi->write, MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_CANCELED, 0, hspi->TxXferSize - hspi->TxXferCount);
-    spi_local_execute_handler(&spi->read, MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_CANCELED, 0, hspi->RxXferSize - hspi->RxXferCount);
+
+    spi_execute_transfer_handlers(
+                &spi->transfer_handler,
+                hspi->TxXferSize - hspi->TxXferCount,
+                MCU_EVENT_FLAG_CANCELED);
 }
 
 #endif

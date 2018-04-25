@@ -91,7 +91,7 @@ int mcu_usb_open(const devfs_handle_t * handle){
             __HAL_RCC_USB_OTG_HS_ULPI_CLK_ENABLE();
 #endif
         }
-        cortexm_enable_irq((void*)(u32)(usb_irqs[port]));  //Enable USB IRQ
+        cortexm_enable_irq(usb_irqs[port]);  //Enable USB IRQ
     }
     usb_local[port].ref_count++;
     return 0;
@@ -102,7 +102,7 @@ int mcu_usb_close(const devfs_handle_t * handle){
     if ( usb_local[port].ref_count > 0 ){
         if ( usb_local[port].ref_count == 1 ){
             HAL_PCD_Stop(&usb_local[port].hal_handle);
-            cortexm_disable_irq((void*)(u32)(usb_irqs[port]));  //Disable the USB interrupt
+            cortexm_disable_irq(usb_irqs[port]);  //Disable the USB interrupt
             usb_local[port].hal_handle.Instance = 0;
             if( port == 0 ){
                 __HAL_RCC_USB_OTG_FS_CLK_DISABLE();
@@ -290,7 +290,7 @@ int mcu_usb_setaction(const devfs_handle_t * handle, void * ctl){
 
     if ( (log_ep < DEV_USB_LOGICAL_ENDPOINT_COUNT)  ){
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
-            //cortexm_enable_interrupts(NULL);
+            //cortexm_enable_interrupts();
             if( cortexm_validate_callback(action->handler.callback) < 0 ){
                 return -1;
             }

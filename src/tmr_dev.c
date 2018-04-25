@@ -111,7 +111,7 @@ int mcu_tmr_open(const devfs_handle_t * handle){
 #endif
         }
         if( tmr_irqs[port] != (u8)-1 ){
-            cortexm_enable_irq((void*)(u32)(tmr_irqs[port]));
+            cortexm_enable_irq(tmr_irqs[port]);
         }
     }
     m_tmr_local[port].ref_count++;
@@ -126,7 +126,7 @@ int mcu_tmr_close(const devfs_handle_t * handle){
             clear_actions(port);
             m_tmr_local[port].hal_handle.Instance = 0;
             if( tmr_irqs[port] != (u8)-1 ){
-                cortexm_disable_irq((void*)(u32)(tmr_irqs[port]));
+                cortexm_disable_irq(tmr_irqs[port]);
             }
             switch(port){
             case 0:

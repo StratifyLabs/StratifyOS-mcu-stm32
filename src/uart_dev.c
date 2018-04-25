@@ -95,7 +95,7 @@ int mcu_uart_open(const devfs_handle_t * handle){
 
 		}
 		//reset HAL UART
-		cortexm_enable_irq((void*)(u32)(uart_irqs[port]));
+        cortexm_enable_irq(uart_irqs[port]);
 
 	}
 	uart_local[port].ref_count++;
@@ -108,7 +108,7 @@ int mcu_uart_close(const devfs_handle_t * handle){
 
 	if ( uart_local[port].ref_count > 0 ){
 		if ( uart_local[port].ref_count == 1 ){
-			cortexm_disable_irq((void*)(u32)(uart_irqs[port]));
+            cortexm_disable_irq(uart_irqs[port]);
 			switch(port){
 			case 0:
 				__HAL_RCC_USART1_CLK_DISABLE();
@@ -296,7 +296,7 @@ int mcu_uart_setaction(const devfs_handle_t * handle, void * ctl){
 		}
 	}
 
-	cortexm_set_irq_prio(uart_irqs[port], action->prio);
+	cortexm_set_irq_priority(uart_irqs[port], action->prio);
 	return 0;
 }
 

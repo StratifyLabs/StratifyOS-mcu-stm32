@@ -29,8 +29,7 @@ typedef struct MCU_PACK {
         SPI_HandleTypeDef hal_handle;
         I2S_HandleTypeDef i2s_hal_handle;
     };
-    devfs_async_t * write;
-    devfs_async_t * read;
+    devfs_transfer_handler_t transfer_handler;
     u8 is_full_duplex;
     u8 is_i2s;
     u8 ref_count;
@@ -48,11 +47,11 @@ extern spi_dma_local_t spi_dma_local[MCU_SPI_PORTS] MCU_SYS_MEM;
 extern SPI_TypeDef * const spi_regs[MCU_SPI_PORTS];
 extern u8 const spi_irqs[MCU_SPI_PORTS];
 
-SPI_TypeDef * spi_local_open(int port);
-void spi_local_close(int port);
-int spi_local_setattr(const devfs_handle_t * handle, void * ctl, spi_local_t * spi);
-int spi_local_setaction(const devfs_handle_t * handle, void * ctl, spi_local_t * spi, int interrupt_number);
-int spi_local_swap(const devfs_handle_t * handle, void * ctl, spi_local_t * spi);
+int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle, int interrupt_number);
+int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle, int interrupt_number);
+int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * ctl);
+int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void * ctl, int interrupt_number);
+int spi_local_swap(spi_local_t * spi, const devfs_handle_t * handle, void * ctl);
 int spi_local_execute_handler(devfs_async_t ** async, u32 o_events, u32 value, int ret);
 
 

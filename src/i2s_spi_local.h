@@ -23,6 +23,6 @@
 
 #include "spi_local.h"
 
-int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl, spi_local_t * spi_local);
+int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * ctl);
 
 #endif /* SPI_LOCAL_H_ */
