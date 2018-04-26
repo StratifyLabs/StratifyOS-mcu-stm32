@@ -33,7 +33,7 @@ typedef struct MCU_PACK {
     u8 is_full_duplex;
     u8 is_i2s;
     u8 ref_count;
-    u8 resd;
+    u8 size_mult;
 } spi_local_t;
 
 typedef struct {

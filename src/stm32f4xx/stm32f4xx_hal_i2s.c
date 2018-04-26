@@ -823,7 +823,7 @@ HAL_StatusTypeDef HAL_I2S_Receive_IT(I2S_HandleTypeDef *hi2s, uint16_t *pData, u
     hi2s->State     = HAL_I2S_STATE_BUSY_RX;
     hi2s->ErrorCode = HAL_I2S_ERROR_NONE;
 
-    /* Enable TXE and ERR interrupt */
+    /* Enable RXNE and ERR interrupt */
     __HAL_I2S_ENABLE_IT(hi2s, (I2S_IT_RXNE | I2S_IT_ERR));
 
     /* Check if the I2S is already enabled */

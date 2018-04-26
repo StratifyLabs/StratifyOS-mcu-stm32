@@ -79,10 +79,10 @@ int mcu_i2s_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
                     &spi_local[port].i2s_hal_handle,
                     async->buf,
                     spi_local[port].transfer_handler.read->buf,
-                    async->nbyte);
+                    async->nbyte/2);
 
     } else {
-        ret = HAL_I2S_Transmit_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte);
+        ret = HAL_I2S_Transmit_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte/2);
     }
 
 
@@ -100,13 +100,16 @@ int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
 
     DEVFS_DRIVER_IS_BUSY(spi_local[port].transfer_handler.read, async);
 
+    //need to adjust nbyte for transfer size 32-bit, 24-bit, 16-bit
+
     if( spi_local[port].is_full_duplex ){
         ret = HAL_OK;
     } else {
-        ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte);
+        ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf+2, async->nbyte/2 - 1);
     }
 
     if( ret != HAL_OK ){
+        mcu_debug_root_printf("rerr:%d\n", ret);
         spi_local[port].transfer_handler.read = 0;
         return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }
@@ -116,27 +119,40 @@ int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
-   //no action when half complete -- could fire an event
+    //no action when half complete -- could fire an event
 }
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * spi = (spi_local_t *)hi2s;
-    mcu_execute_write_handler(&spi->transfer_handler, 0, hi2s->TxXferSize);
+    mcu_execute_write_handler(&spi->transfer_handler, 0, spi->transfer_handler.write->nbyte);
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
     //no action when half complete -- could fire an event
 }
 
+u16 rx_dummy_buffer[128];
+static int count = 0;
+
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * spi = (spi_local_t *)hi2s;
-    mcu_execute_read_handler(&spi->transfer_handler, 0, hi2s->RxXferSize);
+    count++;
+    devfs_async_t * async = spi->transfer_handler.read;
+    mcu_execute_read_handler(&spi->transfer_handler, 0, spi->transfer_handler.read->nbyte);
+    if( hi2s->State == HAL_I2S_STATE_READY){
+        mcu_debug_root_printf("r:%d, %d 0x%lX\n", count, hi2s->ErrorCode);
+        if( async ){
+            mcu_debug_root_printf("cb:0x%lX\n", (u32)async->handler.callback);
+        } else {
+            mcu_debug_root_printf("No async\n");
+        }
+    }
 }
 
 void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
     //called on overflow and underrun
     spi_local_t * spi = (spi_local_t *)hi2s;
-    mcu_execute_transfer_handlers(&spi->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    mcu_execute_transfer_handlers(&spi->transfer_handler, 0, SYSFS_SET_RETURN_WITH_VALUE(EIO, hi2s->ErrorCode), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
 }
 
 #endif
