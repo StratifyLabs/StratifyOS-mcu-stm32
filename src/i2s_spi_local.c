@@ -81,7 +81,6 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
 
         spi->i2s_hal_handle.Init.Standard = I2S_STANDARD_PHILIPS;
         if( o_flags & I2S_FLAG_IS_FORMAT_MSB ){
-            mcu_debug_root_printf("msb\n");
             spi->i2s_hal_handle.Init.Standard = I2S_STANDARD_MSB;
         } else if( o_flags & I2S_FLAG_IS_FORMAT_LSB ){
             spi->i2s_hal_handle.Init.Standard = I2S_STANDARD_LSB;
@@ -99,7 +98,6 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
         } else if( o_flags & I2S_FLAG_IS_WIDTH_32 ){
             spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_32B;
         } else if ( o_flags & I2S_FLAG_IS_WIDTH_16_EXTENDED ){
-            mcu_debug_root_printf("16b extended\n");
             spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_16B_EXTENDED;
         }
 
@@ -138,7 +136,6 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
 
         //errata: http://www.st.com/content/ccc/resource/technical/document/errata_sheet/0a/98/58/84/86/b6/47/a2/DM00037591.pdf/files/DM00037591.pdf/jcr:content/translations/en.DM00037591.pdf
         if( is_errata_required & (1<<1) ){
-            mcu_debug_root_printf("Errata fix\n");
             u32 pio_value;
             u32 pio_mask;
             u32 pio_level;
@@ -151,7 +148,6 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
             //I2S Mode errata_required & (1<<0) == 1 -- wait until low then wait until high
 
             target_level = (is_errata_required & (1<<0)) == 0; //MSB : 1, I2S: 0
-            mcu_debug_root_printf("level:%d\n", target_level);
             do {
                 mcu_pio_get(&handle, &pio_value);
                 pio_level = (pio_value & pio_mask) != 0; //1 for set, 0 for not

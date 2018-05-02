@@ -42,6 +42,7 @@ static inline void usb_unstall_endpoint(const devfs_handle_t * handle, u32 endpo
 static inline void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32 max_packet_size, u8 type) MCU_ALWAYS_INLINE;
 static inline void usb_reset(const devfs_handle_t * handle);
 
+static int count = 0;
 
 typedef struct MCU_PACK {
     PCD_HandleTypeDef hal_handle;
@@ -341,7 +342,7 @@ int mcu_usb_read(const devfs_handle_t * handle, devfs_async_t * rop){
         if ( !(rop->flags & O_NONBLOCK) ){
             //If this is a blocking call, set the callback and context
             if( cortexm_validate_callback(rop->handler.callback) < 0 ){
-                return -1;
+                return SYSFS_SET_RETURN(EPERM);
             }
 
             usb_local[port].read[loc].callback = rop->handler.callback;
@@ -360,6 +361,7 @@ int mcu_usb_write(const devfs_handle_t * handle, devfs_async_t * wop){
     u32 port = handle->port;
     int ep;
     int loc = wop->loc;
+    int bytes_written;
 
 
     ep = (loc & 0x7F);
@@ -372,26 +374,23 @@ int mcu_usb_write(const devfs_handle_t * handle, devfs_async_t * wop){
         return SYSFS_SET_RETURN(EBUSY);
     }
 
-    usb_local[port].write_pending |= (1<<ep);
-
     if( cortexm_validate_callback(wop->handler.callback) < 0 ){
-        return -1;
+        return SYSFS_SET_RETURN(EPERM);
     }
 
-    usb_local[port].write[ep].callback = wop->handler.callback;
-    usb_local[port].write[ep].context = wop->handler.context;
 
-    wop->nbyte = mcu_usb_root_write_endpoint(handle, loc, wop->buf, wop->nbyte);
+    bytes_written = mcu_usb_root_write_endpoint(handle, loc, wop->buf, wop->nbyte);
 
-    if ( wop->nbyte < 0 ){
+    if ( bytes_written < 0 ){
         usb_disable_endpoint(handle, loc );
         usb_reset_endpoint(handle, loc );
         usb_enable_endpoint(handle, loc );
-        usb_local[port].write_pending &= ~(1<<ep);
-        return -2;
+    } else if( bytes_written == 0 ){
+        usb_local[port].write[ep] = wop->handler;
+        usb_local[port].write_pending |= (1<<ep);
     }
 
-    return 0;
+    return bytes_written;
 }
 
 
@@ -414,6 +413,7 @@ void usb_configure(const devfs_handle_t * handle, u32 cfg){
 void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32 max_packet_size, u8 type){
     u32 port = handle->port;
     const stm32_config_t * stm32_config = mcu_board_config.arch_config;
+
     HAL_PCD_EP_Open(&usb_local[handle->port].hal_handle, endpoint_num, max_packet_size, type & EP_TYPE_MSK);
 
     if( (endpoint_num & 0x80) == 0 ){
@@ -483,11 +483,29 @@ int mcu_usb_root_read_endpoint(const devfs_handle_t * handle, u32 endpoint_num, 
 
 int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num, const void * src, u32 size){
     int ret;
+    int logical_endpoint = endpoint_num & 0x7f;
+    int type = usb_local[handle->port].hal_handle.IN_ep[logical_endpoint].type;
+
+    if( type == EP_TYPE_ISOC ){
+        //check to see if the packet will fit in the FIFO
+        //if the packet won't fit, return EBUSY
+        USB_OTG_GlobalTypeDef *USBx = usb_local[handle->port].hal_handle.Instance;
+        int available = (USBx_INEP(logical_endpoint)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV);
+        if( (available * 4) < size ){
+            return SYSFS_SET_RETURN(EBUSY);
+        }
+    }
+
     ret = HAL_PCD_EP_Transmit(&usb_local[handle->port].hal_handle, endpoint_num, (void*)src, size);
     if( ret == HAL_OK ){
-        return size;
+#if 0
+        if( usb_local[handle->port].hal_handle.IN_ep[logical_endpoint].type == EP_TYPE_ISOC ){
+            return size;
+        }
+#endif
+        return 0;
     }
-    return -1;
+    return SYSFS_SET_RETURN(EIO);
 }
 
 
@@ -547,8 +565,15 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
     usb_event_t event;
     event.epnum = epnum;
 
-    //mcu_debug_root_printf("Data in %d 0x%lX\n", logical_ep, (u32)usb->read[logical_ep].callback);
+    if( logical_ep == 0x03 ){
+        count++;
+        if( count % 1000 == 0 ){
+            USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
+            mcu_debug_root_printf("t:%d,%d\n", count, (USBx_INEP(logical_ep)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV));
+        }
+    }
 
+    usb->write_pending &= ~(1<<logical_ep);
     mcu_execute_event_handler(usb->write + logical_ep, MCU_EVENT_FLAG_WRITE_COMPLETE, &event);
 
     if( (epnum & 0x7f) == 0 ){
@@ -587,11 +612,11 @@ void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
-
+    mcu_debug_root_printf("Iso in\n");
 }
 
 void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
-
+    mcu_debug_root_printf("Iso out\n");
 }
 
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd){

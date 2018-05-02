@@ -105,7 +105,7 @@ int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
     if( spi_local[port].is_full_duplex ){
         ret = HAL_OK;
     } else {
-        ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf+2, async->nbyte/2 - 1);
+        ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte/2);
     }
 
     if( ret != HAL_OK ){
