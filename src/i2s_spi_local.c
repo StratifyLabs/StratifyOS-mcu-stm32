@@ -93,10 +93,13 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
         }
 
         spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_16B;
+        spi->size_mult = 2;
         if( o_flags & I2S_FLAG_IS_WIDTH_24 ){
             spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_24B;
+            spi->size_mult = 4;
         } else if( o_flags & I2S_FLAG_IS_WIDTH_32 ){
             spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_32B;
+            spi->size_mult = 4;
         } else if ( o_flags & I2S_FLAG_IS_WIDTH_16_EXTENDED ){
             spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_16B_EXTENDED;
         }
