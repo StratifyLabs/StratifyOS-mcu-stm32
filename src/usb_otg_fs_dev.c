@@ -42,8 +42,6 @@ static inline void usb_unstall_endpoint(const devfs_handle_t * handle, u32 endpo
 static inline void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32 max_packet_size, u8 type) MCU_ALWAYS_INLINE;
 static inline void usb_reset(const devfs_handle_t * handle);
 
-static int count = 0;
-
 typedef struct MCU_PACK {
     PCD_HandleTypeDef hal_handle;
     mcu_event_handler_t write[DEV_USB_LOGICAL_ENDPOINT_COUNT];
@@ -565,14 +563,6 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
     usb_event_t event;
     event.epnum = epnum;
 
-    if( logical_ep == 0x03 ){
-        count++;
-        if( count % 1000 == 0 ){
-            USB_OTG_GlobalTypeDef *USBx = hpcd->Instance;
-            mcu_debug_root_printf("t:%d,%d\n", count, (USBx_INEP(logical_ep)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV));
-        }
-    }
-
     usb->write_pending &= ~(1<<logical_ep);
     mcu_execute_event_handler(usb->write + logical_ep, MCU_EVENT_FLAG_WRITE_COMPLETE, &event);
 
@@ -612,11 +602,11 @@ void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
-    mcu_debug_root_printf("Iso in\n");
+    //mcu_debug_root_printf("Iso in\n");
 }
 
 void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
-    mcu_debug_root_printf("Iso out\n");
+    //mcu_debug_root_printf("Iso out\n");
 }
 
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd){
