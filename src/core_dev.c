@@ -252,45 +252,59 @@ int mcu_core_read(const devfs_handle_t * cfg, devfs_async_t * async){
 
 void mcu_core_enable_cache(){
 #if USE_CACHE
-    SCB_EnableICache();
-    SCB_EnableDCache();
+    if( mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE ){
+        SCB_EnableICache();
+        SCB_EnableDCache();
+    }
 #endif
 }
 
 void mcu_core_disable_cache(){
 #if USE_CACHE
-    SCB_DisableICache();
-    SCB_DisableDCache();
+    if( mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE ){
+        SCB_DisableICache();
+        SCB_DisableDCache();
+    }
 #endif
 }
 
 void mcu_core_invalidate_instruction_cache(){
 #if USE_CACHE
-    SCB_InvalidateICache();
+    if( mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE ){
+        SCB_InvalidateICache();
+    }
 #endif
 }
 
 void mcu_core_clean_data_cache(){
 #if USE_CACHE
-    SCB_CleanDCache();
+    if( mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE ){
+        SCB_CleanDCache();
+    }
 #endif
 }
 
 void mcu_core_invalidate_data_cache(){
 #if USE_CACHE
-    SCB_InvalidateDCache();
+    if( mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE ){
+        SCB_InvalidateDCache();
+    }
 #endif
 }
 
 void mcu_core_clean_data_cache_block(void * addr, u32 size){
 #if USE_CACHE
-    SCB_CleanDCache_by_Addr(addr, size);
+    if( mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE ){
+        SCB_CleanDCache_by_Addr(addr, size);
+    }
 #endif
 }
 
 void mcu_core_invalidate_data_cache_block(void * addr, u32 size){
 #if USE_CACHE
-    SCB_InvalidateDCache_by_Addr(addr, size);
+    if( mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE ){
+        SCB_InvalidateDCache_by_Addr(addr, size);
+    }
 #endif
 }
 

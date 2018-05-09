@@ -28,7 +28,6 @@
 
 #include "stm32_local.h"
 
-
 #if MCU_USB_PORTS > 0
 
 static void usb_connect(u32 port, u32 con);
@@ -273,7 +272,6 @@ int mcu_usb_setaction(const devfs_handle_t * handle, void * ctl){
         return 0;
     }
 
-
     if( action->channel & 0x80 ){
         if( (action->handler.callback == 0) && (action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE) ){
             usb_local[port].write_pending &= ~(1<<log_ep);
@@ -291,21 +289,35 @@ int mcu_usb_setaction(const devfs_handle_t * handle, void * ctl){
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             //cortexm_enable_interrupts();
             if( cortexm_validate_callback(action->handler.callback) < 0 ){
-                return -1;
+                return SYSFS_SET_RETURN(EPERM);
             }
 
-            usb_local[port].read[log_ep].callback = action->handler.callback;
-            usb_local[port].read[log_ep].context = action->handler.context;
+            if( log_ep == 0 ){
+                if( action->o_events & MCU_EVENT_FLAG_SETUP ){
+                    usb_local[port].read[log_ep] = action->handler;
+                } else {
+                    return SYSFS_SET_RETURN(EINVAL);
+                }
+            } else {
+                usb_local[port].read[log_ep] = action->handler;
+            }
             ret = 0;
         }
 
         if( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
             if( cortexm_validate_callback(action->handler.callback) < 0 ){
-                return -1;
+                return SYSFS_SET_RETURN(EPERM);
             }
 
-            usb_local[port].write[log_ep].callback = action->handler.callback;
-            usb_local[port].write[log_ep].context = action->handler.context;
+            if( log_ep == 0 ){
+                if( action->o_events & MCU_EVENT_FLAG_SETUP ){
+                    usb_local[port].write[log_ep] = action->handler;
+                } else {
+                    return SYSFS_SET_RETURN(EINVAL);
+                }
+            } else {
+                usb_local[port].write[log_ep] = action->handler;
+            }
             ret = 0;
         }
     }
@@ -527,6 +539,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 
     //prepare EP zero for receiving out data
     HAL_PCD_EP_Receive(hpcd, 0, stm32_config->usb_rx_buffer, hpcd->OUT_ep[0].maxpacket);
+
 }
 
 void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
@@ -602,7 +615,30 @@ void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
-    //mcu_debug_root_printf("Iso in\n");
+
+    //epnum value passed is not valid -- need to find it
+    int i;
+    for(i=1; i < DEV_USB_LOGICAL_ENDPOINT_COUNT; i++){
+        if( hpcd->IN_ep[i].type == EP_TYPE_ISOC ){
+
+
+            epnum = 0x80 | i;
+            u8 logical_ep = epnum & 0x7F;
+
+
+
+            if( HAL_PCD_EP_Close(hpcd, epnum) != HAL_OK ){
+                //mcu_debug_root_printf("close failed\n");
+            }
+            if( HAL_PCD_EP_Open(hpcd, epnum, hpcd->IN_ep[logical_ep].maxpacket, EP_TYPE_ISOC) != HAL_OK ){
+                //mcu_debug_root_printf("open failed\n");
+            }
+            if( HAL_PCD_EP_Flush(hpcd, epnum) != HAL_OK ){
+                //mcu_debug_root_printf("flush failed\n");
+            }
+        }
+
+    }
 }
 
 void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
