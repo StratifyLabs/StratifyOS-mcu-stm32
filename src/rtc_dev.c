@@ -130,6 +130,25 @@ int mcu_rtc_setaction(const devfs_handle_t * handle, void * ctl){
     return 0;
 }
 
+int mcu_rtc_set(const devfs_handle_t * handle, void * ctl){
+    rtc_time_t * rtc_time = ctl;
+    //assign value to rtc_local[port].alarm_handler
+
+    //assign time based on rtc_time
+
+
+    return 0;
+}
+
+int mcu_rtc_get(const devfs_handle_t * handle, void * ctl){
+    rtc_time_t * rtc_time = ctl;
+    //assign value to rtc_local[port].alarm_handler
+
+    //copy current time from registers to rtc_time
+
+    return 0;
+}
+
 int mcu_rtc_write(const devfs_handle_t * handle, devfs_async_t * async){
     return SYSFS_SET_RETURN(ENOTSUP);
 }
