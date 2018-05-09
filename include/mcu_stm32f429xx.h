@@ -84,6 +84,10 @@
 #define MCU_USB_REGS { USB_OTG_FS }
 #define MCU_USB_IRQS { OTG_FS_IRQn }
 
+#define MCU_RTC_PORTS 1
+#define MCU_RTC_REGS { RTC }
+#define MCU_RTC_IRQS { RTC_Alarm_IRQn }
+
 #define DEV_USB_LOGICAL_ENDPOINT_COUNT 4
 
 #define MCU_LAST_IRQ DMA2D_IRQn

@@ -22,6 +22,7 @@ set(SOURCES
   ${SOURCES_PREFIX}/mem_dev.c
   ${SOURCES_PREFIX}/mpu_dev.c
   ${SOURCES_PREFIX}/pio_dev.c
+	${SOURCES_PREFIX}/rtc_dev.c
 	${SOURCES_PREFIX}/spi_local.c
 	${SOURCES_PREFIX}/spi_dev.c
 	${SOURCES_PREFIX}/spi_dma_dev.c

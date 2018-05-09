@@ -331,6 +331,8 @@
 
 #ifdef HAL_I2S_MODULE_ENABLED
  #include "stm32f4xx_hal_i2s.h"
+#include "stm32f4xx_hal_i2s_ex.h"
+
 #endif /* HAL_I2S_MODULE_ENABLED */
 
 #ifdef HAL_IWDG_MODULE_ENABLED
