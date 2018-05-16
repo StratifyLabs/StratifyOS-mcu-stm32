@@ -26,6 +26,7 @@ set(SOURCES
 	${SOURCES_PREFIX}/spi_local.c
 	${SOURCES_PREFIX}/spi_dev.c
 	${SOURCES_PREFIX}/spi_dma_dev.c
+	${SOURCES_PREFIX}/qspi_dev.c
 	${SOURCES_PREFIX}/tmr_dev.c
   ${SOURCES_PREFIX}/uart_dev.c
 	${SOURCES_PREFIX}/usb_otg_fs_dev.c

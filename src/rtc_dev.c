@@ -150,7 +150,7 @@ int mcu_rtc_setattr(const devfs_handle_t * handle, void * ctl){
         RCC_OscInitStruct.LSEState = RCC_LSE_ON;
         PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
     }
-    if( o_flags & RTC_FLAG_HOUR_FORMAT_12){
+    if( o_flags & RTC_FLAG_IS_HOUR_FORMAT_12){
         rtc_local[port].hal_handle.Init.HourFormat = RTC_HOURFORMAT_12;
     }else{
         rtc_local[port].hal_handle.Init.HourFormat = RTC_HOURFORMAT_24;
@@ -204,25 +204,6 @@ int mcu_rtc_setaction(const devfs_handle_t * handle, void * ctl){
     //mcu_action_t * action = ctl;
     //assign value to rtc_local[port].alarm_handler
 
-
-    return 0;
-}
-
-int mcu_rtc_set(const devfs_handle_t * handle, void * ctl){
-    rtc_time_t * rtc_time = ctl;
-    //assign value to rtc_local[port].alarm_handler
-
-    //assign time based on rtc_time
-
-
-    return 0;
-}
-
-int mcu_rtc_get(const devfs_handle_t * handle, void * ctl){
-    rtc_time_t * rtc_time = ctl;
-    //assign value to rtc_local[port].alarm_handler
-
-    //copy current time from registers to rtc_time
 
     return 0;
 }
