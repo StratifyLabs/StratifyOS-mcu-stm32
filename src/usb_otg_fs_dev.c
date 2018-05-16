@@ -196,7 +196,7 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
         }
 
         if( HAL_PCD_Init(&usb_local[port].hal_handle) != HAL_OK ){
-            return -1;
+            return SYSFS_SET_RETURN(EIO);
         }
 
         HAL_PCDEx_SetRxFiFo(&usb_local[port].hal_handle, attr->rx_fifo_word_size);  //size is in 32-bit words for all fifo - 512
@@ -204,10 +204,6 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
             if( attr->tx_fifo_word_size[i] > 0 ){
                 HAL_PCDEx_SetTxFiFo(&usb_local[port].hal_handle, i, attr->tx_fifo_word_size[i]);
             }
-        }
-
-        if( HAL_PCD_Start(&usb_local[port].hal_handle) != HAL_OK ){
-            return -1;
         }
     }
 
@@ -250,9 +246,9 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 
 void usb_connect(u32 port, u32 con){
     if( con ){
-        HAL_PCD_DevConnect(&usb_local[port].hal_handle);
+        HAL_PCD_Start(&usb_local[port].hal_handle);
     } else {
-        HAL_PCD_DevDisconnect(&usb_local[port].hal_handle);
+        HAL_PCD_Stop(&usb_local[port].hal_handle);
     }
 }
 
@@ -341,8 +337,11 @@ int mcu_usb_read(const devfs_handle_t * handle, devfs_async_t * rop){
         return SYSFS_SET_RETURN(EBUSY);
     }
 
+    usb_local[port].read[loc] = rop->handler;
+
     //Synchronous read (only if data is ready) otherwise 0 is returned
     if ( usb_local[port].read_ready & (1<<loc) ){
+        usb_local[port].read[loc].callback = 0;
         ret = mcu_usb_root_read_endpoint(handle, loc, rop->buf);
         if( ret == 0 ){
             return SYSFS_SET_RETURN(EAGAIN);
@@ -352,13 +351,12 @@ int mcu_usb_read(const devfs_handle_t * handle, devfs_async_t * rop){
         if ( !(rop->flags & O_NONBLOCK) ){
             //If this is a blocking call, set the callback and context
             if( cortexm_validate_callback(rop->handler.callback) < 0 ){
+                usb_local[port].read[loc].callback = 0;
                 return SYSFS_SET_RETURN(EPERM);
             }
-
-            usb_local[port].read[loc].callback = rop->handler.callback;
-            usb_local[port].read[loc].context = rop->handler.context;
             ret = 0;
         } else {
+            usb_local[port].read[loc].callback = 0;
             return SYSFS_SET_RETURN(EAGAIN);
         }
     }
@@ -389,15 +387,20 @@ int mcu_usb_write(const devfs_handle_t * handle, devfs_async_t * wop){
     }
 
 
+    usb_local[port].write[ep] = wop->handler;
+    usb_local[port].write_pending |= (1<<ep);
+
     bytes_written = mcu_usb_root_write_endpoint(handle, loc, wop->buf, wop->nbyte);
 
     if ( bytes_written < 0 ){
         usb_disable_endpoint(handle, loc );
         usb_reset_endpoint(handle, loc );
         usb_enable_endpoint(handle, loc );
-    } else if( bytes_written == 0 ){
-        usb_local[port].write[ep] = wop->handler;
-        usb_local[port].write_pending |= (1<<ep);
+    }
+
+    if( bytes_written != 0 ){
+        usb_local[port].write[ep].callback = 0;
+        usb_local[port].write_pending &= ~(1<<ep);
     }
 
     return bytes_written;
@@ -608,6 +611,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
     __HAL_PCD_GATE_PHYCLOCK(hpcd);
+
 }
 
 void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd){

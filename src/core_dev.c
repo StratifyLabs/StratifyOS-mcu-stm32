@@ -108,16 +108,16 @@ int mcu_core_execsleep(int port, void * arg){
 
 int mcu_core_reset(int port, void * arg){
     //delay first
-    cortexm_delay_us(20*1000);
+    cortexm_delay_ms(250);
     cortexm_reset(NULL);
     //doesn't arrive here
     return 0;
 }
 
 int mcu_core_invokebootloader(int port, void * arg){
-    cortexm_delay_us(500*1000);
     bootloader_api_t api;
     mcu_core_get_bootloader_api(&api);
+    cortexm_delay_ms(500);
     api.exec(0);
     return 0;
 }

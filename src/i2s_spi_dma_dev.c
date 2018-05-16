@@ -96,10 +96,7 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
     spi_dma_local[port].spi.transfer_handler.write = async;
     if( spi_dma_local[port].spi.is_full_duplex && spi_dma_local[port].spi.transfer_handler.read ){
 
-#if defined STM32F7
-        return SYSFS_SET_RETURN(ENOTSUP);
-#else
-
+#if defined I2S_FULLDUPLEXMODE_ENABLE
         if( spi_dma_local[port].spi.transfer_handler.read->nbyte < async->nbyte ){
             return SYSFS_SET_RETURN(EINVAL);
         }
@@ -109,7 +106,10 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
                     async->buf,
                     spi_dma_local[port].spi.transfer_handler.read->buf,
                     async->nbyte);
+#else
+        return SYSFS_SET_RETURN(ENOTSUP);
 #endif
+
     } else {
         ret = HAL_I2S_Transmit_DMA(&spi_dma_local[port].spi.i2s_hal_handle, async->buf, async->nbyte);
     }

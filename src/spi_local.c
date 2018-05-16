@@ -120,7 +120,6 @@ int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle, int interr
                 break;
 #endif
             }
-
         }
         spi->ref_count--;
     }
