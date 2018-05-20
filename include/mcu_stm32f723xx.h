@@ -95,6 +95,8 @@
 
 #define MCU_RAM_PAGES 176
 #define MCU_DELAY_FACTOR 3
+#define MCU_TOTAL_PINS (9*16)
+
 
 #ifdef __cplusplus
 extern "C" {

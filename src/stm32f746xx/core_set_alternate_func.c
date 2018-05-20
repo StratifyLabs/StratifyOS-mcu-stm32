@@ -22,15 +22,7 @@
 #include "stm32_local.h"
 #include "stm32_pin_local.h"
 
-#define TOTAL_ENTRIES 16
-
-typedef struct {
-    u16 entry[TOTAL_ENTRIES];
-} alternate_function_entry_t;
-
-#define TOTAL_PINS (10*16+8)
-
-const alternate_function_entry_t alternate_function_table[TOTAL_PINS] = {
+const alternate_function_entry_t alternate_function_table[MCU_TOTAL_PINS] = {
     //   0           1          2          3          4         5           6         7          8           9          10        11         12          13        14          15
     {{ RESERVED_, E_TMR_(2), E_TMR_(5), E_TMR_(8), RESERVED_, RESERVED_, RESERVED_, E_USRT(2), E_USRT(4), RESERVED_, RESERVED_, E_ENET(1), RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA0
     {{ RESERVED_, E_TMR_(2), E_TMR_(5), RESERVED_, RESERVED_, RESERVED_, RESERVED_, E_USRT(2), E_USRT(4), RESERVED_, RESERVED_, E_ENET(1), RESERVED_, RESERVED_, RESERVED_, E_SYS_(1) }}, //PA1
@@ -246,69 +238,3 @@ const alternate_function_entry_t alternate_function_table[TOTAL_PINS] = {
 };
 
 
-int hal_get_alternate_function(int gpio_port, int pin, core_periph_t function, int periph_port){
-    int i;
-    alternate_function_entry_t entry;
-    u16 value = gpio_port * 16 + pin;
-    i = -1;
-    if( value < TOTAL_PINS ){
-        entry = alternate_function_table[value];
-        value = -1;
-        for(i = 0; i < TOTAL_ENTRIES; i++){
-            if ( (function == ENTRY_GET_FUNCTION(entry.entry[i])) &&
-                 (periph_port == ENTRY_GET_PORT(entry.entry[i])) ){
-                //this is a valid pin
-                value = i;
-                break;
-            }
-        }
-    }
-    return i;
-}
-
-int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int periph_port, int mode, int speed, int pull){
-    GPIO_InitTypeDef GPIO_InitStruct;
-    GPIO_TypeDef * gpio_regs;
-    int alternate_function;
-
-    gpio_regs = hal_get_pio_regs(pin.port);
-    if( gpio_regs == 0 ){
-        return -1;
-    }
-
-    alternate_function = hal_get_alternate_function(pin.port, pin.pin, function, periph_port);
-
-    if( alternate_function < 0 ){
-        return -1;
-    }
-
-    GPIO_InitStruct.Pin = (1<<pin.pin);
-    GPIO_InitStruct.Mode = mode;
-    GPIO_InitStruct.Pull = pull;
-    GPIO_InitStruct.Speed = speed;
-    GPIO_InitStruct.Alternate = alternate_function;
-    HAL_GPIO_Init(gpio_regs, &GPIO_InitStruct);
-    return 0;
-}
-
-int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int periph_port){
-    int mode = GPIO_MODE_AF_PP;
-    int speed = GPIO_SPEED_FREQ_LOW;
-    int pull = GPIO_NOPULL;
-    switch(function){
-    default: break;
-    case CORE_PERIPH_I2C:
-        mode = GPIO_MODE_AF_OD;
-        break;
-    case CORE_PERIPH_ADC:
-    case CORE_PERIPH_DAC:
-        mode = GPIO_MODE_ANALOG;
-        break;
-    case CORE_PERIPH_USB:
-    case CORE_PERIPH_SPI:
-    case CORE_PERIPH_TMR:
-        speed = GPIO_SPEED_FREQ_VERY_HIGH;
-        break;
-    }
-    return hal_set_alternate_pin_function(*pin, function, periph_port, mode, speed, pull);
-}

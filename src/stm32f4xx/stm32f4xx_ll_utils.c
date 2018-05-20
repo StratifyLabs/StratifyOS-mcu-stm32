@@ -421,8 +421,9 @@ ErrorStatus LL_PLL_ConfigSystemClock_HSE(uint32_t HSEFrequency, uint32_t HSEBypa
   uint32_t pllfreq = 0U;
 
   /* Check the parameters */
-  assert_param(IS_LL_UTILS_HSE_FREQUENCY(HSEFrequency));
-  assert_param(IS_LL_UTILS_HSE_BYPASS(HSEBypass));
+  //Causes warnings __StratifyOS__
+  //assert_param(IS_LL_UTILS_HSE_FREQUENCY(HSEFrequency));
+  //assert_param(IS_LL_UTILS_HSE_BYPASS(HSEBypass));
 
   /* Check if one of the PLL is enabled */
   if(UTILS_PLL_IsBusy() == SUCCESS)

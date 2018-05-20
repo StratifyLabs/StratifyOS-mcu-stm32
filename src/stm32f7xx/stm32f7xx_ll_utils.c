@@ -37,12 +37,11 @@
 #include "stm32f7xx_ll_rcc.h"
 #include "stm32f7xx_ll_system.h"
 #include "stm32f7xx_ll_pwr.h"
-// MBED: removed
-//#ifdef  USE_FULL_ASSERT
-//#include "stm32_assert.h"
-//#else
-//#define assert_param(expr) ((void)0U)
-//#endif /* USE_FULL_ASSERT */
+#ifdef  USE_FULL_ASSERT
+#include "stm32_assert.h"
+#else
+#define assert_param(expr) ((void)0U)
+#endif /* USE_FULL_ASSERT */
 
 /** @addtogroup STM32F7xx_LL_Driver
   * @{

@@ -467,7 +467,7 @@ static uint32_t CRC_Handle_16(CRC_HandleTypeDef *hcrc, uint16_t pBuffer[], uint3
   }
   if((BufferLength%2) != 0)
   {
-     *(__IO uint16_t*) (&hcrc->Instance->DR) = pBuffer[2*i]; 
+     *(__IO uint16_t*) (&hcrc->Instance->DR) = pBuffer[2*i];
   }
    
   /* Return the CRC computed value */ 

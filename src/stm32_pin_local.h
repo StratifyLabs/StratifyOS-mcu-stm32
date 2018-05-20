@@ -20,6 +20,12 @@
 #ifndef STM32_PIN_LOCAL_H_
 #define STM32_PIN_LOCAL_H_
 
+#define TOTAL_ENTRIES 16
+
+typedef struct {
+    u16 entry[TOTAL_ENTRIES];
+} alternate_function_entry_t;
+
 #define ENTRY(function, port) (port<<8|function)
 #define RESERVED_ (ENTRY(CORE_PERIPH_RESERVED, 0))
 #define ENTRY_GET_FUNCTION(entry) (entry & 0xFF)
@@ -51,5 +57,7 @@
 #define E_FI2C(port) ENTRY(CORE_PERIPH_FMP_I2C,(port-1))
 #define E_ENET(port) ENTRY(CORE_PERIPH_ENET,(port-1))
 #define E_DCMI(port) ENTRY(CORE_PERIPH_ENET,(port-1))
+
+extern const alternate_function_entry_t alternate_function_table[];
 
 #endif /* STM32_PIN_LOCAL_H_ */

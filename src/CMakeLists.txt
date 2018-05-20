@@ -4,7 +4,8 @@
 set(SOURCES
 	${SOURCES_PREFIX}/adc_dev.c
 	${SOURCES_PREFIX}/core_dev.c
-  ${SOURCES_PREFIX}/core_setusbclock.c
+	${SOURCES_PREFIX}/core_setusbclock.c
+	${SOURCES_PREFIX}/hal_set_alternate_pin_function.c
 	${SOURCES_PREFIX}/core_sleep.c
 	${SOURCES_PREFIX}/core_initclock.c
 	${SOURCES_PREFIX}/core_startup.c
