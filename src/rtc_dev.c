@@ -152,13 +152,9 @@ int mcu_rtc_setattr(const devfs_handle_t * handle, void * ctl){
         PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
         mcu_debug_root_printf("RTC_FLAG_IS_SOURCE_external \n");
     }
-    if( o_flags & RTC_FLAG_IS_HOUR_FORMAT_12){
-        rtc_local[port].hal_handle.Init.HourFormat = RTC_HOURFORMAT_12;
-        mcu_debug_root_printf("hour format 12 \n");
-    }else{
-        rtc_local[port].hal_handle.Init.HourFormat = RTC_HOURFORMAT_24;
-        mcu_debug_root_printf("hour format 24 \n");
-    }
+
+    rtc_local[port].hal_handle.Init.HourFormat = RTC_HOURFORMAT_24;
+
 
     if( o_flags & RTC_FLAG_ENABLE ){
         //set the init values based on the flags passed, we may need to add some flags to sos/dev/rtc.h

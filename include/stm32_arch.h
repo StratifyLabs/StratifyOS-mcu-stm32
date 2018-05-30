@@ -170,7 +170,7 @@ typedef struct {
     const bootloader_board_config_t boot_board_config = { \
             .sw_req_loc = 0x20004000, \
             .sw_req_value = 0x55AA55AA, \
-            .program_start_addr = 0x40000 + (u32)&_flash_start, \
+            .program_start_addr = __KERNEL_START_ADDRESS, \
             .hw_req = {2, 13}, \
             .o_flags = BOOT_BOARD_CONFIG_FLAG_HW_REQ_ACTIVE_HIGH, \
             .link_transport_driver = link_transport_driver_value, \

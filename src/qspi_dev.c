@@ -234,17 +234,16 @@ void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 
 void HAL_QSPI_TxCpltCallback(QSPI_HandleTypeDef *hqspi){
     qspi_local_t * qspi =  (qspi_local_t *)hqspi;
-    mcu_execute_write_handler(&qspi->transfer_handler, 0, hqspi->RxXferCount);
+    mcu_execute_write_handler(&qspi->transfer_handler, 0, hqspi->TxXferCount);
 }
 
 void HAL_QSPI_RxHalfCpltCallback(QSPI_HandleTypeDef *hqspi){
     //this is for DMA only
 }
+
 void HAL_QSPI_TxHalfCpltCallback(QSPI_HandleTypeDef *hqspi){
     //this is for DMA only
 }
-
-
 
 void mcu_core_quadspi_isr(){
     HAL_QSPI_IRQHandler(&qspi_local[0].hal_handle);

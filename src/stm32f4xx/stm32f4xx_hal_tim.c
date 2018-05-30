@@ -379,7 +379,9 @@ HAL_StatusTypeDef HAL_TIM_Base_Stop_IT(TIM_HandleTypeDef *htim)
   __HAL_TIM_DISABLE_IT(htim, TIM_IT_UPDATE);
       
   /* Disable the Peripheral */
-  __HAL_TIM_DISABLE(htim);
+  //__HAL_TIM_DISABLE(htim); //__StratifyOS__ This macro only stops counting if all OC/ICs are disabled
+  htim->Instance->CR1 &= ~(TIM_CR1_CEN); //__StratifyOS__ stop counting even if OC/ICs are on
+
     
   /* Return function status */
   return HAL_OK;

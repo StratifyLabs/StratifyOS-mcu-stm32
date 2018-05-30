@@ -315,7 +315,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
             master_config.MasterOutputTrigger = TIM_TRGO_RESET;
             master_config.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
             if (HAL_TIMEx_MasterConfigSynchronization(&m_tmr_local[port].hal_handle, &master_config) != HAL_OK){
-                return -1;
+                return SYSFS_SET_RETURN(EIO);
             }
 
             ret = 0;
@@ -359,12 +359,12 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
         }
 
         if( ret != HAL_OK ){
-            return -1;
+            return SYSFS_SET_RETURN(EIO);
         }
 
         //this sets the value of the channel
         if( mcu_tmr_setchannel(handle, (void*)&attr->channel) < 0 ){
-            return -1;
+            return SYSFS_SET_RETURN(EIO);
         }
     }
 
@@ -374,7 +374,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
                     MCU_CONFIG_PIN_ASSIGNMENT(tmr_config_t, handle),
                     MCU_PIN_ASSIGNMENT_COUNT(tmr_pin_assignment_t),
                     CORE_PERIPH_TMR, port, 0, 0, 0) < 0 ){
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
     }
 
@@ -388,13 +388,13 @@ int mcu_tmr_enable(const devfs_handle_t * handle, void * ctl){
     } else {
         HAL_TIM_Base_Start(&m_tmr_local[port].hal_handle);
     }
-    return 0;
+    return SYSFS_RETURN_SUCCESS;
 }
 
 int mcu_tmr_disable(const devfs_handle_t * handle, void * ctl){
     int port = handle->port;
     HAL_TIM_Base_Stop_IT(&m_tmr_local[port].hal_handle);
-    return 0;
+    return SYSFS_RETURN_SUCCESS;
 }
 
 int mcu_tmr_setchannel(const devfs_handle_t * handle, void * ctl){
@@ -419,7 +419,7 @@ int mcu_tmr_setchannel(const devfs_handle_t * handle, void * ctl){
 
     ((u32*)&(regs->CCR1))[ chan ] = req->value;
 
-    return 0;
+    return SYSFS_RETURN_SUCCESS;
 }
 
 int mcu_tmr_getchannel(const devfs_handle_t * handle, void * ctl){
@@ -442,7 +442,7 @@ int mcu_tmr_getchannel(const devfs_handle_t * handle, void * ctl){
     }
 
     req->value = ((u32*)&(regs->CCR1))[ chan ];
-    return 0;
+    return SYSFS_RETURN_SUCCESS;
 }
 
 int mcu_tmr_write(const devfs_handle_t * handle, devfs_async_t * wop){
@@ -509,7 +509,7 @@ int mcu_tmr_setaction(const devfs_handle_t * handle, void * ctl){
         m_tmr_local[port].period_handler = action->handler;
     }
 
-    return 0;
+    return SYSFS_RETURN_SUCCESS;
 }
 
 int mcu_tmr_read(const devfs_handle_t * handle, devfs_async_t * rop){
@@ -521,7 +521,7 @@ int mcu_tmr_set(const devfs_handle_t * handle, void * ctl){
     int port = handle->port;
     regs = tmr_regs_table[port];
     regs->CNT = (u32)ctl;
-    return 0;
+    return SYSFS_RETURN_SUCCESS;
 }
 
 int mcu_tmr_get(const devfs_handle_t * handle, void * ctl){
