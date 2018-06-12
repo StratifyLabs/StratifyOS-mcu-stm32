@@ -10,7 +10,9 @@ set(SOURCES
 	${SOURCES_PREFIX}/core_initclock.c
 	${SOURCES_PREFIX}/core_startup.c
   ${SOURCES_PREFIX}/fault_dev.c
-  ${SOURCES_PREFIX}/flash_dev.c
+	${SOURCES_PREFIX}/flash_dev.c
+	${SOURCES_PREFIX}/rng_dev.c
+	${SOURCES_PREFIX}/crc_dev.c
 	${SOURCES_PREFIX}/i2c_dev.c
 	${SOURCES_PREFIX}/i2s_spi_local.c
 	${SOURCES_PREFIX}/i2s_spi_local.h

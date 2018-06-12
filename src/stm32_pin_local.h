@@ -43,6 +43,7 @@ typedef struct {
 #define E_USB_(port) ENTRY(CORE_PERIPH_USB,(port-1))
 #define E_LCD_(port) ENTRY(CORE_PERIPH_LCD,(port-1))
 #define E_FMC_(port) ENTRY(CORE_PERIPH_EMC,(port-1))
+#define E_FSMC(port) ENTRY(CORE_PERIPH_EMC,(port-1))
 #define E_MCO_(port) ENTRY(CORE_PERIPH_MCO,(port-1))
 #define E_I2C_(port) ENTRY(CORE_PERIPH_I2C,(port-1))
 #define E_HDMI(port) ENTRY(CORE_PERIPH_HDMI,(port-1))
@@ -56,6 +57,7 @@ typedef struct {
 #define E_DFSD(port) ENTRY(CORE_PERIPH_DFSDM,(port-1))
 #define E_FI2C(port) ENTRY(CORE_PERIPH_FMP_I2C,(port-1))
 #define E_ENET(port) ENTRY(CORE_PERIPH_ENET,(port-1))
+#define E_ETH_(port) ENTRY(CORE_PERIPH_ENET,(port-1))
 #define E_DCMI(port) ENTRY(CORE_PERIPH_DCMI,(port-1))
 
 extern const alternate_function_entry_t alternate_function_table[];

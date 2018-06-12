@@ -97,10 +97,7 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority){
 }
 
 void HAL_Delay(__IO uint32_t Delay){
-    u32 value = SysTick->VAL;
-    while( SysTick->VAL && (value - SysTick->VAL < Delay) ){
-        ;
-    }
+    cortexm_delay_systick(Delay);
 }
 
 /*! @} */
