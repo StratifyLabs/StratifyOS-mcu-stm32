@@ -18,13 +18,11 @@
  */
 
 #include <fcntl.h>
-
 #include <cortexm/cortexm.h>
 #include <mcu/rng.h>
 #include <mcu/debug.h>
 
 #include "stm32_local.h"
-
 
 #if MCU_RNG_PORTS > 0
 
@@ -39,7 +37,7 @@ static rng_local_t rng_local[MCU_RNG_PORTS] MCU_SYS_MEM;
 RNG_TypeDef * const rng_regs_table[MCU_RNG_PORTS] = MCU_RNG_REGS;
 s8 const rng_irqs[MCU_RNG_PORTS] = MCU_RNG_IRQS;
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(rng, RNG_VERSION, I_MCU_TOTAL + I_RNG_TOTAL, mcu_rng_get)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(rng, RANDOM_VERSION)
 
 int mcu_rng_open(const devfs_handle_t * handle){
     int port = handle->port;
@@ -74,26 +72,26 @@ int mcu_rng_close(const devfs_handle_t * handle){
 }
 
 int mcu_rng_getinfo(const devfs_handle_t * handle, void * ctl){
-    rng_info_t * info = ctl;
-    memset(info, 0, sizeof(rng_info_t));
-    info->o_flags = RNG_FLAG_ENABLE | RNG_FLAG_DISABLE;
+    random_info_t * info = ctl;
+    memset(info, 0, sizeof(random_info_t));
+    info->o_flags = RANDOM_FLAG_IS_TRUE | RANDOM_FLAG_ENABLE | RANDOM_FLAG_DISABLE;
     return 0;
 }
 
 int mcu_rng_setattr(const devfs_handle_t * handle, void * ctl){
     rng_local_t * rng = rng_local + handle->port;
-    const rng_attr_t * attr = mcu_select_attr(handle, ctl);
+    const random_attr_t * attr = mcu_select_attr(handle, ctl);
     if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
 
     u32 o_flags = attr->o_flags;
 
-    if( o_flags & RNG_FLAG_ENABLE ){
+    if( o_flags & RANDOM_FLAG_ENABLE ){
         if( HAL_RNG_Init(&rng->hal_handle) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
         }
     }
 
-    if( o_flags & RNG_FLAG_DISABLE ){
+    if( o_flags & RANDOM_FLAG_DISABLE ){
         if( HAL_RNG_DeInit(&rng->hal_handle) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
         }
@@ -123,14 +121,6 @@ int mcu_rng_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 int mcu_rng_write(const devfs_handle_t * handle, devfs_async_t * async){
     return SYSFS_SET_RETURN(ENOSYS);
-}
-
-int mcu_rng_get(const devfs_handle_t * handle, void * arg){
-    int port = handle->port;
-    if( HAL_RNG_GenerateRandomNumber(&rng_local[port].hal_handle, arg) != HAL_OK ){
-        return SYSFS_SET_RETURN(EIO);
-    }
-    return SYSFS_RETURN_SUCCESS;
 }
 
 void HAL_RNG_ErrorCallback(RNG_HandleTypeDef *hrng){
