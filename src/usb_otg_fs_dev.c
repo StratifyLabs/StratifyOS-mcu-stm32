@@ -84,7 +84,9 @@ int mcu_usb_open(const devfs_handle_t * handle){
             __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
         } else {
 #if MCU_USB_PORTS > 1
+#if defined __HAL_RCC_OTGPHYC_CLK_ENABLE
             __HAL_RCC_OTGPHYC_CLK_ENABLE();
+#endif
             __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
             __HAL_RCC_USB_OTG_HS_ULPI_CLK_ENABLE();
 #endif
@@ -106,7 +108,9 @@ int mcu_usb_close(const devfs_handle_t * handle){
                 __HAL_RCC_USB_OTG_FS_CLK_DISABLE();
             } else {
 #if MCU_USB_PORTS > 1
+#if defined __HAL_RCC_OTGPHYC_CLK_DISABLE
                 __HAL_RCC_OTGPHYC_CLK_DISABLE();
+#endif
                 __HAL_RCC_USB_OTG_HS_CLK_DISABLE();
                 __HAL_RCC_USB_OTG_HS_ULPI_CLK_DISABLE();
 #endif
@@ -193,6 +197,10 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 
         if( o_flags & USB_FLAG_IS_VBUS_SENSING_ENABLED ){
             usb_local[port].hal_handle.Init.vbus_sensing_enable = ENABLE;
+        }
+
+        if( o_flags & USB_FLAG_IS_BATTERY_CHARGING_ENABLED ){
+            usb_local[port].hal_handle.Init.battery_charging_enable = ENABLE;
         }
 
         if( HAL_PCD_Init(&usb_local[port].hal_handle) != HAL_OK ){

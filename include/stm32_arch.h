@@ -79,6 +79,16 @@
 #include "mcu_stm32f446xx.h"
 #endif
 
+#if defined __stm32f722xx
+#define CORE_M7 1
+#define ARM_MATH_CM7 1
+#define STM32_FLASH_LAYOUT_16_16_16_16_64_128_128_128 1
+#if !defined STM32F722xx
+#define STM32F722xx 1
+#endif
+#include "mcu_stm32f722xx.h"
+#endif
+
 #if defined __stm32f723xx
 #define CORE_M7 1
 #define ARM_MATH_CM7 1

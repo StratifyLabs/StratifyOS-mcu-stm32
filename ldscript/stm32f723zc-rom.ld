@@ -1,3 +1,3 @@
 
-INCLUDE ldscripts/stm32f723xc-rom.ld
+INCLUDE ldscripts/stm32f72xxc-rom.ld
 

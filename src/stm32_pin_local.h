@@ -52,6 +52,7 @@ typedef struct {
 #define E_RTC_(port) ENTRY(CORE_PERIPH_RTC,(port-1))
 #define E_SPDF(port) ENTRY(CORE_PERIPH_SPDIF,(port-1)) //SPDIF
 #define E_SDIO(port) ENTRY(CORE_PERIPH_SDIO,(port-1))
+#define ESDMMC(port) ENTRY(CORE_PERIPH_SDIO,(port-1))
 #define E_TRAC(port) ENTRY(CORE_PERIPH_TRACE,(port-1))
 #define E_FMP_(port) ENTRY(CORE_PERIPH_I2C,(port-1))
 #define E_DFSD(port) ENTRY(CORE_PERIPH_DFSDM,(port-1))
