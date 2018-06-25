@@ -52,10 +52,11 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
         return -1;
     }
 
-    alternate_function = hal_get_alternate_function(pin.port, pin.pin, function, periph_port);
-
-    if( alternate_function < 0 ){
-        return -1;
+    if( mode != GPIO_MODE_ANALOG ){
+        alternate_function = hal_get_alternate_function(pin.port, pin.pin, function, periph_port);
+        if( alternate_function < 0 ){ return -1; }
+    } else {
+        alternate_function = 0;
     }
 
     GPIO_InitStruct.Pin = (1<<pin.pin);
@@ -83,6 +84,7 @@ int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int 
     case CORE_PERIPH_USB:
     case CORE_PERIPH_SPI:
     case CORE_PERIPH_TMR:
+    case CORE_PERIPH_SDIO:
         speed = GPIO_SPEED_FREQ_VERY_HIGH;
         break;
     }

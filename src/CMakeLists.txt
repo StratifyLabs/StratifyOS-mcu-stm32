@@ -27,6 +27,7 @@ set(SOURCES
   ${SOURCES_PREFIX}/pio_dev.c
 	${SOURCES_PREFIX}/rtc_dev.c
 	${SOURCES_PREFIX}/spi_local.c
+	${SOURCES_PREFIX}/sdio_dev.c
 	${SOURCES_PREFIX}/spi_dev.c
 	${SOURCES_PREFIX}/spi_dma_dev.c
 	${SOURCES_PREFIX}/qspi_dev.c

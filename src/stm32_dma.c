@@ -42,9 +42,24 @@ const u32 stm32_dma_channels[8] = {
     DMA_CHANNEL_0, DMA_CHANNEL_1, DMA_CHANNEL_2, DMA_CHANNEL_3, DMA_CHANNEL_4, DMA_CHANNEL_5, DMA_CHANNEL_6, DMA_CHANNEL_7
 };
 
+const u32 stm32_dma_priorities[4] = {
+    DMA_PRIORITY_LOW, DMA_PRIORITY_MEDIUM, DMA_PRIORITY_HIGH, DMA_PRIORITY_VERY_HIGH
+};
+
 u32 stm32_dma_decode_channel(u32 channel_number){
+    if( channel_number > 7 ){
+        channel_number = 7;
+    }
     return stm32_dma_channels[channel_number];
 }
+
+u32 stm32_dma_decode_priority(u8 priority){
+    if( priority > 3 ){
+        priority = 3;
+    }
+    return stm32_dma_priorities[priority];
+}
+
 
 DMA_Stream_TypeDef * stm32_dma_get_stream_instance(u32 dma_number, u32 stream_number){
     if( dma_number ){

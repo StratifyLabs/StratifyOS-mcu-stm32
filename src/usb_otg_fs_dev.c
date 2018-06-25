@@ -69,7 +69,7 @@ void clear_callbacks(int port){
     usb_local[port].rx_buffer_used = 0;
 }
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(usb, USB_VERSION, I_MCU_TOTAL + I_USB_TOTAL, mcu_usb_isconnected)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(usb, USB_VERSION, USB_IOC_IDENT_CHAR, I_MCU_TOTAL + I_USB_TOTAL, mcu_usb_isconnected)
 
 
 int mcu_usb_open(const devfs_handle_t * handle){

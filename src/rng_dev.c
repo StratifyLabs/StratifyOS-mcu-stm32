@@ -37,7 +37,7 @@ static rng_local_t rng_local[MCU_RNG_PORTS] MCU_SYS_MEM;
 RNG_TypeDef * const rng_regs_table[MCU_RNG_PORTS] = MCU_RNG_REGS;
 s8 const rng_irqs[MCU_RNG_PORTS] = MCU_RNG_IRQS;
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(rng, RANDOM_VERSION)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(rng, RANDOM_VERSION, RANDOM_IOC_CHAR)
 
 int mcu_rng_open(const devfs_handle_t * handle){
     int port = handle->port;

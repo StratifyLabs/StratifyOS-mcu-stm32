@@ -25,7 +25,7 @@
 
 spi_local_t spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi, SPI_VERSION, I_MCU_TOTAL + I_SPI_TOTAL, mcu_spi_swap)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi, SPI_VERSION, SPI_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SPI_TOTAL, mcu_spi_swap)
 
 int mcu_spi_open(const devfs_handle_t * handle){
     return spi_local_open(spi_local + handle->port, handle, spi_irqs[handle->port]);

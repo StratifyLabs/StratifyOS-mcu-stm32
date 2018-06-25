@@ -32,7 +32,7 @@ rtc_local_t rtc_local[MCU_RTC_PORTS] MCU_SYS_MEM;
 static RTC_TypeDef * const rtc_regs[MCU_RTC_PORTS] = MCU_RTC_REGS;
 static const int rtc_irqs[MCU_RTC_PORTS] = MCU_RTC_IRQS;
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(rtc, RTC_VERSION, I_MCU_TOTAL + I_RTC_TOTAL, mcu_rtc_set, mcu_rtc_get)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(rtc, RTC_VERSION, RTC_IOC_IDENT_CHAR, I_MCU_TOTAL + I_RTC_TOTAL, mcu_rtc_set, mcu_rtc_get)
 static u8 year_is_leap(u16 year);
 static u16 get_yday_self(u8 mon, u8 day, u16 year);
 static u8 year_is_leap(u16 year){

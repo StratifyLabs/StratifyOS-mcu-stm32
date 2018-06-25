@@ -27,6 +27,8 @@ typedef struct {
     void * next;
 } stm32_dma_channel_t;
 
+u32 stm32_dma_decode_priority(u8 priority);
+
 u32 stm32_dma_decode_channel(u32 channel_number);
 DMA_Stream_TypeDef * stm32_dma_get_stream_instance(u32 dma_number, u32 stream_number);
 void stm32_dma_set_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number);

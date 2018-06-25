@@ -39,7 +39,7 @@ QUADSPI_TypeDef * const qspi_regs_table[MCU_QSPI_PORTS] = MCU_QSPI_REGS;
 u8 const qspi_irqs[MCU_QSPI_PORTS] = MCU_QSPI_IRQS;
 
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(qspi, QSPI_VERSION)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(qspi, QSPI_VERSION, QSPI_IOC_IDENT_CHAR)
 
 int mcu_qspi_open(const devfs_handle_t * handle){
     int port = handle->port;
@@ -136,7 +136,7 @@ int mcu_qspi_setaction(const devfs_handle_t * handle, void * ctl){
     if( action->handler.callback != 0 ){
         return SYSFS_SET_RETURN(ENOTSUP);
     }
-    cortexm_set_irq_priority(qspi_irqs[port], action->prio);
+    cortexm_set_irq_priority(qspi_irqs[port], action->prio, action->o_events);
     return 0;
 }
 

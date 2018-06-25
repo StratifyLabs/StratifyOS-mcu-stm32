@@ -25,9 +25,9 @@
 #define MCU_NO_HARD_FAULT 1
 
 #define MCU_ADC_API 0
-#define MCU_ADC_PORTS 3
-#define MCU_ADC_REGS { ADC1, ADC2, ADC3 }
-#define MCU_ADC_IRQS { ADC_IRQn, ADC_IRQn, ADC_IRQn }
+#define MCU_ADC_PORTS 1
+#define MCU_ADC_REGS { ADC1 }
+#define MCU_ADC_IRQS { ADC_IRQn }
 
 #define MCU_ENET_PORTS 1
 #define MCU_FLASH_PORTS 1
@@ -75,6 +75,8 @@
 #define MCU_USB_PORTS 1
 #define MCU_USB_REGS { USB_OTG_FS }
 #define MCU_USB_IRQS { OTG_FS_IRQn }
+
+#define MCU_DMA_PORTS 2
 
 
 #define MCU_RTC_PORTS 1

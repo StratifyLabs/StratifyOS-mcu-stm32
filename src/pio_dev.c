@@ -42,7 +42,7 @@ GPIO_TypeDef * const hal_get_pio_regs(u8 port){
     return 0;
 }
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(pio, PIO_VERSION, I_MCU_TOTAL + I_PIO_TOTAL, mcu_pio_setmask, mcu_pio_clrmask, mcu_pio_get, mcu_pio_set)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(pio, PIO_VERSION, PIO_IOC_IDENT_CHAR, I_MCU_TOTAL + I_PIO_TOTAL, mcu_pio_setmask, mcu_pio_clrmask, mcu_pio_get, mcu_pio_set)
 
 
 int mcu_pio_open(const devfs_handle_t * handle){

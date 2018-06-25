@@ -176,7 +176,8 @@ typedef struct
 /** @defgroup SD_Exported_Types_Group4 Card Specific Data: CSD Register 
   * @{
   */
-typedef struct
+ /* Packed added by __StratifyOS__ */
+typedef struct __attribute__((packed))
 {
   __IO uint8_t  CSDStruct;            /*!< CSD structure                         */
   __IO uint8_t  SysSpecVersion;       /*!< System specification version          */
@@ -224,7 +225,8 @@ typedef struct
 /** @defgroup SD_Exported_Types_Group5 Card Identification Data: CID Register
   * @{
   */
-typedef struct
+ /* Packed added by __StratifyOS__ */
+typedef struct __attribute__((packed))
 {
   __IO uint8_t  ManufacturerID;  /*!< Manufacturer ID       */
   __IO uint16_t OEM_AppliID;     /*!< OEM/Application ID    */
@@ -245,7 +247,8 @@ typedef struct
 /** @defgroup SD_Exported_Types_Group6 SD Card Status returned by ACMD13 
   * @{
   */
-typedef struct
+ /* Packed added by __StratifyOS__ */
+typedef struct __attribute__((packed))
 {
   __IO uint8_t  DataBusWidth;           /*!< Shows the currently defined data bus width                 */
   __IO uint8_t  SecuredMode;            /*!< Card is in secured mode of operation                       */

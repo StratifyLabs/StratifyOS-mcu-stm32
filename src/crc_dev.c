@@ -38,7 +38,7 @@ static crc_local_t crc_local[MCU_CRC_PORTS] MCU_SYS_MEM;
 CRC_TypeDef * const crc_regs_table[MCU_CRC_PORTS] = MCU_CRC_REGS;
 s8 const crc_irqs[MCU_CRC_PORTS] = MCU_CRC_IRQS;
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(crc, CRC_VERSION, I_MCU_TOTAL + I_CRC_TOTAL, mcu_crc_get)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(crc, CRC_VERSION, CRC_IOC_IDENT_CHAR, I_MCU_TOTAL + I_CRC_TOTAL, mcu_crc_get)
 
 int mcu_crc_open(const devfs_handle_t * handle){
     int port = handle->port;

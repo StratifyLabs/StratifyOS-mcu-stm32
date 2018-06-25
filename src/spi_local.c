@@ -254,7 +254,8 @@ int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void *
         }
     }
 
-    cortexm_set_irq_priority(interrupt_number, action->prio);
+    cortexm_set_irq_priority(interrupt_number, action->prio, action->o_events);
+
     return 0;
 }
 

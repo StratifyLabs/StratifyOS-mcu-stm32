@@ -18,6 +18,8 @@
 #define STM32_ARCH_H_
 
 #include <mcu/types.h>
+#include <mcu/spi.h>
+#include <mcu/i2s.h>
 
 #if defined __stm32f401xc
 #define CORE_M4 1
@@ -142,11 +144,23 @@ enum {
     STM32_CONFIG_FLAG_IS_OVERDRIVE_ON = (1<<1)
 };
 
+enum {
+    STM32_DMA_PRIORITY_LOW,
+    STM32_DMA_PRIORITY_MEDIUM,
+    STM32_DMA_PRIORITY_HIGH,
+    STM32_DMA_PRIORITY_VERY_HIGH,
+};
+
 typedef struct {
     u8 dma_number;
     u8 stream_number;
     u8 channel_number;
     u8 priority;
+} stm32_dma_channel_config_t;
+
+typedef struct {
+    stm32_dma_channel_config_t tx;
+    stm32_dma_channel_config_t rx;
 } stm32_dma_config_t;
 
 typedef struct {
@@ -154,21 +168,31 @@ typedef struct {
     u32 rx_overflow_buffer_size;
 } stm32_dma_state_t;
 
+typedef struct {
+    spi_config_t spi_config;
+    stm32_dma_config_t dma_config;
+} stm32_spi_dma_config_t;
+
+typedef struct {
+    i2s_config_t i2s_config;
+    stm32_dma_config_t dma_config;
+} stm32_i2s_spi_dma_config_t;
+
 #define STM32_NUCLEO144_DECLARE_MCU_BOARD_CONFIG(cpu_frequency, event_handler_value, arch_config_value) \
     const mcu_board_config_t mcu_board_config = { \
     .core_cpu_freq = cpu_frequency, \
     .usb_max_packet_zero = 64, \
     .debug_uart_port = 2, \
     .debug_uart_attr = { \
-        .pin_assignment = { \
-            .rx = {3, 9}, \
-            .tx = {3, 8}, \
-            .cts = {0xff, 0xff}, \
-            .rts = {0xff, 0xff} \
-        }, \
-        .freq = 115200, \
-        .o_flags = UART_FLAG_SET_LINE_CODING_DEFAULT, \
-        .width = 8 \
+    .pin_assignment = { \
+    .rx = {3, 9}, \
+    .tx = {3, 8}, \
+    .cts = {0xff, 0xff}, \
+    .rts = {0xff, 0xff} \
+    }, \
+    .freq = 115200, \
+    .o_flags = UART_FLAG_SET_LINE_CODING_DEFAULT, \
+    .width = 8 \
     }, \
     .o_flags = MCU_BOARD_CONFIG_FLAG_LED_ACTIVE_HIGH, \
     .event_handler = event_handler_value, \
@@ -178,13 +202,13 @@ typedef struct {
 #define STM32_NUCLEO144_DECLARE_BOOT_BOARD_CONFIG(link_transport_driver_value) \
     extern u32 _flash_start; \
     const bootloader_board_config_t boot_board_config = { \
-            .sw_req_loc = 0x20004000, \
-            .sw_req_value = 0x55AA55AA, \
-            .program_start_addr = __KERNEL_START_ADDRESS, \
-            .hw_req = {2, 13}, \
-            .o_flags = BOOT_BOARD_CONFIG_FLAG_HW_REQ_ACTIVE_HIGH, \
-            .link_transport_driver = link_transport_driver_value, \
-            .id = __HARDWARE_ID }
+    .sw_req_loc = 0x20004000, \
+    .sw_req_value = 0x55AA55AA, \
+    .program_start_addr = __KERNEL_START_ADDRESS, \
+    .hw_req = {2, 13}, \
+    .o_flags = BOOT_BOARD_CONFIG_FLAG_HW_REQ_ACTIVE_HIGH, \
+    .link_transport_driver = link_transport_driver_value, \
+    .id = __HARDWARE_ID }
 
 
 
