@@ -159,7 +159,7 @@ int mcu_adc_setaction(const devfs_handle_t * handle, void * ctl){
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             //execute the read callback if not null
             mcu_execute_read_handler_with_flags(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
-            HAL_ADC_Abort_IT(&adc->hal_handle);
+            HAL_ADC_Stop_IT(&adc->hal_handle);
         }
     }
 
@@ -207,19 +207,6 @@ int mcu_adc_read(const devfs_handle_t * handle, devfs_async_t * async){
 int mcu_adc_write(const devfs_handle_t * handle, devfs_async_t * async){
     return SYSFS_SET_RETURN(ENOTSUP);
 }
-
-void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc){
-    //this could be used to set a custom event when the ADC is out of a window
-}
-
-void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
-    adc_local_t * adc = (adc_local_t*)hadc;
-    mcu_debug_root_printf("ADC Error %d\n", hadc->ErrorCode);
-    hadc->Instance->SR &= ~ADC_SR_OVR;
-    mcu_execute_read_handler_with_flags(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
-    HAL_ADC_Stop_IT(hadc);
-}
-
 
 void mcu_core_adc_isr(){
     HAL_ADC_IRQHandler(&adc_local[0].hal_handle);

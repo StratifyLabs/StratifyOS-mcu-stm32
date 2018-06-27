@@ -20,7 +20,7 @@
 #ifndef SPI_LOCAL_H_
 #define SPI_LOCAL_H_
 
-#include <sos/dev/spi.h>
+#include <mcu/adc.h>
 
 #include "stm32_dma.h"
 

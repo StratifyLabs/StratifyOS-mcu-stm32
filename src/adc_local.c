@@ -41,9 +41,6 @@ const u32 adc_channels[MCU_ADC_CHANNELS] = {
     ADC_CHANNEL_VBAT
 };
 
-
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(adc, ADC_VERSION, ADC_IOC_IDENT_CHAR)
-
 int adc_local_open(adc_local_t * adc, const devfs_handle_t * handle){
     int port = handle->port;
     if ( adc->ref_count == 0 ){

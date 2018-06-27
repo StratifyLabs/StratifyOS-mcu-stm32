@@ -54,7 +54,7 @@ int sdio_local_close(sdio_local_t * sdio, const devfs_handle_t * handle){
 
 int sdio_local_getinfo(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl){
     sdio_info_t * info = ctl;
-    const u32 port = handle->port;
+    //const u32 port = handle->port;
 
     //set flags that are supported by this driver
     info->o_flags = SDIO_FLAG_SET_INTERFACE;
@@ -132,11 +132,9 @@ int sdio_local_getcsd(sdio_local_t * sdio, const devfs_handle_t * handle, void *
 }
 
 int sdio_local_getstatus(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl){
-    u32 port = handle->port;
     if( HAL_SD_GetCardStatus(&sdio->hal_handle, ctl) == HAL_OK ){
         return SYSFS_RETURN_SUCCESS;
     }
-
     return SYSFS_SET_RETURN(EIO);
 }
 

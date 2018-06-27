@@ -24,6 +24,7 @@
 
 typedef struct {
     DMA_HandleTypeDef handle;
+    int interrupt_number;
     void * next;
 } stm32_dma_channel_t;
 

@@ -152,6 +152,11 @@ enum {
     STM32_DMA_PRIORITY_VERY_HIGH,
 };
 
+enum {
+    STM32_DMA1 = 0,
+    STM32_DMA2 = 1
+};
+
 typedef struct {
     u8 dma_number;
     u8 stream_number;
@@ -175,14 +180,14 @@ typedef struct {
 } stm32_spi_dma_config_t;
 
 typedef struct {
-    adc_config_t adc_config;
-    stm32_dma_config_t dma_config;
-} stm32_adc_dma_config_t;
-
-typedef struct {
     i2s_config_t i2s_config;
     stm32_dma_config_t dma_config;
 } stm32_i2s_spi_dma_config_t;
+
+typedef struct {
+    adc_config_t adc_config;
+    stm32_dma_channel_config_t dma_config;
+} stm32_adc_dma_config_t;
 
 #define STM32_NUCLEO144_DECLARE_MCU_BOARD_CONFIG(cpu_frequency, event_handler_value, arch_config_value) \
     const mcu_board_config_t mcu_board_config = { \

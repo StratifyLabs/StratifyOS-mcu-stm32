@@ -31,7 +31,7 @@
 static adc_dma_local_t adc_local[MCU_ADC_PORTS] MCU_SYS_MEM;
 
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(adc, ADC_VERSION, ADC_IOC_IDENT_CHAR)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(adc_dma, ADC_VERSION, ADC_IOC_IDENT_CHAR)
 
 int mcu_adc_dma_open(const devfs_handle_t * handle){
     adc_local[handle->port].adc.o_flags = ADC_LOCAL_FLAG_IS_DMA;
@@ -106,9 +106,9 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         if( config == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
 
         stm32_dma_channel_t * dma_channel = &adc_local[port].dma_rx_channel;
-        stm32_dma_set_handle(dma_channel, config->dma_config.rx.dma_number, config->dma_config.rx.stream_number); //need to get the DMA# and stream# from a table -- or from config
-        dma_channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number); //DMA1 stream 0
-        dma_channel->handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
+        stm32_dma_set_handle(dma_channel, config->dma_config.dma_number, config->dma_config.stream_number); //need to get the DMA# and stream# from a table -- or from config
+        dma_channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_config.dma_number, config->dma_config.stream_number); //DMA1 stream 0
+        dma_channel->handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.channel_number);
         dma_channel->handle.Init.Mode = DMA_NORMAL;
         dma_channel->handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
         dma_channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
@@ -134,7 +134,7 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
             dma_channel->handle.Init.PeriphBurst = DMA_MBURST_SINGLE;
         }
 
-        dma_channel->handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.rx.priority);
+        dma_channel->handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.priority);
 
         if (HAL_DMA_Init(&dma_channel->handle) != HAL_OK){
           return SYSFS_SET_RETURN(EIO);
@@ -190,18 +190,19 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
 int mcu_adc_dma_setaction(const devfs_handle_t * handle, void * ctl){
     mcu_action_t * action = (mcu_action_t*)ctl;
     int port = handle->port;
-    adc_local_t * adc = adc_local + port;
+    adc_dma_local_t * adc = adc_local + port;
 
     if( action->handler.callback == 0 ){
         //if there is an ongoing operation -- cancel it
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             //execute the read callback if not null
-            mcu_execute_read_handler_with_flags(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
-            HAL_ADC_Stop_IT(&adc->hal_handle);
+            mcu_execute_read_handler_with_flags(&adc->adc.transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
+            //HAL_ADC_Stop_IT(&adc->adc.hal_handle);
         }
     }
 
-    cortexm_set_irq_priority(adc_irqs[port], action->prio, action->o_events);
+    //get interrupt from STM32 DMA
+    //cortexm_set_irq_priority(adc_irqs[port], action->prio, action->o_events);
     return 0;
 }
 

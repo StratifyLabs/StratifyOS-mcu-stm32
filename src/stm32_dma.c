@@ -37,11 +37,13 @@ typedef struct {
 
 stm32_dma_streams_t stm32_dma_handle[MCU_DMA_PORTS];
 
-DMA_Stream_TypeDef * const stm32_dma0_regs[MCU_DMA_STREAM_COUNT] = MCU_DMA0_REGS;
-DMA_Stream_TypeDef * const stm32_dma1_regs[MCU_DMA_STREAM_COUNT] = MCU_DMA1_REGS;
+static DMA_Stream_TypeDef * const stm32_dma0_regs[MCU_DMA_STREAM_COUNT] = MCU_DMA0_REGS;
+static DMA_Stream_TypeDef * const stm32_dma1_regs[MCU_DMA_STREAM_COUNT] = MCU_DMA1_REGS;
 
-const u8 stm32_dma0_irqs[MCU_DMA_STREAM_COUNT] = MCU_DMA0_IRQS;
-const u8 stm32_dma1_irqs[MCU_DMA_STREAM_COUNT] = MCU_DMA1_IRQS;
+static int stm32_dma_get_interrupt_number(u32 dma_number, u32 stream_number);
+
+static const u8 stm32_dma0_irqs[MCU_DMA_STREAM_COUNT] = MCU_DMA0_IRQS;
+static const u8 stm32_dma1_irqs[MCU_DMA_STREAM_COUNT] = MCU_DMA1_IRQS;
 
 
 const u32 stm32_dma_channels[8] = {
@@ -77,6 +79,24 @@ DMA_Stream_TypeDef * stm32_dma_get_stream_instance(u32 dma_number, u32 stream_nu
 
 void stm32_dma_set_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number){
     if( dma_number < MCU_DMA_PORTS ){
+        int interrupt_number;
+
+        if( dma_number == 0 ){
+            __HAL_RCC_DMA1_CLK_ENABLE();
+#if MCU_DMA_PORTS > 1
+        } else {
+            __HAL_RCC_DMA2_CLK_ENABLE();
+#endif
+        }
+
+        interrupt_number = stm32_dma_get_interrupt_number(dma_number, stream_number);
+        if( interrupt_number >= 0 ){
+            channel->interrupt_number = interrupt_number;
+            cortexm_enable_irq( interrupt_number );
+        } else {
+            return;
+        }
+
         if( stream_number < MCU_DMA_STREAM_COUNT ){
             channel->next = 0;
             stm32_dma_channel_t * current_channel = stm32_dma_handle[dma_number].stream[stream_number];
