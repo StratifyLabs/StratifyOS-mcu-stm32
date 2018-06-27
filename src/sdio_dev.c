@@ -18,24 +18,22 @@
  */
 
 #include <mcu/sdio.h>
-#include "stm32_local.h"
+#include "sdio_local.h"
 
 #if MCU_SDIO_PORTS > 0
 
-typedef struct {
-    SD_HandleTypeDef hal_handle; //must be the first member of the struct
-    devfs_transfer_handler_t transfer_handler;
-    u32 start_time;
-    u8 ref_count;
-} sdio_local_t;
 
-sdio_local_t sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
-static SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS] = MCU_SDIO_REGS;
-static const int sdio_irqs[MCU_SDIO_PORTS] = MCU_SDIO_IRQS;
+
+static sdio_local_t sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
+
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(sdio, SDIO_VERSION, SDIO_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SDIO_TOTAL, mcu_sdio_getcid, mcu_sdio_getcsd, mcu_sdio_getstatus)
 
 int mcu_sdio_open(const devfs_handle_t * handle){
+
+    return sdio_local_open(sdio_local + handle->port, handle);
+
+#if 0
     int port = handle->port;
     if( port < MCU_SDIO_PORTS ){
         if ( sdio_local[port].ref_count == 0 ){
@@ -53,15 +51,15 @@ int mcu_sdio_open(const devfs_handle_t * handle){
         sdio_local[port].ref_count++;
     }
     return 0;
+#endif
 }
 
 int mcu_sdio_close(const devfs_handle_t * handle){
-
-    //do the opposite of mcu_sdio_open() -- ref_count is zero -- turn off interrupt
-    return 0;
+    return sdio_local_close(sdio_local + handle->port, handle);
 }
 
 int mcu_sdio_getinfo(const devfs_handle_t * handle, void * ctl){
+
     sdio_info_t * info = ctl;
     const u32 port = handle->port;
 

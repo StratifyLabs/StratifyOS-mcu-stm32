@@ -20,6 +20,7 @@
 #include <mcu/types.h>
 #include <mcu/spi.h>
 #include <mcu/i2s.h>
+#include <mcu/adc.h>
 
 #if defined __stm32f401xc
 #define CORE_M4 1
@@ -172,6 +173,11 @@ typedef struct {
     spi_config_t spi_config;
     stm32_dma_config_t dma_config;
 } stm32_spi_dma_config_t;
+
+typedef struct {
+    adc_config_t adc_config;
+    stm32_dma_config_t dma_config;
+} stm32_adc_dma_config_t;
 
 typedef struct {
     i2s_config_t i2s_config;

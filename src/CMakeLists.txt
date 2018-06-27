@@ -2,7 +2,10 @@
 
 
 set(SOURCES
+	${SOURCES_PREFIX}/adc_local.h
+	${SOURCES_PREFIX}/adc_local.c
 	${SOURCES_PREFIX}/adc_dev.c
+	${SOURCES_PREFIX}/adc_dma_dev.c
 	${SOURCES_PREFIX}/core_dev.c
 	${SOURCES_PREFIX}/core_setusbclock.c
 	${SOURCES_PREFIX}/hal_set_alternate_pin_function.c
@@ -28,6 +31,9 @@ set(SOURCES
 	${SOURCES_PREFIX}/rtc_dev.c
 	${SOURCES_PREFIX}/spi_local.c
 	${SOURCES_PREFIX}/sdio_dev.c
+	${SOURCES_PREFIX}/sdio_local.c
+	${SOURCES_PREFIX}/sdio_local.h
+	${SOURCES_PREFIX}/sdio_dma_dev.c
 	${SOURCES_PREFIX}/spi_dev.c
 	${SOURCES_PREFIX}/spi_dma_dev.c
 	${SOURCES_PREFIX}/qspi_dev.c

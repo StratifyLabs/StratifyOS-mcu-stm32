@@ -25,6 +25,8 @@
 #define MCU_DMA_CHANNEL_COUNT 8
 #define MCU_DMA0_REGS { DMA1_Stream0, DMA1_Stream1, DMA1_Stream2, DMA1_Stream3, DMA1_Stream4, DMA1_Stream5, DMA1_Stream6, DMA1_Stream7 }
 #define MCU_DMA1_REGS { DMA2_Stream0, DMA2_Stream1, DMA2_Stream2, DMA2_Stream3, DMA2_Stream4, DMA2_Stream5, DMA2_Stream6, DMA2_Stream7 }
+#define MCU_DMA0_IRQS { DMA1_Stream0_IRQn, DMA1_Stream1_IRQn, DMA1_Stream2_IRQn, DMA1_Stream3_IRQn, DMA1_Stream4_IRQn, DMA1_Stream5_IRQn, DMA1_Stream6_IRQn, DMA1_Stream7_IRQn }
+#define MCU_DMA1_IRQS { DMA2_Stream0_IRQn, DMA2_Stream1_IRQn, DMA2_Stream2_IRQn, DMA2_Stream3_IRQn, DMA2_Stream4_IRQn, DMA2_Stream5_IRQn, DMA2_Stream6_IRQn, DMA2_Stream7_IRQn }
 
 
 #if MCU_DMA_PORTS > 0
@@ -37,6 +39,10 @@ stm32_dma_streams_t stm32_dma_handle[MCU_DMA_PORTS];
 
 DMA_Stream_TypeDef * const stm32_dma0_regs[MCU_DMA_STREAM_COUNT] = MCU_DMA0_REGS;
 DMA_Stream_TypeDef * const stm32_dma1_regs[MCU_DMA_STREAM_COUNT] = MCU_DMA1_REGS;
+
+const u8 stm32_dma0_irqs[MCU_DMA_STREAM_COUNT] = MCU_DMA0_IRQS;
+const u8 stm32_dma1_irqs[MCU_DMA_STREAM_COUNT] = MCU_DMA1_IRQS;
+
 
 const u32 stm32_dma_channels[8] = {
     DMA_CHANNEL_0, DMA_CHANNEL_1, DMA_CHANNEL_2, DMA_CHANNEL_3, DMA_CHANNEL_4, DMA_CHANNEL_5, DMA_CHANNEL_6, DMA_CHANNEL_7
@@ -84,6 +90,17 @@ void stm32_dma_set_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 str
             }
         }
     }
+}
+
+int stm32_dma_get_interrupt_number(u32 dma_number, u32 stream_number){
+    if( stream_number < 8 ){
+        if( dma_number == 0 ){
+            return stm32_dma0_irqs[stream_number];
+        } else if( dma_number == 1 ){
+            return stm32_dma1_irqs[stream_number];
+        }
+    }
+    return -1;
 }
 
 void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number){
