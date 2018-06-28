@@ -105,10 +105,13 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         config = handle->config;
         if( config == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
 
+        mcu_debug_root_printf("Configure DMA %d %d %d\n", config->dma_config.dma_number, config->dma_config.stream_number, config->dma_config.channel_number);
         stm32_dma_channel_t * dma_channel = &adc_local[port].dma_rx_channel;
         stm32_dma_set_handle(dma_channel, config->dma_config.dma_number, config->dma_config.stream_number); //need to get the DMA# and stream# from a table -- or from config
         dma_channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_config.dma_number, config->dma_config.stream_number); //DMA1 stream 0
+        mcu_debug_root_printf("DMA Instance 0x%lX\n", (u32)dma_channel->handle.Instance);
         dma_channel->handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.channel_number);
+        mcu_debug_root_printf("DMA Channel 0x%lX\n", (u32)dma_channel->handle.Init.Channel);
         dma_channel->handle.Init.Mode = DMA_NORMAL;
         dma_channel->handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
         dma_channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
@@ -117,22 +120,10 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         dma_channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
         dma_channel->handle.Init.FIFOMode = DMA_FIFO_THRESHOLD_HALFFULL;
 
-        if( attr->width == 8 ){
-            dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-            dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-            dma_channel->handle.Init.MemBurst = DMA_MBURST_INC8;
-            dma_channel->handle.Init.PeriphBurst = DMA_MBURST_INC8;
-        } else if( attr->width == 16 ){
-            dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-            dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-            dma_channel->handle.Init.MemBurst = DMA_MBURST_INC4;
-            dma_channel->handle.Init.PeriphBurst = DMA_MBURST_INC4;
-        } else if( attr->width == 32 ){
-            dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-            dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-            dma_channel->handle.Init.MemBurst = DMA_MBURST_SINGLE;
-            dma_channel->handle.Init.PeriphBurst = DMA_MBURST_SINGLE;
-        }
+        dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+        dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+        dma_channel->handle.Init.MemBurst = DMA_MBURST_INC4;
+        dma_channel->handle.Init.PeriphBurst = DMA_MBURST_INC4;
 
         dma_channel->handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.priority);
 
@@ -142,43 +133,7 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
         __HAL_LINKDMA((&adc_local[port].adc.hal_handle), DMA_Handle, dma_channel->handle);
 
-
         if( HAL_ADC_Init(&adc->hal_handle) != HAL_OK ){
-            return SYSFS_SET_RETURN(EIO);
-        }
-    }
-
-    if( (o_flags & ADC_FLAG_SET_CHANNELS) && (o_flags & ADC_FLAG_IS_GROUP) ){
-
-        ADC_ChannelConfTypeDef channel_config;
-        channel_config.Channel = 0;
-        if( attr->channel < MCU_ADC_CHANNELS ){
-            channel_config.Channel = adc_channels[attr->channel];
-        } else {
-            return SYSFS_SET_RETURN(EINVAL);
-        }
-        channel_config.Offset = 0;
-        channel_config.Rank = attr->rank;
-        if( channel_config.Rank < 1 ){ channel_config.Rank = 1; }
-        if( channel_config.Rank > 16 ){ channel_config.Rank = 16;  }
-        channel_config.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-        if( attr->sampling_time >= 480 ){
-            channel_config.SamplingTime = ADC_SAMPLETIME_480CYCLES;
-        } else if( attr->sampling_time >= 144 ){
-            channel_config.SamplingTime = ADC_SAMPLETIME_144CYCLES;
-        } else if( attr->sampling_time >= 112 ){
-            channel_config.SamplingTime = ADC_SAMPLETIME_112CYCLES;
-        } else if( attr->sampling_time >= 84 ){
-            channel_config.SamplingTime = ADC_SAMPLETIME_84CYCLES;
-        } else if( attr->sampling_time >= 56 ){
-            channel_config.SamplingTime = ADC_SAMPLETIME_56CYCLES;
-        } else if( attr->sampling_time >= 28 ){
-            channel_config.SamplingTime = ADC_SAMPLETIME_28CYCLES;
-        } else if( attr->sampling_time >= 15 ){
-            channel_config.SamplingTime = ADC_SAMPLETIME_15CYCLES;
-        }
-
-        if( HAL_ADC_ConfigChannel(&adc->hal_handle, &channel_config) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
         }
     }
@@ -197,12 +152,13 @@ int mcu_adc_dma_setaction(const devfs_handle_t * handle, void * ctl){
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             //execute the read callback if not null
             mcu_execute_read_handler_with_flags(&adc->adc.transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
-            //HAL_ADC_Stop_IT(&adc->adc.hal_handle);
         }
     }
 
     //get interrupt from STM32 DMA
-    //cortexm_set_irq_priority(adc_irqs[port], action->prio, action->o_events);
+    if( adc->dma_rx_channel.interrupt_number >= 0 ){
+        cortexm_set_irq_priority(adc->dma_rx_channel.interrupt_number, action->prio, action->o_events);
+    }
     return 0;
 }
 
@@ -221,6 +177,7 @@ int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     //if location is not the group value -- configure the channel to read the group
     if( (u32)async->loc < MCU_ADC_CHANNELS ){
         //configure the channel to read
+        mcu_debug_root_printf("set channel %d\n", async->loc);
         ADC_ChannelConfTypeDef channel_config;
         channel_config.Offset = 0;
         channel_config.Channel = adc_channels[async->loc];
@@ -235,6 +192,7 @@ int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     async->nbyte &= ~0x01; //align to 2 byte boundary
 
     if( HAL_ADC_Start_DMA(&adc->adc.hal_handle, async->buf, async->nbyte/2) == HAL_OK ){
+        //mcu_debug_root_printf("wait DMA\n");
         return 0;
     }
 

@@ -35,7 +35,7 @@ typedef struct {
     stm32_dma_channel_t * stream[MCU_DMA_STREAM_COUNT];
 } stm32_dma_streams_t;
 
-stm32_dma_streams_t stm32_dma_handle[MCU_DMA_PORTS];
+stm32_dma_streams_t stm32_dma_handle[MCU_DMA_PORTS] MCU_SYS_MEM;
 
 static DMA_Stream_TypeDef * const stm32_dma0_regs[MCU_DMA_STREAM_COUNT] = MCU_DMA0_REGS;
 static DMA_Stream_TypeDef * const stm32_dma1_regs[MCU_DMA_STREAM_COUNT] = MCU_DMA1_REGS;
@@ -130,6 +130,7 @@ void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 s
 
 static void mcu_core_dma_handler(int dma_number, int stream_number){
     stm32_dma_channel_t * channel = stm32_dma_handle[dma_number].stream[stream_number];
+    //mcu_debug_root_printf("handle DMA %d %d 0x%lX\n", dma_number, stream_number, (u32)channel);
     while( channel != 0 ){
         HAL_DMA_IRQHandler(&channel->handle);
         channel = channel->next;
@@ -148,14 +149,14 @@ void mcu_core_dma1_stream7_isr(){ mcu_core_dma_handler(0, 7); }
 
 #if MCU_DMA_PORTS > 1
 
-void mcu_core_dma2_stream0_isr(){ mcu_core_dma_handler(0, 0); }
-void mcu_core_dma2_stream1_isr(){ mcu_core_dma_handler(0, 1); }
-void mcu_core_dma2_stream2_isr(){ mcu_core_dma_handler(0, 2); }
-void mcu_core_dma2_stream3_isr(){ mcu_core_dma_handler(0, 3); }
-void mcu_core_dma2_stream4_isr(){ mcu_core_dma_handler(0, 4); }
-void mcu_core_dma2_stream5_isr(){ mcu_core_dma_handler(0, 5); }
-void mcu_core_dma2_stream6_isr(){ mcu_core_dma_handler(0, 6); }
-void mcu_core_dma2_stream7_isr(){ mcu_core_dma_handler(0, 7); }
+void mcu_core_dma2_stream0_isr(){ mcu_core_dma_handler(1, 0); }
+void mcu_core_dma2_stream1_isr(){ mcu_core_dma_handler(1, 1); }
+void mcu_core_dma2_stream2_isr(){ mcu_core_dma_handler(1, 2); }
+void mcu_core_dma2_stream3_isr(){ mcu_core_dma_handler(1, 3); }
+void mcu_core_dma2_stream4_isr(){ mcu_core_dma_handler(1, 4); }
+void mcu_core_dma2_stream5_isr(){ mcu_core_dma_handler(1, 5); }
+void mcu_core_dma2_stream6_isr(){ mcu_core_dma_handler(1, 6); }
+void mcu_core_dma2_stream7_isr(){ mcu_core_dma_handler(1, 7); }
 
 #endif
 

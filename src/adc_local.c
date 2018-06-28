@@ -156,11 +156,8 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
 
     if( o_flags & ADC_FLAG_SET_CONVERTER ){
         freq = attr->freq;
-        if( freq == 0 ){
-            freq = 115200;
-        }
 
-        adc->hal_handle.Init.ClockPrescaler = 0; //set based on the frequency
+        adc->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4; //set based on the frequency
 
         //ADC_RESOLUTION_12B
         //ADC_RESOLUTION_10B
@@ -183,29 +180,12 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
         }
 
 
-        //use continous mode -- Start_IT will start and Stop_IT when all conversions are complete
+        //Continuous mode can only be used with DMA
         //ENABLE or DISABLE
         adc->hal_handle.Init.ContinuousConvMode = DISABLE;
 
         adc->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
         adc->hal_handle.Init.ScanConvMode = DISABLE;
-        if( o_flags & ADC_FLAG_IS_SCAN_MODE ){
-            adc->hal_handle.Init.ScanConvMode = ENABLE;
-
-            //ADC_EOC_SEQ_CONV
-            //ADC_EOC_SINGLE_CONV
-            //ADC_EOC_SINGLE_SEQ_CONV
-            //adc->hal_handle.Init.EOCSelection = ADC_EOC_SEQ_CONV; //For Sequence, data is lost unless DMA is enabled
-            adc->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV; //must be slow enough for software to handle conversions
-
-            //up to 16 conversions
-            if( attr->channel_count <= 16 ){
-                adc->hal_handle.Init.NbrOfConversion = attr->channel_count;
-            } else {
-                adc->hal_handle.Init.NbrOfConversion = 16;
-            }
-
-        }
 
         //don't support discontinuous conversions
         //ENABLE or DISABLE
@@ -322,8 +302,37 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
         }
     }
 
-    if( o_flags & ADC_FLAG_SET_CONVERTER ){
-        if( HAL_ADC_Init(&adc->hal_handle) != HAL_OK ){
+    if( (o_flags & ADC_FLAG_SET_CHANNELS) && (o_flags & ADC_FLAG_IS_GROUP) ){
+
+        ADC_ChannelConfTypeDef channel_config;
+        channel_config.Channel = 0;
+        if( attr->channel < MCU_ADC_CHANNELS ){
+            channel_config.Channel = adc_channels[attr->channel];
+        } else {
+            return SYSFS_SET_RETURN(EINVAL);
+        }
+        channel_config.Offset = 0;
+        channel_config.Rank = attr->rank;
+        if( channel_config.Rank < 1 ){ channel_config.Rank = 1; }
+        if( channel_config.Rank > 16 ){ channel_config.Rank = 16;  }
+        channel_config.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+        if( attr->sampling_time >= 480 ){
+            channel_config.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+        } else if( attr->sampling_time >= 144 ){
+            channel_config.SamplingTime = ADC_SAMPLETIME_144CYCLES;
+        } else if( attr->sampling_time >= 112 ){
+            channel_config.SamplingTime = ADC_SAMPLETIME_112CYCLES;
+        } else if( attr->sampling_time >= 84 ){
+            channel_config.SamplingTime = ADC_SAMPLETIME_84CYCLES;
+        } else if( attr->sampling_time >= 56 ){
+            channel_config.SamplingTime = ADC_SAMPLETIME_56CYCLES;
+        } else if( attr->sampling_time >= 28 ){
+            channel_config.SamplingTime = ADC_SAMPLETIME_28CYCLES;
+        } else if( attr->sampling_time >= 15 ){
+            channel_config.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+        }
+
+        if( HAL_ADC_ConfigChannel(&adc->hal_handle, &channel_config) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
         }
     }
@@ -351,16 +360,21 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef * hadc){
     devfs_async_t * read_async = adc->transfer_handler.read;
     if( read_async ){
         //write to buffer
-        u16 * dest = read_async->buf;
-        dest[adc->words_read] = HAL_ADC_GetValue(hadc);
-        adc->words_read++;
-        if( adc->words_read * 2 == read_async->nbyte ){
+        if( adc->o_flags & ADC_LOCAL_FLAG_IS_DMA ){
+            //mcu_debug_root_printf("DMA done\n");
             mcu_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte);
         } else {
-            if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
-                HAL_ADC_Start_IT(hadc);
+            u16 * dest = read_async->buf;
+            dest[adc->words_read] = HAL_ADC_GetValue(hadc);
+            adc->words_read++;
+            if( adc->words_read * 2 == read_async->nbyte ){
+                mcu_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte);
+            } else {
+                if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
+                    HAL_ADC_Start_IT(hadc);
+                }
+                return;
             }
-            return;
         }
     }
     if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
