@@ -79,18 +79,15 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         //use continous mode -- DMA is triggered as soon as previous conversion completes
         //ENABLE or DISABLE
         adc->hal_handle.Init.ContinuousConvMode = ENABLE;
-        adc->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
 
-        //
-        adc->hal_handle.Init.ScanConvMode = DISABLE;
+        //ADC_EOC_SEQ_CONV
+        //ADC_EOC_SINGLE_CONV
+        //ADC_EOC_SINGLE_SEQ_CONV
+        adc->hal_handle.Init.EOCSelection = ADC_EOC_SEQ_CONV; //DMA needs to use end of sequence
+        adc->hal_handle.Init.ScanConvMode = ENABLE; //always do scan mode with DMA
+        adc->hal_handle.Init.NbrOfConversion = 1;
+
         if( o_flags & ADC_FLAG_IS_SCAN_MODE ){
-            adc->hal_handle.Init.ScanConvMode = ENABLE;
-
-            //ADC_EOC_SEQ_CONV
-            //ADC_EOC_SINGLE_CONV
-            //ADC_EOC_SINGLE_SEQ_CONV
-            adc->hal_handle.Init.EOCSelection = ADC_EOC_SEQ_CONV; //complete when sequence is done
-
             //up to 16 conversions
             if( attr->channel_count <= 16 ){
                 adc->hal_handle.Init.NbrOfConversion = attr->channel_count;
@@ -109,15 +106,13 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         stm32_dma_channel_t * dma_channel = &adc_local[port].dma_rx_channel;
         stm32_dma_set_handle(dma_channel, config->dma_config.dma_number, config->dma_config.stream_number); //need to get the DMA# and stream# from a table -- or from config
         dma_channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_config.dma_number, config->dma_config.stream_number); //DMA1 stream 0
-        mcu_debug_root_printf("DMA Instance 0x%lX\n", (u32)dma_channel->handle.Instance);
         dma_channel->handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.channel_number);
-        mcu_debug_root_printf("DMA Channel 0x%lX\n", (u32)dma_channel->handle.Init.Channel);
         dma_channel->handle.Init.Mode = DMA_NORMAL;
         dma_channel->handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
         dma_channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
         dma_channel->handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
-        dma_channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+        dma_channel->handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
         dma_channel->handle.Init.FIFOMode = DMA_FIFO_THRESHOLD_HALFFULL;
 
         dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
@@ -128,7 +123,7 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         dma_channel->handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.priority);
 
         if (HAL_DMA_Init(&dma_channel->handle) != HAL_OK){
-          return SYSFS_SET_RETURN(EIO);
+            return SYSFS_SET_RETURN(EIO);
         }
 
         __HAL_LINKDMA((&adc_local[port].adc.hal_handle), DMA_Handle, dma_channel->handle);
@@ -177,7 +172,6 @@ int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     //if location is not the group value -- configure the channel to read the group
     if( (u32)async->loc < MCU_ADC_CHANNELS ){
         //configure the channel to read
-        mcu_debug_root_printf("set channel %d\n", async->loc);
         ADC_ChannelConfTypeDef channel_config;
         channel_config.Offset = 0;
         channel_config.Channel = adc_channels[async->loc];

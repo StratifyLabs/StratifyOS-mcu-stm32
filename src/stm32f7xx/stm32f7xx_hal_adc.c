@@ -1105,7 +1105,6 @@ HAL_StatusTypeDef HAL_ADC_Start_DMA(ADC_HandleTypeDef* hadc, uint32_t* pData, ui
       if((hadc->Instance->CR2 & ADC_CR2_EXTEN) == RESET) 
       {
         /* Enable the selected ADC software conversion for regular group */
-          mcu_debug_root_printf("SW Start 2\n");
         hadc->Instance->CR2 |= (uint32_t)ADC_CR2_SWSTART;
       }
     }
@@ -1115,7 +1114,6 @@ HAL_StatusTypeDef HAL_ADC_Start_DMA(ADC_HandleTypeDef* hadc, uint32_t* pData, ui
       if((hadc->Instance == ADC1) && ((hadc->Instance->CR2 & ADC_CR2_EXTEN) == RESET))
       {
         /* Enable the selected ADC software conversion for regular group */
-          mcu_debug_root_printf("SW Start 1\n");
           hadc->Instance->CR2 |= (uint32_t)ADC_CR2_SWSTART;
       }
     }

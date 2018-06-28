@@ -67,10 +67,7 @@ int adc_local_open(adc_local_t * adc, const devfs_handle_t * handle){
             break;
 #endif
         }
-        if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
-            cortexm_enable_irq(adc_irqs[port]);
-        }
-
+        cortexm_enable_irq(adc_irqs[port]);
     }
     adc->ref_count++;
 
@@ -82,9 +79,7 @@ int adc_local_close(adc_local_t * adc, const devfs_handle_t * handle){
 
     if ( adc->ref_count > 0 ){
         if ( adc->ref_count == 1 ){
-            if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
-                cortexm_disable_irq(adc_irqs[port]);
-            }
+            cortexm_disable_irq(adc_irqs[port]);
             switch(port){
             case 0:
                 __HAL_RCC_ADC1_CLK_DISABLE();
@@ -157,7 +152,7 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
     if( o_flags & ADC_FLAG_SET_CONVERTER ){
         freq = attr->freq;
 
-        adc->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4; //set based on the frequency
+        adc->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV8; //set based on the frequency
 
         //ADC_RESOLUTION_12B
         //ADC_RESOLUTION_10B
@@ -185,6 +180,8 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
         adc->hal_handle.Init.ContinuousConvMode = DISABLE;
 
         adc->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+
+        //scan mode only works with DMA (see adc_dma_dev.c for options)
         adc->hal_handle.Init.ScanConvMode = DISABLE;
 
         //don't support discontinuous conversions
@@ -352,7 +349,13 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
     mcu_execute_read_handler_with_flags(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
     if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
         HAL_ADC_Stop_IT(hadc);
+    } else {
+        HAL_ADC_Stop_DMA(hadc);
     }
+}
+
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef * hadc){
+    //mcu_debug_root_printf("h\n");
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef * hadc){
@@ -361,24 +364,21 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef * hadc){
     if( read_async ){
         //write to buffer
         if( adc->o_flags & ADC_LOCAL_FLAG_IS_DMA ){
-            //mcu_debug_root_printf("DMA done\n");
+            //HAL_ADC_Stop_IT(hadc);
+            mcu_debug_root_printf("w\n");
             mcu_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte);
         } else {
             u16 * dest = read_async->buf;
             dest[adc->words_read] = HAL_ADC_GetValue(hadc);
             adc->words_read++;
             if( adc->words_read * 2 == read_async->nbyte ){
+                HAL_ADC_Stop_IT(hadc); //only needed for non software triggers
                 mcu_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte);
             } else {
-                if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
-                    HAL_ADC_Start_IT(hadc);
-                }
+                HAL_ADC_Start_IT(hadc);
                 return;
             }
         }
-    }
-    if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
-        HAL_ADC_Stop_IT(hadc);
     }
 }
 
