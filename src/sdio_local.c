@@ -207,8 +207,10 @@ void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd){
 
 void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd){
     sdio_local_t * sdio = (sdio_local_t *)hsd;
-    mcu_debug_root_printf("SD Error 0x%lX\n", hsd->ErrorCode);
-    mcu_execute_transfer_handlers(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    if( hsd->ErrorCode ){
+        mcu_debug_root_printf("SD Error 0x%lX %ld\n", hsd->ErrorCode, TIM2->CNT - sdio->start_time);
+        mcu_execute_transfer_handlers(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    }
 }
 
 void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd){

@@ -51,7 +51,8 @@ int mcu_sdio_dma_setattr(const devfs_handle_t * handle, void * ctl){
     u32 o_flags = attr->o_flags;
     sdio_dma_local_t * sdio = sdio_local + handle->port;
 
-    if( (result = sdio_local_setattr(&sdio->sdio, handle, ctl)) < 0 ){
+    result = sdio_local_setattr(&sdio->sdio, handle, ctl);
+    if( (result < 0) || (o_flags & SDIO_FLAG_GET_CARD_STATE) ){
         return result;
     }
 
@@ -160,6 +161,8 @@ int mcu_sdio_dma_getstatus(const devfs_handle_t * handle, void * ctl){
 int mcu_sdio_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
     int port = handle->port;
     DEVFS_DRIVER_IS_BUSY(sdio_local[port].sdio.transfer_handler.write, async);
+
+    sdio_local[port].sdio.start_time = TIM2->CNT;
 
     sdio_local[port].sdio.hal_handle.TxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_WriteBlocks_DMA
     if( (HAL_SD_WriteBlocks_DMA(&sdio_local[port].sdio.hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){

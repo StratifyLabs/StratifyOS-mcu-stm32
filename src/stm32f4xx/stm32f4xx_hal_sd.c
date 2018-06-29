@@ -1074,7 +1074,6 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks_IT(SD_HandleTypeDef *hsd, uint8_t *pData, u
   * @param  NumberOfBlocks: Number of blocks to read.
   * @retval HAL status
   */
-#include <mcu/debug.h>
 HAL_StatusTypeDef HAL_SD_ReadBlocks_DMA(SD_HandleTypeDef *hsd, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks)
 {
   SDIO_DataInitTypeDef config;
