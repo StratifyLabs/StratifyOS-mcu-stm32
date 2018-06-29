@@ -39,67 +39,76 @@ int mcu_sdio_dma_close(const devfs_handle_t * handle){
 }
 
 int mcu_sdio_dma_getinfo(const devfs_handle_t * handle, void * ctl){
-    return sdio_local_getinfo(handle, ctl);
+    return sdio_local_getinfo(&sdio_local[handle->port].sdio, handle, ctl);
 }
 
 int mcu_sdio_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
+    int result;
     const sdio_attr_t * attr = mcu_select_attr(handle, ctl);
     if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
 
     u32 o_flags = attr->o_flags;
-    sdio_local_t * sdio = sdio_local + handle->port;
+    sdio_dma_local_t * sdio = sdio_local + handle->port;
+
+    if( (result = sdio_local_setattr(&sdio->sdio, handle, ctl)) < 0 ){
+        return result;
+    }
 
     if( o_flags & SDIO_FLAG_SET_INTERFACE ){
 
-        //SDIO_CLOCK_EDGE_RISING
-        //SDIO_CLOCK_EDGE_FALLING
-        sdio->hal_handle.Init.ClockEdge = SDIO_CLOCK_EDGE_RISING;
-        if( o_flags & SDIO_FLAG_IS_CLOCK_FALLING ){
-            sdio->hal_handle.Init.ClockEdge = SDIO_CLOCK_EDGE_FALLING;
+        const stm32_sdio_dma_config_t * config = handle->config;
+        if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
+
+        stm32_dma_set_handle(&sdio->dma_rx_channel, config->dma_config.rx.dma_number, config->dma_config.rx.stream_number);
+        sdio->dma_rx_channel.handle.Instance = stm32_dma_get_stream_instance(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number);
+        sdio->dma_rx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
+        sdio->dma_rx_channel.handle.Init.Mode = DMA_PFCTRL;
+        sdio->dma_rx_channel.handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
+        sdio->dma_rx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
+        sdio->dma_rx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
+
+        sdio->dma_rx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+        sdio->dma_rx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+        sdio->dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
+        sdio->dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
+
+        sdio->dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+        sdio->dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+
+        sdio->dma_rx_channel.handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.rx.priority);
+
+        if (HAL_DMA_Init(&sdio->dma_rx_channel.handle) != HAL_OK){ return SYSFS_SET_RETURN(EIO); }
+
+        __HAL_LINKDMA((&sdio->sdio.hal_handle), hdmarx, sdio->dma_rx_channel.handle);
+
+        //setup the DMA for transmitting
+        stm32_dma_set_handle(&sdio->dma_tx_channel, config->dma_config.tx.dma_number, config->dma_config.tx.stream_number);
+        sdio->dma_tx_channel.handle.Instance = stm32_dma_get_stream_instance(config->dma_config.tx.dma_number, config->dma_config.tx.stream_number);
+        sdio->dma_tx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.tx.channel_number);
+        sdio->dma_tx_channel.handle.Init.Mode = DMA_PFCTRL;
+        sdio->dma_tx_channel.handle.Init.Direction = DMA_MEMORY_TO_PERIPH;
+        sdio->dma_tx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
+        sdio->dma_tx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
+
+        sdio->dma_tx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+        sdio->dma_tx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+        sdio->dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
+        sdio->dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
+
+        sdio->dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+        sdio->dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+
+        sdio->dma_tx_channel.handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.tx.priority);
+
+        if (HAL_DMA_Init(&sdio->dma_tx_channel.handle) != HAL_OK){
+          return SYSFS_SET_RETURN(EIO);
         }
 
-        //SDIO_CLOCK_BYPASS_DISABLE
-        //SDIO_CLOCK_BYPASS_ENABLE
-        sdio->hal_handle.Init.ClockBypass = SDIO_CLOCK_BYPASS_DISABLE;
-        if( o_flags & SDIO_FLAG_IS_CLOCK_BYPASS_ENABLED ){
-            sdio->hal_handle.Init.ClockBypass = SDIO_CLOCK_BYPASS_ENABLE;
-        }
+        __HAL_LINKDMA((&sdio->sdio.hal_handle), hdmatx, sdio->dma_tx_channel.handle);
 
-        //SDIO_CLOCK_POWER_SAVE_DISABLE
-        //SDIO_CLOCK_POWER_SAVE_ENABLE
-        sdio->hal_handle.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_DISABLE;
-        if( o_flags & SDIO_FLAG_IS_CLOCK_POWER_SAVE_ENABLED ){
-            sdio->hal_handle.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_ENABLE;
-        }
 
-        //initialize using 1B bus
-        sdio->hal_handle.Init.BusWide = SDIO_BUS_WIDE_1B;
-
-        //SDIO_HARDWARE_FLOW_CONTROL_DISABLE
-        //SDIO_HARDWARE_FLOW_CONTROL_ENABLE
-        sdio->hal_handle.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
-        if( o_flags & SDIO_FLAG_IS_HARDWARE_FLOW_CONTROL_ENABLED ){
-            sdio->hal_handle.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_ENABLE;
-        }
-
-        //must be <= 255
-        sdio->hal_handle.Init.ClockDiv = 0;
-        if( attr->freq && (attr->freq < 25000000UL) ){
-            u32 divider_value = 25000000UL / attr->freq;
-            sdio->hal_handle.Init.ClockDiv = divider_value-1;
-        }
-
-        //pin assignments
-        if( mcu_set_pin_assignment(
-                &(attr->pin_assignment),
-                MCU_CONFIG_PIN_ASSIGNMENT(sdio_config_t, handle),
-                MCU_PIN_ASSIGNMENT_COUNT(sdio_pin_assignment_t),
-                CORE_PERIPH_SDIO, handle->port, 0, 0, 0) < 0 ){
-            return SYSFS_SET_RETURN(EINVAL);
-        }
-
-        if( HAL_SD_Init(&sdio->hal_handle) != HAL_OK ){
+        if( HAL_SD_Init(&sdio->sdio.hal_handle) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
         }
 
@@ -107,20 +116,7 @@ int mcu_sdio_dma_setattr(const devfs_handle_t * handle, void * ctl){
         //SDIO_BUS_WIDE_4B
         //SDIO_BUS_WIDE_8B -- not compatible with SDIO
         if( o_flags & SDIO_FLAG_IS_BUS_WIDTH_4 ){
-            HAL_SD_ConfigWideBusOperation(&sdio->hal_handle, SDIO_BUS_WIDE_4B);
-        }
-
-
-
-    }
-
-    if( o_flags & SDIO_FLAG_GET_CARD_STATE ){
-        return HAL_SD_GetCardState(&sdio->hal_handle);
-    }
-
-    if( o_flags & SDIO_FLAG_ERASE_BLOCKS ){
-        if( HAL_SD_Erase(&sdio->hal_handle, attr->start, attr->end) != HAL_OK ){
-            return SYSFS_SET_RETURN(EIO);
+            HAL_SD_ConfigWideBusOperation(&sdio->sdio.hal_handle, SDIO_BUS_WIDE_4B);
         }
     }
 
@@ -165,7 +161,8 @@ int mcu_sdio_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
     int port = handle->port;
     DEVFS_DRIVER_IS_BUSY(sdio_local[port].sdio.transfer_handler.write, async);
 
-    if( (HAL_SD_WriteBlocks_DMA(&sdio_local[port].sdio.hal_handle, async->buf, async->loc, async->nbyte / 512)) == HAL_OK ){
+    sdio_local[port].sdio.hal_handle.TxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_WriteBlocks_DMA
+    if( (HAL_SD_WriteBlocks_DMA(&sdio_local[port].sdio.hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
         return 0;
     }
 
@@ -178,7 +175,10 @@ int mcu_sdio_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     int hal_result;
     DEVFS_DRIVER_IS_BUSY(sdio_local[port].sdio.transfer_handler.read, async);
 
-    if( (hal_result = HAL_SD_ReadBlocks_DMA(&sdio_local[port].sdio.hal_handle, async->buf, async->loc, async->nbyte / 512)) == HAL_OK ){
+    sdio_local[port].sdio.start_time = TIM2->CNT;
+
+    sdio_local[port].sdio.hal_handle.RxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_ReadBlocks_DMA
+    if( (hal_result = HAL_SD_ReadBlocks_DMA(&sdio_local[port].sdio.hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
         return 0;
     }
 

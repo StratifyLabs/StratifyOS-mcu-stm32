@@ -28,7 +28,6 @@
 #define MCU_DMA0_IRQS { DMA1_Stream0_IRQn, DMA1_Stream1_IRQn, DMA1_Stream2_IRQn, DMA1_Stream3_IRQn, DMA1_Stream4_IRQn, DMA1_Stream5_IRQn, DMA1_Stream6_IRQn, DMA1_Stream7_IRQn }
 #define MCU_DMA1_IRQS { DMA2_Stream0_IRQn, DMA2_Stream1_IRQn, DMA2_Stream2_IRQn, DMA2_Stream3_IRQn, DMA2_Stream4_IRQn, DMA2_Stream5_IRQn, DMA2_Stream6_IRQn, DMA2_Stream7_IRQn }
 
-
 #if MCU_DMA_PORTS > 0
 
 typedef struct {
@@ -131,7 +130,6 @@ void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 s
 static void mcu_core_dma_handler(int dma_number, int stream_number){
     stm32_dma_channel_t * channel = stm32_dma_handle[dma_number].stream[stream_number];
     //mcu_debug_root_printf("handle DMA %d %d 0x%lX\n", dma_number, stream_number, (u32)channel);
-    mcu_debug_root_printf("i\n");
     while( channel != 0 ){
         HAL_DMA_IRQHandler(&channel->handle);
         channel = channel->next;

@@ -106,14 +106,17 @@ int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
     DEVFS_DRIVER_IS_BUSY(spi_local[port].transfer_handler.read, async);
 
     if( spi_local[port].is_full_duplex ){
+        mcu_debug_root_printf("Not here\n");
         ret = HAL_OK;
     } else {
         //check for overrun
         ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte/spi_local[port].size_mult);
+        //mcu_debug_root_printf("1\n");
     }
 
     if( ret != HAL_OK ){
         spi_local[port].transfer_handler.read = 0;
+        mcu_debug_root_printf("Failed\n");
         return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }
 
@@ -153,6 +156,7 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * spi = (spi_local_t *)hi2s;
     volatile u32 status = hi2s->Instance->SR;
     status = hi2s->Instance->DR;
+    mcu_debug_root_printf("I2S Error %d\n", hi2s->ErrorCode);
     mcu_execute_transfer_handlers(&spi->transfer_handler, (void*)&status, SYSFS_SET_RETURN_WITH_VALUE(EIO, hi2s->ErrorCode), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
 }
 

@@ -85,16 +85,7 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         //ADC_EOC_SINGLE_SEQ_CONV
         adc->hal_handle.Init.EOCSelection = ADC_EOC_SEQ_CONV; //DMA needs to use end of sequence
         adc->hal_handle.Init.ScanConvMode = ENABLE; //always do scan mode with DMA
-        adc->hal_handle.Init.NbrOfConversion = 1;
-
-        if( o_flags & ADC_FLAG_IS_SCAN_MODE ){
-            //up to 16 conversions
-            if( attr->channel_count <= 16 ){
-                adc->hal_handle.Init.NbrOfConversion = attr->channel_count;
-            } else {
-                adc->hal_handle.Init.NbrOfConversion = 16;
-            }
-        }
+        //adc->hal_handle.Init.NbrOfConversion = 1;
 
         //configure DMA
         //setup the DMA for receiving

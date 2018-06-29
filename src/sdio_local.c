@@ -26,6 +26,8 @@
 SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS] = MCU_SDIO_REGS;
 const int sdio_irqs[MCU_SDIO_PORTS] = MCU_SDIO_IRQS;
 
+static SD_HandleTypeDef * sd_handle[MCU_SDIO_PORTS];
+
 int sdio_local_open(sdio_local_t * sdio, const devfs_handle_t * handle){
     int port = handle->port;
     if( port < MCU_SDIO_PORTS ){
@@ -39,6 +41,7 @@ int sdio_local_open(sdio_local_t * sdio, const devfs_handle_t * handle){
             sdio->transfer_handler.read = NULL;
             sdio->transfer_handler.write = NULL;
             sdio->hal_handle.Instance = sdio_regs[port];
+            sd_handle[port] = &sdio->hal_handle;
             cortexm_enable_irq(sdio_irqs[port]);
         }
         sdio->ref_count++;
@@ -79,6 +82,57 @@ int sdio_local_setattr(sdio_local_t * sdio, const devfs_handle_t * handle, void 
     if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
 
     u32 o_flags = attr->o_flags;
+
+    if( o_flags & SDIO_FLAG_SET_INTERFACE ){
+
+        //SDIO_CLOCK_EDGE_RISING
+        //SDIO_CLOCK_EDGE_FALLING
+        sdio->hal_handle.Init.ClockEdge = SDIO_CLOCK_EDGE_RISING;
+        if( o_flags & SDIO_FLAG_IS_CLOCK_FALLING ){
+            sdio->hal_handle.Init.ClockEdge = SDIO_CLOCK_EDGE_FALLING;
+        }
+
+        //SDIO_CLOCK_BYPASS_DISABLE
+        //SDIO_CLOCK_BYPASS_ENABLE
+        sdio->hal_handle.Init.ClockBypass = SDIO_CLOCK_BYPASS_DISABLE;
+        if( o_flags & SDIO_FLAG_IS_CLOCK_BYPASS_ENABLED ){
+            sdio->hal_handle.Init.ClockBypass = SDIO_CLOCK_BYPASS_ENABLE;
+        }
+
+        //SDIO_CLOCK_POWER_SAVE_DISABLE
+        //SDIO_CLOCK_POWER_SAVE_ENABLE
+        sdio->hal_handle.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_DISABLE;
+        if( o_flags & SDIO_FLAG_IS_CLOCK_POWER_SAVE_ENABLED ){
+            sdio->hal_handle.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_ENABLE;
+        }
+
+        //initialize using 1B bus
+        sdio->hal_handle.Init.BusWide = SDIO_BUS_WIDE_1B;
+
+        //SDIO_HARDWARE_FLOW_CONTROL_DISABLE
+        //SDIO_HARDWARE_FLOW_CONTROL_ENABLE
+        sdio->hal_handle.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
+        if( o_flags & SDIO_FLAG_IS_HARDWARE_FLOW_CONTROL_ENABLED ){
+            sdio->hal_handle.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_ENABLE;
+        }
+
+        //must be <= 255
+        sdio->hal_handle.Init.ClockDiv = 0;
+        if( attr->freq && (attr->freq < 25000000UL) ){
+            u32 divider_value = 25000000UL / attr->freq;
+            sdio->hal_handle.Init.ClockDiv = divider_value-1;
+        }
+
+        //pin assignments
+        if( mcu_set_pin_assignment(
+                    &(attr->pin_assignment),
+                    MCU_CONFIG_PIN_ASSIGNMENT(sdio_config_t, handle),
+                    MCU_PIN_ASSIGNMENT_COUNT(sdio_pin_assignment_t),
+                    CORE_PERIPH_SDIO, handle->port, 0, 0, 0) < 0 ){
+            return SYSFS_SET_RETURN(EINVAL);
+        }
+
+    }
 
     if( o_flags & SDIO_FLAG_GET_CARD_STATE ){
         return HAL_SD_GetCardState(&sdio->hal_handle);
@@ -147,7 +201,7 @@ void HAL_SD_TxCpltCallback(SD_HandleTypeDef *hsd){
 
 void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd){
     sdio_local_t * sdio = (sdio_local_t *)hsd;
-    //mcu_debug_root_printf("r:%ld\n", TIM2->CNT - sdio->start_time);
+    //mcu_debug_root_printf("read complete %d 0x%lX %ld\n", hsd->RxXferSize, hsd->Instance->STA, TIM2->CNT - sdio->start_time);
     mcu_execute_read_handler(&sdio->transfer_handler, 0, hsd->RxXferSize);
 }
 
@@ -162,6 +216,10 @@ void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd){
     //abort read and write
     mcu_debug_root_printf("Abort\n");
     mcu_execute_transfer_handlers(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
+}
+
+void mcu_core_sdio_isr(){
+    HAL_SD_IRQHandler(sd_handle[0]);
 }
 
 

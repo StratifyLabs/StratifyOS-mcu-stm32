@@ -139,7 +139,6 @@ int adc_local_getinfo(adc_local_t * adc, const devfs_handle_t * handle, void * c
 int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * ctl){
     u32 o_flags;
     int port = handle->port;
-    u32 freq;
     const adc_attr_t * attr;
 
     attr = mcu_select_attr(handle, ctl);
@@ -150,7 +149,6 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
     o_flags = attr->o_flags;
 
     if( o_flags & ADC_FLAG_SET_CONVERTER ){
-        freq = attr->freq;
 
         adc->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV8; //set based on the frequency
 
@@ -183,6 +181,15 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
 
         //scan mode only works with DMA (see adc_dma_dev.c for options)
         adc->hal_handle.Init.ScanConvMode = DISABLE;
+
+        if( o_flags & ADC_FLAG_IS_SCAN_MODE ){
+            //up to 16 conversions
+            if( attr->channel_count <= 16 ){
+                adc->hal_handle.Init.NbrOfConversion = attr->channel_count;
+            } else {
+                adc->hal_handle.Init.NbrOfConversion = 16;
+            }
+        }
 
         //don't support discontinuous conversions
         //ENABLE or DISABLE

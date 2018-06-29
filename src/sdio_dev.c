@@ -30,28 +30,8 @@ static sdio_local_t sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(sdio, SDIO_VERSION, SDIO_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SDIO_TOTAL, mcu_sdio_getcid, mcu_sdio_getcsd, mcu_sdio_getstatus)
 
 int mcu_sdio_open(const devfs_handle_t * handle){
-
-    return sdio_local_open(sdio_local + handle->port, handle);
-
-#if 0
-    int port = handle->port;
-    if( port < MCU_SDIO_PORTS ){
-        if ( sdio_local[port].ref_count == 0 ){
-            //turn on RCC clock
-            switch(port){
-            case 0:
-                __HAL_RCC_SDIO_CLK_ENABLE();
-                break;
-            }
-            sdio_local[port].transfer_handler.read = NULL;
-            sdio_local[port].transfer_handler.write = NULL;
-            sdio_local[port].hal_handle.Instance = sdio_regs[port];
-            cortexm_enable_irq(sdio_irqs[port]);
-        }
-        sdio_local[port].ref_count++;
-    }
-    return 0;
-#endif
+    const u32 port = handle->port;
+    return sdio_local_open(sdio_local + port, handle);
 }
 
 int mcu_sdio_close(const devfs_handle_t * handle){
@@ -217,9 +197,7 @@ int mcu_sdio_write(const devfs_handle_t * handle, devfs_async_t * async){
     int port = handle->port;
     DEVFS_DRIVER_IS_BUSY(sdio_local[port].transfer_handler.write, async);
 
-    sdio_local[port].start_time = TIM2->CNT;
-
-    if( (HAL_SD_WriteBlocks_IT(&sdio_local[port].hal_handle, async->buf, async->loc, async->nbyte / 512)) == HAL_OK ){
+    if( (HAL_SD_WriteBlocks_IT(&sdio_local[port].hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
         return 0;
     }
 
@@ -234,7 +212,7 @@ int mcu_sdio_read(const devfs_handle_t * handle, devfs_async_t * async){
 
     sdio_local[port].start_time = TIM2->CNT;
 
-    if( (hal_result = HAL_SD_ReadBlocks_IT(&sdio_local[port].hal_handle, async->buf, async->loc, async->nbyte / 512)) == HAL_OK ){
+    if( (hal_result = HAL_SD_ReadBlocks_IT(&sdio_local[port].hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
         return 0;
     }
 
@@ -244,35 +222,6 @@ int mcu_sdio_read(const devfs_handle_t * handle, devfs_async_t * async){
     return SYSFS_SET_RETURN(EIO);
 }
 
-
-void HAL_SD_TxCpltCallback(SD_HandleTypeDef *hsd){
-    sdio_local_t * sdio = (sdio_local_t *)hsd;
-    //mcu_debug_root_printf("w:%ld\n", TIM2->CNT - sdio->start_time);
-    mcu_execute_write_handler(&sdio->transfer_handler, 0, hsd->TxXferSize);
-}
-
-void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd){
-    sdio_local_t * sdio = (sdio_local_t *)hsd;
-    //mcu_debug_root_printf("r:%ld\n", TIM2->CNT - sdio->start_time);
-    mcu_execute_read_handler(&sdio->transfer_handler, 0, hsd->RxXferSize);
-}
-
-void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd){
-    sdio_local_t * sdio = (sdio_local_t *)hsd;
-    mcu_debug_root_printf("SD Error 0x%lX\n", hsd->ErrorCode);
-    mcu_execute_transfer_handlers(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
-}
-
-void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd){
-    sdio_local_t * sdio = (sdio_local_t *)hsd;
-    //abort read and write
-    mcu_debug_root_printf("Abort\n");
-    mcu_execute_transfer_handlers(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
-}
-
-void mcu_core_sdio_isr(){
-    HAL_SD_IRQHandler(&sdio_local[0].hal_handle);
-}
 
 
 

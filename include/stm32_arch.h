@@ -19,6 +19,7 @@
 
 #include <mcu/types.h>
 #include <mcu/spi.h>
+#include <mcu/sdio.h>
 #include <mcu/i2s.h>
 #include <mcu/adc.h>
 
@@ -183,6 +184,12 @@ typedef struct {
     i2s_config_t i2s_config;
     stm32_dma_config_t dma_config;
 } stm32_i2s_spi_dma_config_t;
+
+typedef struct {
+    sdio_config_t sdio_config;
+    stm32_dma_config_t dma_config;
+} stm32_sdio_dma_config_t;
+
 
 typedef struct {
     adc_config_t adc_config;

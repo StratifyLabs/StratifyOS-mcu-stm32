@@ -85,23 +85,23 @@ int mcu_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
     spi_dma_local[port].dma_rx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
     spi_dma_local[port].dma_rx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    spi_dma_local[port].dma_rx_channel.handle.Init.FIFOMode = DMA_FIFO_THRESHOLD_HALFFULL;
+    spi_dma_local[port].dma_rx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
 
     if( attr->width == 8 ){
         spi_dma_local[port].dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
         spi_dma_local[port].dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
         spi_dma_local[port].dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_INC8;
-        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_MBURST_INC8;
+        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC8;
     } else if( attr->width == 16 ){
         spi_dma_local[port].dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
         spi_dma_local[port].dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
         spi_dma_local[port].dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
-        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_MBURST_INC4;
+        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
     } else if( attr->width == 32 ){
         spi_dma_local[port].dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
         spi_dma_local[port].dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
         spi_dma_local[port].dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_SINGLE;
-        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_MBURST_SINGLE;
+        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
     }
 
     spi_dma_local[port].dma_rx_channel.handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.rx.priority);
@@ -121,23 +121,23 @@ int mcu_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
     spi_dma_local[port].dma_tx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
     spi_dma_local[port].dma_tx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    spi_dma_local[port].dma_tx_channel.handle.Init.FIFOMode = DMA_FIFO_THRESHOLD_HALFFULL;
+    spi_dma_local[port].dma_tx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
 
     if( attr->width == 8 ){
         spi_dma_local[port].dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
         spi_dma_local[port].dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
         spi_dma_local[port].dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_INC8;
-        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_MBURST_INC8;
+        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC8;
     } else if( attr->width == 16 ){
         spi_dma_local[port].dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
         spi_dma_local[port].dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
         spi_dma_local[port].dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
-        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_MBURST_INC4;
+        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
     } else if( attr->width == 32 ){
         spi_dma_local[port].dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
         spi_dma_local[port].dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
         spi_dma_local[port].dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_SINGLE;
-        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_MBURST_SINGLE;
+        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
     }
 
     spi_dma_local[port].dma_tx_channel.handle.Init.Mode = DMA_NORMAL;

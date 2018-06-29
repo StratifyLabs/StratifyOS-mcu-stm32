@@ -43,6 +43,7 @@ extern const int sdio_irqs[MCU_SDIO_PORTS];
 int sdio_local_open(sdio_local_t * sdio, const devfs_handle_t * handle);
 int sdio_local_close(sdio_local_t * sdio, const devfs_handle_t * handle);
 int sdio_local_setattr(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
+int sdio_local_getinfo(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
 int sdio_local_getcid(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
 int sdio_local_getcsd(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
 int sdio_local_getstatus(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);

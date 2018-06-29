@@ -288,7 +288,11 @@ HAL_StatusTypeDef HAL_I2S_Init(I2S_HandleTypeDef *hi2s)
       i2sclk = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_I2S_APB2);
     }
 #else
+#if defined STM32F417xx
+    i2sclk = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_I2S)*3;
+#else
     i2sclk = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_I2S);
+#endif
 #endif
 
     /* Compute the Real divider depending on the MCLK output state, with a floating point */
