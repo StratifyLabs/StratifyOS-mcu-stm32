@@ -28,6 +28,7 @@
 #define MCU_ADC_PORTS 3
 #define MCU_ADC_REGS { ADC1, ADC2, ADC3 }
 #define MCU_ADC_IRQS { ADC_IRQn, ADC_IRQn, ADC_IRQn }
+#define MCU_ADC_CHANNELS 21
 
 #define MCU_ENET_PORTS 1
 #define MCU_FLASH_PORTS 1
@@ -64,8 +65,8 @@
 
 #define MCU_SDIO_API 0
 #define MCU_SDIO_PORTS 1
-#define MCU_SDIO_REGS { SDIO }
-#define MCU_SDIO_IRQS { SDIO_IRQn }
+#define MCU_SDIO_REGS { SDMMC1 }
+#define MCU_SDIO_IRQS { SDMMC1_IRQn }
 
 #define MCU_TMR_PORTS 14
 #define MCU_TMR_REGS { TIM1, TIM2, TIM3, TIM4, TIM5, TIM6, TIM7, TIM8, TIM9, TIM10, TIM11, TIM12, TIM13, TIM14 }
@@ -82,6 +83,10 @@
 #define MCU_USB_PORTS 1
 #define MCU_USB_REGS { USB_OTG_FS }
 #define MCU_USB_IRQS { OTG_FS_IRQn }
+
+#define MCU_ETH_PORTS 1
+#define MCU_ETH_REGS { ETH }
+#define MCU_ETH_IRQS { ETH_IRQn }
 
 #define DEV_USB_LOGICAL_ENDPOINT_COUNT 4
 
