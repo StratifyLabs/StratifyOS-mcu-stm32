@@ -63,7 +63,7 @@ int mcu_sdio_getinfo(const devfs_handle_t * handle, void * ctl){
 int mcu_sdio_setattr(const devfs_handle_t * handle, void * ctl){
 
     const sdio_attr_t * attr = mcu_select_attr(handle, ctl);
-    if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
+    if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
     u32 o_flags = attr->o_flags;
     sdio_local_t * sdio = sdio_local + handle->port;
@@ -216,8 +216,8 @@ int mcu_sdio_read(const devfs_handle_t * handle, devfs_async_t * async){
         return 0;
     }
 
-    mcu_debug_root_printf("R:HAL Not OK %d %d %d 0x%lX\n", async->loc, async->nbyte, hal_result, sdio_local[port].hal_handle.ErrorCode);
-    mcu_debug_root_printf("State: %d\n", HAL_SD_GetCardState(&sdio_local[port].hal_handle));
+    mcu_debug_log_error(MCU_DEBUG_DEVICE, "R:HAL Not OK %d %d %d 0x%lX\n", async->loc, async->nbyte, hal_result, sdio_local[port].hal_handle.ErrorCode);
+    mcu_debug_log_error(MCU_DEBUG_DEVICE, "State: %d\n", HAL_SD_GetCardState(&sdio_local[port].hal_handle));
     sdio_local[port].transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EIO);
 }

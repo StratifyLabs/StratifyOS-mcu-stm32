@@ -351,7 +351,7 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc){
 
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
     adc_local_t * adc = (adc_local_t*)hadc;
-    mcu_debug_root_printf("ADC Error %d\n", hadc->ErrorCode);
+    mcu_debug_log_error(MCU_DEBUG_DEVICE, "ADC Error %d", hadc->ErrorCode);
     hadc->Instance->SR &= ~ADC_SR_OVR;
     mcu_execute_read_handler_with_flags(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
     if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
@@ -362,7 +362,7 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef * hadc){
-    //mcu_debug_root_printf("h\n");
+
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef * hadc){

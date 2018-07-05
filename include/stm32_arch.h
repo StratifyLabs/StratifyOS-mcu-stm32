@@ -18,6 +18,7 @@
 #define STM32_ARCH_H_
 
 #include <mcu/types.h>
+#include <mcu/eth.h>
 #include <mcu/spi.h>
 #include <mcu/sdio.h>
 #include <mcu/i2s.h>
@@ -196,7 +197,26 @@ typedef struct {
     stm32_dma_channel_config_t dma_config;
 } stm32_adc_dma_config_t;
 
-#define STM32_NUCLEO144_DECLARE_MCU_BOARD_CONFIG(cpu_frequency, event_handler_value, arch_config_value) \
+#define STM32_ETH_DMA_MAX_PACKET_SIZE (1524U) //must match ETH_MAX_PACKET_SIZE in hal_conf.h
+#define STM32_ETH_DMA_DESCRIPTOR_COUNT (4U) //must match ETH_RXBUFNB and ETH_TXBUFNB in hal_conf.h
+
+#define STM32_ETH_DMA_BUFFER_SIZE (STM32_ETH_DMA_MAX_PACKET_SIZE*STM32_ETH_DMA_DESCRIPTOR_COUNT)
+
+/*
+ * for declaring buffers
+ * u8 eth_tx_buffer[STM32_ETH_DMA_BUFFER_SIZE];
+ * u8 eth_rx_buffer[STM32_ETH_DMA_BUFFER_SIZE];
+ */
+
+typedef struct {
+    eth_config_t eth_config;
+    stm32_dma_channel_config_t dma_config;
+    void * tx_buffer;
+    void * rx_buffer;
+} stm32_eth_dma_config_t;
+
+
+#define STM32_NUCLEO144_DECLARE_MCU_BOARD_CONFIG(cpu_frequency, event_handler_value, arch_config_value, o_mcu_debug_value) \
     const mcu_board_config_t mcu_board_config = { \
     .core_cpu_freq = cpu_frequency, \
     .usb_max_packet_zero = 64, \
@@ -215,7 +235,8 @@ typedef struct {
     .o_flags = MCU_BOARD_CONFIG_FLAG_LED_ACTIVE_HIGH, \
     .event_handler = event_handler_value, \
     .led = {1, 7}, \
-    .arch_config = arch_config_value }
+    .arch_config = arch_config_value, \
+    .o_mcu_debug = o_mcu_debug_value }
 
 #define STM32_NUCLEO144_DECLARE_BOOT_BOARD_CONFIG(link_transport_driver_value) \
     extern u32 _flash_start; \

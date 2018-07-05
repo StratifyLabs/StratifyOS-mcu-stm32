@@ -129,7 +129,7 @@ void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 s
 
 static void mcu_core_dma_handler(int dma_number, int stream_number){
     stm32_dma_channel_t * channel = stm32_dma_handle[dma_number].stream[stream_number];
-    mcu_debug_root_printf("handle DMA %d %d 0x%lX\n", dma_number, stream_number, (u32)channel);
+    //mcu_debug_log_info(MCU_DEBUG_DEVICE, "handle DMA %d %d 0x%lX", dma_number, stream_number, (u32)channel);
     while( channel != 0 ){
         HAL_DMA_IRQHandler(&channel->handle);
         channel = channel->next;

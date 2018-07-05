@@ -93,7 +93,7 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         config = handle->config;
         if( config == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
 
-        mcu_debug_root_printf("Configure DMA %d %d %d\n", config->dma_config.dma_number, config->dma_config.stream_number, config->dma_config.channel_number);
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Configure DMA %d %d %d", config->dma_config.dma_number, config->dma_config.stream_number, config->dma_config.channel_number);
         stm32_dma_channel_t * dma_channel = &adc_local[port].dma_rx_channel;
         stm32_dma_set_handle(dma_channel, config->dma_config.dma_number, config->dma_config.stream_number); //need to get the DMA# and stream# from a table -- or from config
         dma_channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_config.dma_number, config->dma_config.stream_number); //DMA1 stream 0
@@ -103,7 +103,7 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         dma_channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
         dma_channel->handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
-        dma_channel->handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+        dma_channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
         dma_channel->handle.Init.FIFOMode = DMA_FIFO_THRESHOLD_HALFFULL;
 
         dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
@@ -168,13 +168,17 @@ int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
         channel_config.Channel = adc_channels[async->loc];
         channel_config.Rank = 1;
         channel_config.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Configure %d", channel_config.Channel);
         if( HAL_ADC_ConfigChannel(&adc->adc.hal_handle, &channel_config) != HAL_OK ){
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "%s, %d", __FUNCTION__, __LINE__);
             return SYSFS_SET_RETURN(EIO);
         }
     }
 
     adc->adc.words_read = 0;
     async->nbyte &= ~0x01; //align to 2 byte boundary
+
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read %d", async->nbyte/2);
 
     if( HAL_ADC_Start_DMA(&adc->adc.hal_handle, async->buf, async->nbyte/2) == HAL_OK ){
         //mcu_debug_root_printf("wait DMA\n");

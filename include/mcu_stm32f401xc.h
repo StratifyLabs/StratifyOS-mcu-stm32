@@ -28,6 +28,7 @@
 #define MCU_ADC_PORTS 1
 #define MCU_ADC_REGS { ADC1 }
 #define MCU_ADC_IRQS { ADC_IRQn }
+#define MCU_ADC_CHANNELS 21
 
 #define MCU_ENET_PORTS 1
 #define MCU_FLASH_PORTS 1

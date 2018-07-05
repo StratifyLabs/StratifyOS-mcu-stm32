@@ -81,7 +81,7 @@ int mcu_rng_getinfo(const devfs_handle_t * handle, void * ctl){
 int mcu_rng_setattr(const devfs_handle_t * handle, void * ctl){
     rng_local_t * rng = rng_local + handle->port;
     const random_attr_t * attr = mcu_select_attr(handle, ctl);
-    if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
+    if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
     u32 o_flags = attr->o_flags;
 

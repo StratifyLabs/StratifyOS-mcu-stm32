@@ -46,7 +46,7 @@ int mcu_sdio_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
     int result;
     const sdio_attr_t * attr = mcu_select_attr(handle, ctl);
-    if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
+    if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
     u32 o_flags = attr->o_flags;
     sdio_dma_local_t * sdio = sdio_local + handle->port;
@@ -103,7 +103,7 @@ int mcu_sdio_dma_setattr(const devfs_handle_t * handle, void * ctl){
         sdio->dma_tx_channel.handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.tx.priority);
 
         if (HAL_DMA_Init(&sdio->dma_tx_channel.handle) != HAL_OK){
-          return SYSFS_SET_RETURN(EIO);
+            return SYSFS_SET_RETURN(EIO);
         }
 
         __HAL_LINKDMA((&sdio->sdio.hal_handle), hdmatx, sdio->dma_tx_channel.handle);
@@ -164,11 +164,17 @@ int mcu_sdio_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
     sdio_local[port].sdio.start_time = TIM2->CNT;
 
-    mcu_debug_root_printf("WState:%d %d %d %d\n", HAL_SD_GetCardState(&sdio_local[port].sdio.hal_handle),
-                          async->loc,
-                          async->nbyte,
-                          sdio_local[port].sdio.hal_handle.Instance->DTIMER
-                          );
+#if 0
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "WState:%d %d %d 0x%lX 0x%lX 0x%lX 0x%lX 0x%lX", HAL_SD_GetCardState(&sdio_local[port].sdio.hal_handle),
+                       async->loc,
+                       async->nbyte,
+                       sdio_local[port].sdio.hal_handle.Instance->DTIMER,
+                       sdio_local[port].sdio.hal_handle.Instance->DLEN,
+                       sdio_local[port].sdio.hal_handle.Instance->CLKCR,
+                       sdio_local[port].sdio.hal_handle.Instance->POWER,
+                       sdio_local[port].sdio.hal_handle.Instance->STA
+                       );
+#endif
 
     sdio_local[port].sdio.hal_handle.TxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_WriteBlocks_DMA
     if( (HAL_SD_WriteBlocks_DMA(&sdio_local[port].sdio.hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
@@ -186,7 +192,9 @@ int mcu_sdio_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 
     sdio_local[port].sdio.start_time = TIM2->CNT;
 
-    mcu_debug_root_printf("RState:%d\n", HAL_SD_GetCardState(&sdio_local[port].sdio.hal_handle));
+#if 0
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "RState:%d", HAL_SD_GetCardState(&sdio_local[port].sdio.hal_handle));
+#endif
 
     sdio_local[port].sdio.hal_handle.RxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_ReadBlocks_DMA
     if( (hal_result = HAL_SD_ReadBlocks_DMA(&sdio_local[port].sdio.hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){

@@ -93,7 +93,7 @@ int mcu_crc_getinfo(const devfs_handle_t * handle, void * ctl){
 int mcu_crc_setattr(const devfs_handle_t * handle, void * ctl){
     crc_local_t * crc = crc_local + handle->port;
     const crc_attr_t * attr = mcu_select_attr(handle, ctl);
-    if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
+    if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
     u32 o_flags = attr->o_flags;
 

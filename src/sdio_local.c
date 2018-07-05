@@ -79,7 +79,7 @@ int sdio_local_getinfo(sdio_local_t * sdio, const devfs_handle_t * handle, void 
 int sdio_local_setattr(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl){
 
     const sdio_attr_t * attr = mcu_select_attr(handle, ctl);
-    if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
+    if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
     u32 o_flags = attr->o_flags;
 
@@ -207,8 +207,9 @@ void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd){
 
 void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd){
     sdio_local_t * sdio = (sdio_local_t *)hsd;
-    mcu_debug_root_printf("SD Error 0x%lX 0x%lX %ld\n", hsd->ErrorCode, hsd->hdmatx->ErrorCode, TIM2->CNT - sdio->start_time);
+    //mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SD Error? 0x%lX 0x%lX %ld", hsd->ErrorCode, hsd->hdmatx->ErrorCode, TIM2->CNT - sdio->start_time);
     if( hsd->ErrorCode ){
+        mcu_debug_log_error(MCU_DEBUG_DEVICE, "SD Error 0x%lX", hsd->ErrorCode);
         mcu_execute_transfer_handlers(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
     }
 }
@@ -216,11 +217,12 @@ void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd){
 void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd){
     sdio_local_t * sdio = (sdio_local_t *)hsd;
     //abort read and write
-    mcu_debug_root_printf("Abort\n");
+    mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Abort\n");
     mcu_execute_transfer_handlers(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
 }
 
 void mcu_core_sdio_isr(){
+    //mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX", sd_handle[0]->Instance->STA);
     HAL_SD_IRQHandler(sd_handle[0]);
 }
 

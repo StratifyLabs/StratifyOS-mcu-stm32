@@ -145,12 +145,12 @@ int mcu_rtc_setattr(const devfs_handle_t * handle, void * ctl){
         RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI;
         RCC_OscInitStruct.LSIState = RCC_LSI_ON;
         PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-        mcu_debug_root_printf("RTC_FLAG_IS_SOURCE_INTERNAL_40000 \n");
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "RTC_FLAG_IS_SOURCE_INTERNAL_40000");
     }else{
         RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE;
         RCC_OscInitStruct.LSEState = RCC_LSE_ON;
         PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-        mcu_debug_root_printf("RTC_FLAG_IS_SOURCE_external \n");
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "RTC_FLAG_IS_SOURCE_external");
     }
 
     rtc_local[port].hal_handle.Init.HourFormat = RTC_HOURFORMAT_24;
@@ -166,12 +166,12 @@ int mcu_rtc_setattr(const devfs_handle_t * handle, void * ctl){
 
         PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
         if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK){
-            mcu_debug_root_printf("HAL_RCCEx_PeriphCLKConfig error \n");
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_RCCEx_PeriphCLKConfig error");
             return SYSFS_SET_RETURN(EIO);
         }
 
         if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK){
-            mcu_debug_root_printf("HAL_RCC_OscConfig 1 error \n");
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_RCC_OscConfig 1 error");
             return SYSFS_SET_RETURN(EIO);
         }
         __HAL_RCC_RTC_ENABLE();
@@ -180,9 +180,8 @@ int mcu_rtc_setattr(const devfs_handle_t * handle, void * ctl){
         rtc_local[port].hal_handle.Init.OutPut = RTC_OUTPUT_DISABLE;
         rtc_local[port].hal_handle.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
         rtc_local[port].hal_handle.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-        mcu_debug_root_printf("HAL_RTC_Init start \n");
         if (HAL_RTC_Init(&rtc_local[port].hal_handle) != HAL_OK){
-            mcu_debug_root_printf("HAL_RTC_Init error \n");
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_RTC_Init");
             return SYSFS_SET_RETURN(EIO);
         }
     }
@@ -197,13 +196,14 @@ int mcu_rtc_setattr(const devfs_handle_t * handle, void * ctl){
         mcu_debug_root_printf("mcu_rtc_setattr enable \n");
         //enable the alarm
         if( HAL_RTC_SetAlarm(&rtc_local[port].hal_handle, &alarm, format) != HAL_OK ){
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_RTC_SetAlarm");
             return SYSFS_SET_RETURN(EIO);
         }
     } else if( o_flags & RTC_FLAG_DISABLE_ALARM ){
 
         //disable the alarm
     }
-    mcu_debug_root_printf("mcu_rtc_setattr return \n");
+
     return 0;
 
 }

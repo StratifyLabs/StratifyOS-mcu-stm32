@@ -2325,6 +2325,10 @@ static void SD_DMAReceiveCplt(DMA_HandleTypeDef *hdma)
   
   /* Clear all the static flags */
   __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
+
+  //Added by __StratifyOS__
+  __HAL_SD_DISABLE_IT(hsd, SDIO_IT_DATAEND | SDIO_IT_DCRCFAIL | SDIO_IT_DTIMEOUT|\
+                           SDIO_IT_TXUNDERR| SDIO_IT_RXOVERR);
   
   hsd->State = HAL_SD_STATE_READY;
 

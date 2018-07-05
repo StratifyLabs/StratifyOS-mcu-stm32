@@ -16,17 +16,15 @@ set(CMAKE_TOOLCHAIN_FILE ${SOS_TOOLCHAIN_CMAKE_PATH}/sos-lib-toolchain.cmake)
 set(SOS_LIB_NAME sos)
 project(${SOS_LIB_NAME} C ASM)
 
-install(DIRECTORY include/ DESTINATION include/mcu/arch/stm32)
-
 set(F401 0)
 set(F411 0)
 set(F412 0)
-set(F417 0)
+set(F417 1)
 set(F429 0)
 set(F446 0)
 set(F722 0)
 set(F723 0)
-set(F746 1)
+set(F746 0)
 set(F767 0)
 
 if(F401)
@@ -94,4 +92,13 @@ set(STM32_ARCH_FPU v7em_f5dh)
 include(${CMAKE_SOURCE_DIR}/stm32f7.cmake)
 endif()
 
+
+file(GLOB STM32F3XX_HEADERS ${CMAKE_SOURCE_DIR}/src/stm32f3xx/*.h)
+file(GLOB STM32F4XX_HEADERS ${CMAKE_SOURCE_DIR}/src/stm32f4xx/*.h)
+file(GLOB STM32F7XX_HEADERS ${CMAKE_SOURCE_DIR}/src/stm32f7xx/*.h)
+
+install(FILES ${STM32F3XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f3xx)
+install(FILES ${STM32F4XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f4xx)
+install(FILES ${STM32F7XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f7xx)
+install(DIRECTORY include/ DESTINATION include/mcu/arch/stm32)
 install(DIRECTORY ldscript/ DESTINATION lib/ldscripts)
