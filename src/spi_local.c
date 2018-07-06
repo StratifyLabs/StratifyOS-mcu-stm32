@@ -83,11 +83,15 @@ int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle, int interr
         if ( spi->ref_count == 1 ){
             cortexm_disable_irq(interrupt_number);
 
+#if MCU_I2S_SPI_PORTS > 0
             if( spi->is_i2s ){
                 HAL_I2S_DeInit(&spi->i2s_hal_handle);
             } else {
                 HAL_SPI_DeInit(&spi->hal_handle);
             }
+#else
+            HAL_SPI_DeInit(&spi->hal_handle);
+#endif
 
             //turn off RCC clock
             switch(port){

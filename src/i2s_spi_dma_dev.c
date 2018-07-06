@@ -25,7 +25,7 @@
 #include "stm32f4xx/stm32f4xx_hal_i2s_ex.h"
 #endif
 
-#if MCU_SPI_PORTS > 0
+#if MCU_I2S_SPI_PORTS > 0
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi, I2S_VERSION, I2S_IOC_IDENT_CHAR, I_MCU_TOTAL + I_I2S_TOTAL, mcu_i2s_spi_dma_mute, mcu_i2s_spi_dma_unmute)
 

@@ -199,9 +199,11 @@ u32 mcu_core_get_reset_src(){
         return CORE_FLAG_IS_RESET_WDT;
     }
 
+#if defined RCC_CSR_PORRSTF
     if ( src_reg & RCC_CSR_PORRSTF ){
         return CORE_FLAG_IS_RESET_POR;
     }
+#endif
 
     if( src_reg & RCC_CSR_SFTRSTF ){
         return CORE_FLAG_IS_RESET_SOFTWARE;
@@ -226,10 +228,10 @@ void mcu_core_set_nvic_priority(int irq, int prio){
 
 void mcu_core_get_bootloader_api(void * args){
     void * ptr;
-    u32 * value = (u32*)(FLASH_START + 36);
+    u32 * value = (u32*)(MCU_FLASH_START + 36);
 
     if( *value != 0 ){
-        memcpy(&ptr, (void*)(FLASH_START + 36), sizeof(void*)); //get pointer to boot api
+        memcpy(&ptr, (void*)(MCU_FLASH_START + 36), sizeof(void*)); //get pointer to boot api
         memcpy(args, ptr, sizeof(bootloader_api_t)); //copy boot api
     } else {
         memset(args, 0, sizeof(bootloader_api_t));

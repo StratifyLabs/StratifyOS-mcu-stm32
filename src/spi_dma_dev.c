@@ -78,30 +78,43 @@ int mcu_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
     //setup the DMA for receiving
     stm32_dma_set_handle(&spi_dma_local[port].dma_rx_channel, config->dma_config.rx.dma_number, config->dma_config.rx.stream_number); //need to get the DMA# and stream# from a table -- or from config
     spi_dma_local[port].dma_rx_channel.handle.Instance = stm32_dma_get_stream_instance(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number); //DMA1 stream 0
+
+#if defined DMA_REQUEST_0
+    spi_dma_local[port].dma_rx_channel.handle.Init.Request = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
+#else
     spi_dma_local[port].dma_rx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
+#endif
     spi_dma_local[port].dma_rx_channel.handle.Init.Mode = DMA_NORMAL;
     spi_dma_local[port].dma_rx_channel.handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
     spi_dma_local[port].dma_rx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
     spi_dma_local[port].dma_rx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
+#if defined DMA_FIFOMODE_ENABLE
     spi_dma_local[port].dma_rx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
     spi_dma_local[port].dma_rx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
+#endif
 
     if( attr->width == 8 ){
         spi_dma_local[port].dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
         spi_dma_local[port].dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+#if defined DMA_FIFOMODE_ENABLE
         spi_dma_local[port].dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_INC8;
         spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC8;
+#endif
     } else if( attr->width == 16 ){
         spi_dma_local[port].dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
         spi_dma_local[port].dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+#if defined DMA_FIFOMODE_ENABLE
         spi_dma_local[port].dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
         spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
+#endif
     } else if( attr->width == 32 ){
         spi_dma_local[port].dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
         spi_dma_local[port].dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+#if defined DMA_FIFOMODE_ENABLE
         spi_dma_local[port].dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_SINGLE;
         spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
+#endif
     }
 
     spi_dma_local[port].dma_rx_channel.handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.rx.priority);
@@ -115,29 +128,43 @@ int mcu_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
     //setup the DMA for transmitting
     stm32_dma_set_handle(&spi_dma_local[port].dma_tx_channel, config->dma_config.tx.dma_number, config->dma_config.tx.stream_number); //need to get the DMA# and stream# from a table -- or from config
     spi_dma_local[port].dma_tx_channel.handle.Instance = stm32_dma_get_stream_instance(config->dma_config.tx.dma_number, config->dma_config.tx.stream_number); //DMA1 stream 0
+
+#if defined DMA_REQUEST_0
+    spi_dma_local[port].dma_tx_channel.handle.Init.Request = stm32_dma_decode_channel(config->dma_config.tx.channel_number);
+#else
     spi_dma_local[port].dma_tx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.tx.channel_number);
+#endif
+
     spi_dma_local[port].dma_tx_channel.handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
     spi_dma_local[port].dma_tx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
     spi_dma_local[port].dma_tx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
+#if defined DMA_FIFOMODE_ENABLE
     spi_dma_local[port].dma_tx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
     spi_dma_local[port].dma_tx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
+#endif
 
     if( attr->width == 8 ){
         spi_dma_local[port].dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
         spi_dma_local[port].dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+#if defined DMA_FIFOMODE_ENABLE
         spi_dma_local[port].dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_INC8;
         spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC8;
+#endif
     } else if( attr->width == 16 ){
         spi_dma_local[port].dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
         spi_dma_local[port].dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+#if defined DMA_FIFOMODE_ENABLE
         spi_dma_local[port].dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
         spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
+#endif
     } else if( attr->width == 32 ){
         spi_dma_local[port].dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
         spi_dma_local[port].dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+#if defined DMA_FIFOMODE_ENABLE
         spi_dma_local[port].dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_SINGLE;
         spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
+#endif
     }
 
     spi_dma_local[port].dma_tx_channel.handle.Init.Mode = DMA_NORMAL;

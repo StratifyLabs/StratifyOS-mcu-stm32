@@ -21,12 +21,23 @@
 #include "stm32_dma.h"
 
 #define MCU_DMA_PORTS 2
+
+
+#if defined STM32L4
+#define MCU_DMA_STREAM_COUNT 7
+#define MCU_DMA_CHANNEL_COUNT 7
+#define MCU_DMA0_REGS { DMA1_Channel1, DMA1_Channel2, DMA1_Channel3, DMA1_Channel4, DMA1_Channel5, DMA1_Channel6, DMA1_Channel7 }
+#define MCU_DMA1_REGS { DMA2_Channel1, DMA2_Channel2, DMA2_Channel3, DMA2_Channel4, DMA2_Channel5, DMA2_Channel6, DMA2_Channel7 }
+#define MCU_DMA0_IRQS { DMA1_Channel1_IRQn, DMA1_Channel2_IRQn, DMA1_Channel3_IRQn, DMA1_Channel4_IRQn, DMA1_Channel5_IRQn, DMA1_Channel6_IRQn, DMA1_Channel7_IRQn }
+#define MCU_DMA1_IRQS { DMA2_Channel1_IRQn, DMA2_Channel2_IRQn, DMA2_Channel3_IRQn, DMA2_Channel4_IRQn, DMA2_Channel5_IRQn, DMA2_Channel6_IRQn, DMA2_Channel7_IRQn }
+#else
 #define MCU_DMA_STREAM_COUNT 8
 #define MCU_DMA_CHANNEL_COUNT 8
 #define MCU_DMA0_REGS { DMA1_Stream0, DMA1_Stream1, DMA1_Stream2, DMA1_Stream3, DMA1_Stream4, DMA1_Stream5, DMA1_Stream6, DMA1_Stream7 }
 #define MCU_DMA1_REGS { DMA2_Stream0, DMA2_Stream1, DMA2_Stream2, DMA2_Stream3, DMA2_Stream4, DMA2_Stream5, DMA2_Stream6, DMA2_Stream7 }
 #define MCU_DMA0_IRQS { DMA1_Stream0_IRQn, DMA1_Stream1_IRQn, DMA1_Stream2_IRQn, DMA1_Stream3_IRQn, DMA1_Stream4_IRQn, DMA1_Stream5_IRQn, DMA1_Stream6_IRQn, DMA1_Stream7_IRQn }
 #define MCU_DMA1_IRQS { DMA2_Stream0_IRQn, DMA2_Stream1_IRQn, DMA2_Stream2_IRQn, DMA2_Stream3_IRQn, DMA2_Stream4_IRQn, DMA2_Stream5_IRQn, DMA2_Stream6_IRQn, DMA2_Stream7_IRQn }
+#endif
 
 #if MCU_DMA_PORTS > 0
 

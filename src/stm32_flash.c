@@ -23,6 +23,9 @@
 static const u16 stm32_flash_layout[] = {
     32, 32, 32, 32, 128, 256, 256, 256, 256, 256, 256, 256
 };
+u16 stm32_flash_local_get_sector_size(u16 sector){
+    return stm32_flash_layout[sector];
+}
 #elif defined STM32_FLASH_LAYOUT_16_16_16_16_64_128_128_128
 const u16 stm32_flash_layout[] = {
     16, 16, 16, 16,
@@ -32,18 +35,26 @@ const u16 stm32_flash_layout[] = {
     64, 128, 128, 128,
     128, 128, 128, 128
 };
+u16 stm32_flash_local_get_sector_size(u16 sector){
+    return stm32_flash_layout[sector];
+}
+#elif defined STM32_FLASH_LAYOUT_2K_PAGES
+
+u16 stm32_flash_local_get_sector_size(u16 sector){
+    return 2;
+}
 #endif
 
 
 int stm32_flash_write(u32 addr, const void * buf, int nbyte){
     u32 i;
     int err;
-    const u32 * pbuf = buf;
+    const u64 * pbuf = buf;
 
     cortexm_disable_interrupts();
     HAL_FLASH_Unlock();
-    for(i=0; i < nbyte; i+=4){
-        err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr + i, *pbuf++);
+    for(i=0; i < nbyte; i+=8){
+        err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr + i, *pbuf++);
         if( err != HAL_OK ){
             break;
         }
@@ -64,16 +75,23 @@ int stm32_flash_erase_sector(u32 sector){
     int err;
     u32 erase_error;
 
-    cortexm_disable_interrupts(NULL);
+    cortexm_disable_interrupts();
     HAL_FLASH_Unlock();
 
+#if defined FLASH_TYPEERASE_PAGES
+    hal_erase_attr.TypeErase = FLASH_TYPEERASE_PAGES;
+    hal_erase_attr.Banks = FLASH_BANK_1;
+    hal_erase_attr.Page = sector;
+    hal_erase_attr.NbPages = 1;
+#else
     hal_erase_attr.TypeErase = FLASH_TYPEERASE_SECTORS;
-    hal_erase_attr.VoltageRange = FLASH_VOLTAGE_RANGE_3;  //! \todo This needs to be added to mcu_board_config
     hal_erase_attr.Sector = sector;
     hal_erase_attr.NbSectors = 1;
+    hal_erase_attr.VoltageRange = FLASH_VOLTAGE_RANGE_3;  //! \todo This needs to be added to mcu_board_config
+#endif
     err = HAL_FLASHEx_Erase(&hal_erase_attr, &erase_error);
     HAL_FLASH_Lock();
-    cortexm_enable_interrupts(NULL);
+    cortexm_enable_interrupts();
 
     if ( err != HAL_OK ){
         return -1;
@@ -96,8 +114,8 @@ int stm32_flash_blank_check(int loc, int nbyte){
 }
 
 int stm32_flash_get_sector_size(u32 sector){
-    if( sector < FLASH_PAGE_COUNT ){
-        return stm32_flash_layout[sector]*1024;
+    if( sector < MCU_FLASH_PAGE_COUNT ){
+        return stm32_flash_local_get_sector_size(sector)*1024;
     }
 
     return 0;
@@ -108,13 +126,13 @@ int stm32_flash_get_sector_addr(u32 sector){
     u16 sum = 0;
     int i;
 
-    if( sector < FLASH_PAGE_COUNT ){
+    if( sector < MCU_FLASH_PAGE_COUNT ){
 
         for(i=0; i < sector; i++){
-            sum += stm32_flash_layout[i];
+            sum += stm32_flash_local_get_sector_size(i);
         }
 
-        offset = sum * 1024 + FLASH_START;
+        offset = sum * 1024 + MCU_FLASH_START;
 
         return offset;
 
@@ -124,18 +142,18 @@ int stm32_flash_get_sector_addr(u32 sector){
 }
 
 int stm32_flash_is_flash(u32 addr, u32 size){
-    if ( ((addr + size) <= (FLASH_SIZE + FLASH_START)) && (addr >= FLASH_START) ){
+    if ( ((addr + size) <= (MCU_FLASH_SIZE + MCU_FLASH_START)) && (addr >= MCU_FLASH_START) ){
         return 1;
     }
     return 0;
 }
 
 int stm32_flash_is_code(u32 addr, u32 size){
-    if( addr + size <= FLASH_CODE_START ){
+    if( addr + size <= MCU_FLASH_CODE_START ){
         return 0;
     }
 
-    if( addr >= FLASH_CODE_END ){
+    if( addr >= MCU_FLASH_CODE_END ){
         return 0;
     }
 
@@ -148,12 +166,12 @@ int stm32_flash_get_sector(u32 addr){
     u16 search = 0;
     int i;
 
-    offset = (addr - FLASH_START)/1024;
-    for(i=0; i < FLASH_PAGE_COUNT; i++){
-        if( offset < search + stm32_flash_layout[i] ){
+    offset = (addr - MCU_FLASH_START)/1024;
+    for(i=0; i < MCU_FLASH_PAGE_COUNT; i++){
+        if( offset < search + stm32_flash_local_get_sector_size(i) ){
             return i;
         }
-        search += stm32_flash_layout[i];
+        search += stm32_flash_local_get_sector_size(i);
     }
 
     return -1;

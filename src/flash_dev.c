@@ -23,7 +23,7 @@
 
 
 static int get_last_bootloader_page(){
-	return stm32_flash_get_sector(FLASH_CODE_END);
+    return stm32_flash_get_sector(MCU_FLASH_CODE_END);
 }
 
 int mcu_flash_open(const devfs_handle_t * handle){ return 0; }
@@ -109,7 +109,7 @@ int mcu_flash_getpage(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_flash_getsize(const devfs_handle_t * handle, void * ctl){
-	return FLASH_SIZE;
+    return MCU_FLASH_SIZE;
 }
 
 int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
@@ -129,7 +129,7 @@ int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
 	}
 
 	//will dest overwrite bootloader?
-	if( ((wattr->addr + nbyte >= FLASH_CODE_START) && (wattr->addr <= FLASH_CODE_END)) ){
+    if( ((wattr->addr + nbyte >= MCU_FLASH_CODE_START) && (wattr->addr <= MCU_FLASH_CODE_END)) ){
         return SYSFS_SET_RETURN(EROFS);
 	}
 

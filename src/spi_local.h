@@ -27,7 +27,9 @@
 typedef struct MCU_PACK {
     union { //must be first
         SPI_HandleTypeDef hal_handle;
+#if MCU_I2S_SPI_PORTS > 0
         I2S_HandleTypeDef i2s_hal_handle;
+#endif
     };
     devfs_transfer_handler_t transfer_handler;
     u8 is_full_duplex;

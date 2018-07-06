@@ -27,10 +27,16 @@ int mcu_core_initclock(int div){
     RCC_OscInitTypeDef RCC_OscInitStruct;
     RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
+    RCC_PeriphCLKInitTypeDef PeriphClkInit;
+
 
     __HAL_RCC_PWR_CLK_ENABLE();
+    //use HAL_PWREx_ControlVoltageScaling?
     __HAL_PWR_VOLTAGESCALING_CONFIG(stm32_local_decode_voltage_scale(config->clock_voltage_scale-1));
 
+    HAL_PWR_EnableBkUpAccess();
+
+    __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
 
     //if HSE flag is on
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
@@ -41,6 +47,14 @@ int mcu_core_initclock(int div){
     RCC_OscInitStruct.PLL.PLLN = config->clock_plln;
     RCC_OscInitStruct.PLL.PLLP = config->clock_pllp;
     RCC_OscInitStruct.PLL.PLLQ = config->clock_pllq;
+
+
+#if defined RCC_MSI_ON
+    RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+    RCC_OscInitStruct.MSICalibrationValue = 0;
+    RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
+#endif
+
 #if STM32_LOCAL_HAS_RCC_PLLR
     RCC_OscInitStruct.PLL.PLLR = config->clock_pllr;
 #endif
@@ -70,6 +84,59 @@ int mcu_core_initclock(int div){
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, stm32_local_decode_flash_latency(config->clock_flash_latency)) != HAL_OK){
         return -1;
     }
+
+
+#if STM32_LOCAL_HAS_PERIPH_CLOCK_SELECTOR
+    PeriphClkInit.PeriphClockSelection =
+        #if defined RCC_PERIPHCLK_USART1
+            RCC_PERIPHCLK_USART1 |
+        #endif
+        #if defined RCC_PERIPHCLK_USART3
+            RCC_PERIPHCLK_USART3 |
+        #endif
+        #if defined RCC_PERIPHCLK_DFSDM1
+            RCC_PERIPHCLK_DFSDM1 |
+        #endif
+        #if defined RCC_PERIPHCLK_USB
+            RCC_PERIPHCLK_USB |
+        #endif
+        #if defined RCC_PERIPHCLK_USB
+            RCC_PERIPHCLK_USB |
+        #endif
+            0;
+
+#if defined RCC_USART1CLKSOURCE_PCLK2
+    PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+#endif
+
+#if defined RCC_USART3CLKSOURCE_PCLK1
+    PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
+#endif
+
+#if defined RCC_I2C2CLKSOURCE_PCLK1
+    PeriphClkInit.I2c2ClockSelection = RCC_I2C2CLKSOURCE_PCLK1;
+#endif
+
+#if defined RCC_DFSDM1CLKSOURCE_PCLK
+    PeriphClkInit.Dfsdm1ClockSelection = RCC_DFSDM1CLKSOURCE_PCLK;
+#endif
+
+#if defined RCC_USBCLKSOURCE_PLLSAI1
+    PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
+#endif
+
+    PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
+    PeriphClkInit.PLLSAI1.PLLSAI1N = 24;
+    PeriphClkInit.PLLSAI1.PLLSAI1P = RCC_PLLP_DIV7;
+    PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;
+    PeriphClkInit.PLLSAI1.PLLSAI1R = RCC_PLLR_DIV2;
+    PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_48M2CLK;
+
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK){
+        return -1;
+    }
+
+#endif
 
 
 #if STM32_LOCAL_HAS_PERIPH_CLOCK_48

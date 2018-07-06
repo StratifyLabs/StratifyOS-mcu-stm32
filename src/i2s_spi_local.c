@@ -21,7 +21,7 @@
 #include <mcu/i2s.h>
 #include <mcu/spi.h>
 
-#if MCU_SPI_PORTS > 0
+#if MCU_I2S_SPI_PORTS > 0
 
 
 int i2s_spi_local_mute(const devfs_handle_t * handle, void * ctl){

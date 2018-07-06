@@ -63,16 +63,24 @@ int mcu_sdio_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
         stm32_dma_set_handle(&sdio->dma_rx_channel, config->dma_config.rx.dma_number, config->dma_config.rx.stream_number);
         sdio->dma_rx_channel.handle.Instance = stm32_dma_get_stream_instance(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number);
-        sdio->dma_rx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
+#if defined DMA_REQUEST_0
+        sdio->dma_rx_channel.handle.Init.Mode = DMA_NORMAL;
+        sdio->dma_rx_channel.handle.Init.Request = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
+#else
         sdio->dma_rx_channel.handle.Init.Mode = DMA_PFCTRL;
+        sdio->dma_rx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
+#endif
+
         sdio->dma_rx_channel.handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
         sdio->dma_rx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
         sdio->dma_rx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
+#if defined DMA_FIFOMODE_ENABLE
         sdio->dma_rx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
         sdio->dma_rx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
         sdio->dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
         sdio->dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
+#endif
 
         sdio->dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
         sdio->dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
@@ -86,16 +94,22 @@ int mcu_sdio_dma_setattr(const devfs_handle_t * handle, void * ctl){
         //setup the DMA for transmitting
         stm32_dma_set_handle(&sdio->dma_tx_channel, config->dma_config.tx.dma_number, config->dma_config.tx.stream_number);
         sdio->dma_tx_channel.handle.Instance = stm32_dma_get_stream_instance(config->dma_config.tx.dma_number, config->dma_config.tx.stream_number);
+#if defined DMA_REQUEST_0
+        sdio->dma_tx_channel.handle.Init.Request = stm32_dma_decode_channel(config->dma_config.tx.channel_number);
+#else
         sdio->dma_tx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.tx.channel_number);
         sdio->dma_tx_channel.handle.Init.Mode = DMA_PFCTRL;
+#endif
         sdio->dma_tx_channel.handle.Init.Direction = DMA_MEMORY_TO_PERIPH;
         sdio->dma_tx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
         sdio->dma_tx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
+#if defined DMA_FIFOMODE_ENABLE
         sdio->dma_tx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
         sdio->dma_tx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
         sdio->dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
         sdio->dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
+#endif
 
         sdio->dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
         sdio->dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;

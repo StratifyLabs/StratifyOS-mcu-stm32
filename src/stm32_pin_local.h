@@ -134,6 +134,10 @@ typedef struct {
 #define E_ENET(port) ENTRY(CORE_PERIPH_ENET,(port-1))
 #define E_ETH_(port) ENTRY(CORE_PERIPH_ENET,(port-1))
 #define E_DCMI(port) ENTRY(CORE_PERIPH_DCMI,(port-1))
+#define E_IR(port) RESERVED_
+#define ESWPMI(port) RESERVED_
+#define E_TSC_(port) RESERVED_
+#define ELUART(port) RESERVED_
 
 extern const alternate_function_entry_t alternate_function_table[];
 

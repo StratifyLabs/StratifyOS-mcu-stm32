@@ -47,8 +47,8 @@ int mcu_mem_getsyspage(){
 
 int mcu_mem_getinfo(const devfs_handle_t * handle, void * ctl){
 	mem_info_t * info = ctl;
-    info->flash_pages = FLASH_PAGE_COUNT;
-	info->flash_size = FLASH_SIZE;
+    info->flash_pages = MCU_FLASH_PAGE_COUNT;
+    info->flash_size = MCU_FLASH_SIZE;
     info->ram_pages = SRAM_PAGES;
 	info->ram_size = SRAM_SIZE;
 	return 0;
@@ -83,7 +83,7 @@ int mcu_mem_getpageinfo(const devfs_handle_t * handle, void * ctl){
             return -1;
         }
 
-		if ( (addr + size) > (FLASH_SIZE + FLASH_START) ){
+        if ( (addr + size) > (MCU_FLASH_SIZE + MCU_FLASH_START) ){
 			return -1; //this page does not exist on this part
 		}
 
@@ -182,16 +182,16 @@ int mcu_mem_writepage(const devfs_handle_t * handle, void * ctl){
         return SYSFS_SET_RETURN(EROFS);
 	}
 
-	if( ((wattr->addr + nbyte >= FLASH_CODE_START) && (wattr->addr <= FLASH_CODE_END)) ){
+    if( ((wattr->addr + nbyte >= MCU_FLASH_CODE_START) && (wattr->addr <= MCU_FLASH_CODE_END)) ){
         return SYSFS_SET_RETURN(EROFS);
 	}
 
-	if ( wattr->addr >= (FLASH_SIZE + FLASH_START) ){
+    if ( wattr->addr >= (MCU_FLASH_SIZE + MCU_FLASH_START) ){
         return SYSFS_SET_RETURN(EINVAL);
 	}
 
-	if ( wattr->addr + nbyte > (FLASH_SIZE + FLASH_START) ){
-		nbyte = FLASH_SIZE - wattr->addr; //update the bytes read to not go past the end of the disk
+    if ( wattr->addr + nbyte > (MCU_FLASH_SIZE + MCU_FLASH_START) ){
+        nbyte = MCU_FLASH_SIZE - wattr->addr; //update the bytes read to not go past the end of the disk
 	}
 
 

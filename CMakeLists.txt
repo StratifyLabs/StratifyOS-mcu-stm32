@@ -16,16 +16,20 @@ set(CMAKE_TOOLCHAIN_FILE ${SOS_TOOLCHAIN_CMAKE_PATH}/sos-lib-toolchain.cmake)
 set(SOS_LIB_NAME sos)
 project(${SOS_LIB_NAME} C ASM)
 
+
+
 set(F401 0)
 set(F411 0)
 set(F412 0)
-set(F417 1)
+set(F417 0)
 set(F429 0)
 set(F446 0)
 set(F722 0)
 set(F723 0)
 set(F746 0)
 set(F767 0)
+
+set(L475 1)
 
 if(F401)
 set(STM32_VARIANT stm32f401xc)
@@ -90,6 +94,12 @@ set(STM32_VARIANT stm32f767xx)
 set(STM32_VARIANT_DEFINE STM32F767xx)
 set(STM32_ARCH_FPU v7em_f5dh)
 include(${CMAKE_SOURCE_DIR}/stm32f7.cmake)
+endif()
+
+if(L475)
+set(STM32_VARIANT stm32l475xx)
+set(STM32_VARIANT_DEFINE STM32L475xx)
+include(${CMAKE_SOURCE_DIR}/stm32l4.cmake)
 endif()
 
 
