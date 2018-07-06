@@ -151,12 +151,27 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
                     MCU_CONFIG_PIN_ASSIGNMENT(usb_config_t, handle),
                     MCU_PIN_ASSIGNMENT_COUNT(usb_pin_assignment_t),
                     CORE_PERIPH_USB, port, 0, 0, 0) < 0 ){
-            return -1;
+            return SYSFS_SET_RETURN(EINVAL);
         }
+
+#if defined STM32L4
+        if(__HAL_RCC_PWR_IS_CLK_DISABLED())
+        {
+          __HAL_RCC_PWR_CLK_ENABLE();
+          HAL_PWREx_EnableVddUSB();
+          __HAL_RCC_PWR_CLK_DISABLE();
+        }
+        else
+        {
+          HAL_PWREx_EnableVddUSB();
+        }
+
+#endif
 
         if( port == 0 ){
             usb_local[port].hal_handle.Init.dev_endpoints = 6;
             usb_local[port].hal_handle.Init.speed = PCD_SPEED_FULL;
+            usb_local[port].hal_handle.Init.phy_itface = PCD_PHY_EMBEDDED;
         } else {
 #if MCU_USB_PORTS > 1
             usb_local[port].hal_handle.Init.dev_endpoints = DEV_USB_LOGICAL_ENDPOINT_COUNT;
@@ -213,7 +228,9 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
                 HAL_PCDEx_SetTxFiFo(&usb_local[port].hal_handle, i, attr->tx_fifo_word_size[i]);
             }
         }
+
     }
+
 
     if( o_flags & USB_FLAG_RESET ){ usb_reset(handle); }
     if( o_flags & USB_FLAG_ATTACH ){ usb_connect(port, 1); }
@@ -577,6 +594,8 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
     memcpy(dest_buffer, src_buffer, count);
     usb->rx_count[epnum] = count;
 
+    dstr("count:"); dint(count); dstr(":"); dint(epnum); dstr("\n");
+
     //mcu_debug_root_printf("Data out %d 0x%lX %d\n", epnum, (u32)usb->read[epnum].callback, count);
     mcu_execute_event_handler(usb->read + epnum, MCU_EVENT_FLAG_DATA_READY, &event);
 
@@ -637,11 +656,8 @@ void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
     for(i=1; i < DEV_USB_LOGICAL_ENDPOINT_COUNT; i++){
         if( hpcd->IN_ep[i].type == EP_TYPE_ISOC ){
 
-
             epnum = 0x80 | i;
             u8 logical_ep = epnum & 0x7F;
-
-
 
             if( HAL_PCD_EP_Close(hpcd, epnum) != HAL_OK ){
                 //mcu_debug_root_printf("close failed\n");
@@ -676,7 +692,7 @@ void mcu_core_otg_fs_isr(){
     HAL_PCD_IRQHandler(&usb_local[0].hal_handle);
 }
 
-#if MCU_USB_PORTS > 0
+#if MCU_USB_PORTS > 1
 void mcu_core_otg_hs_isr(){
     HAL_PCD_IRQHandler(&usb_local[1].hal_handle);
 }

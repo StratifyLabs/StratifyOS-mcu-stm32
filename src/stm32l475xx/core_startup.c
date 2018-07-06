@@ -90,7 +90,7 @@ _DECLARE_ISR(usart2);
 _DECLARE_ISR(usart3);
 _DECLARE_ISR(exti15_10); //40
 _DECLARE_ISR(rtc_alarm);
-_DECLARE_ISR(otg_fs_wkup);
+_DECLARE_ISR(dfsdm1_flt3);
 _DECLARE_ISR(tim8_brk);
 _DECLARE_ISR(tim8_up);
 _DECLARE_ISR(tim8_trg); //45
@@ -198,12 +198,12 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(i2c2_er),
 		_ISR(spi1),
 		_ISR(spi2),
-		_ISR(usart1),
+        _ISR(usart1), //37
 		_ISR(usart2),
         _ISR(usart3),
 		_ISR(exti15_10), //40
 		_ISR(rtc_alarm),
-		_ISR(otg_fs_wkup),
+        _ISR(dfsdm1_flt3),
         _ISR(tim8_brk),
         _ISR(tim8_up),
         _ISR(tim8_trg),
@@ -225,7 +225,7 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
         _ISR(dfsdm1_flt0),
         _ISR(dfsdm1_flt1),
         _ISR(dfsdm1_flt2),
-        _ISR(comp),
+        _ISR(comp), //64
         _ISR(lptim1),
         _ISR(lptim2),
 		_ISR(otg_fs), //67
@@ -237,10 +237,10 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(i2c3_er), //73
         _ISR(sai1),
         _ISR(sai2), //75
-        _ISR(swpmi1),
-        _ISR(tsc),
-		mcu_core_default_isr,
-		mcu_core_default_isr,
+        _ISR(swpmi1), //76
+        _ISR(tsc), //77
+        mcu_core_default_isr, //78
+        mcu_core_default_isr, //79
         _ISR(rng), //80
         _ISR(fpu) //81
 };

@@ -21,4 +21,4 @@ PROVIDE ( _flash_size = LENGTH(flash) );
 PROVIDE ( _ram_pages = ( LENGTH(ram) / 1024 ) );
 PROVIDE ( _sram_size = LENGTH(ram) );
 PROVIDE ( _sram_start = ORIGIN(ram) );
-PROVIDE ( _unique_id = 0x1FFF7A10 );
+PROVIDE ( _unique_id = 0x1FFF7590 );

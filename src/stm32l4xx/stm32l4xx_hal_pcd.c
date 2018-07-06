@@ -1024,6 +1024,7 @@ HAL_StatusTypeDef HAL_PCD_Stop(PCD_HandleTypeDef *hpcd)
   __HAL_UNLOCK(hpcd);
   return HAL_OK;
 }
+
 #if defined (USB_OTG_FS) || defined (USB_OTG_HS)
 /**
   * @brief  Handles PCD interrupt request.

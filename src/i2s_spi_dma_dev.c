@@ -86,7 +86,7 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
     config = handle->config;
     if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
-    if( attr->o_flags & I2S_FLAG_SET_MASTER | I2S_FLAG_SET_SLAVE ){
+    if( attr->o_flags & (I2S_FLAG_SET_MASTER | I2S_FLAG_SET_SLAVE) ){
 
         if( attr->o_flags & I2S_FLAG_IS_RECEIVER ){
 

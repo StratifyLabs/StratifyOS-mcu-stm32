@@ -49,16 +49,27 @@ u16 stm32_flash_local_get_sector_size(u16 sector){
 int stm32_flash_write(u32 addr, const void * buf, int nbyte){
     u32 i;
     int err;
-    const u64 * pbuf = buf;
 
     cortexm_disable_interrupts();
     HAL_FLASH_Unlock();
+
+#if defined STM32L4
+    const u64 * pbuf = buf;
     for(i=0; i < nbyte; i+=8){
         err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr + i, *pbuf++);
         if( err != HAL_OK ){
             break;
         }
     }
+#else
+    const u32 * pbuf = buf;
+    for(i=0; i < nbyte; i+=4){
+        err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr + i, *pbuf++);
+        if( err != HAL_OK ){
+            break;
+        }
+    }
+#endif
     HAL_FLASH_Lock();
     cortexm_enable_interrupts();
 

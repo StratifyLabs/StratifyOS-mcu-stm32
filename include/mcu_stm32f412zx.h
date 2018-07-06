@@ -26,8 +26,9 @@
 
 #define MCU_ADC_API 0
 #define MCU_ADC_PORTS 3
-#define MCU_ADC_REGS { ADC1, ADC2, ADC3 }
-#define MCU_ADC_IRQS { ADC_IRQn, ADC_IRQn, ADC_IRQn }
+#define MCU_ADC_REGS { ADC1 }
+#define MCU_ADC_IRQS { ADC_IRQn }
+#define MCU_ADC_CHANNELS 21
 
 #define MCU_ENET_PORTS 1
 #define MCU_FLASH_PORTS 1
@@ -54,6 +55,7 @@
 #define MCU_SPI_IRQS { SPI1_IRQn, SPI2_IRQn, SPI3_IRQn, SPI4_IRQn, SPI5_IRQn }
 
 //I2S is available on all 5 SPI ports
+#define MCU_I2S_SPI_PORTS 5
 #define MCU_I2S_ON_SPI1 1
 #define MCU_I2S_ON_SPI2 1
 #define MCU_I2S_ON_SPI3 1
