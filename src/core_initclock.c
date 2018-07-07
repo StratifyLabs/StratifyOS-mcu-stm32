@@ -243,12 +243,29 @@ int mcu_core_initclock(int div){
     cortexm_start_systick();
     SystemCoreClock = mcu_board_config.core_cpu_freq;
 
+#if defined STM32F7
+
+#if (ART_ACCLERATOR_ENABLE != 0)
+   __HAL_FLASH_ART_ENABLE();
+#endif /* ART_ACCLERATOR_ENABLE */
+
+  /* Configure Flash prefetch */
+#if (PREFETCH_ENABLE != 0U)
+  __HAL_FLASH_PREFETCH_BUFFER_ENABLE();
+#endif /* PREFETCH_ENABLE */
+
+#endif
+
     return 0;
 }
 
 //this overrides the weak function in the STM32 HAL library so that Stratify OS can take care of the SYS tick
 HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority){
     return HAL_OK;
+}
+
+uint32_t HAL_GetTick(void){
+    return 0x00ffffff - cortexm_get_systick_value();
 }
 
 void HAL_Delay(__IO uint32_t Delay){

@@ -44,7 +44,6 @@ static eth_local_t eth_local[MCU_ETH_PORTS] MCU_SYS_MEM;
 ETH_TypeDef * const eth_regs_table[MCU_ETH_PORTS] = MCU_ETH_REGS;
 u8 const eth_irqs[MCU_ETH_PORTS] = MCU_ETH_IRQS;
 
-
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(eth, ETH_VERSION, ETH_IOC_IDENT_CHAR, I_MCU_TOTAL + I_ETH_TOTAL, mcu_eth_setregister, mcu_eth_getregister)
 
 int mcu_eth_open(const devfs_handle_t * handle){
@@ -131,12 +130,13 @@ int mcu_eth_setattr(const devfs_handle_t * handle, void * ctl){
         //ETH_MODE_HALFDUPLEX
         eth->hal_handle.Init.DuplexMode = ETH_MODE_HALFDUPLEX;
 
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "PHY address is %d", attr->phy_address);
         eth->hal_handle.Init.PhyAddress = attr->phy_address;
-        eth->hal_handle.Init.MACAddr = (void*)attr->mac_addr;
+        eth->hal_handle.Init.MACAddr = (u8*)attr->mac_address;
 
         //ETH_RXPOLLING_MODE
         //ETH_RXINTERRUPT_MODE
-        eth->hal_handle.Init.RxMode = ETH_RXINTERRUPT_MODE;
+        eth->hal_handle.Init.RxMode = ETH_RXPOLLING_MODE;
 
         //ETH_CHECKSUM_BY_HARDWARE
         //ETH_CHECKSUM_BY_SOFTWARE
@@ -145,12 +145,15 @@ int mcu_eth_setattr(const devfs_handle_t * handle, void * ctl){
         //ETH_MEDIA_INTERFACE_MII
         //ETH_MEDIA_INTERFACE_RMII
         if( o_flags & ETH_FLAG_IS_RMII ){
+            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use Ethernet RMII");
             eth->hal_handle.Init.MediaInterface = ETH_MEDIA_INTERFACE_RMII;
         } else if( o_flags & ETH_FLAG_IS_MII ){
             eth->hal_handle.Init.MediaInterface = ETH_MEDIA_INTERFACE_MII;
         } else {
             return SYSFS_SET_RETURN(EINVAL);
         }
+
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set eth pin assignments");
 
         //pin assignments
         if( mcu_set_pin_assignment(
@@ -161,15 +164,16 @@ int mcu_eth_setattr(const devfs_handle_t * handle, void * ctl){
             return SYSFS_SET_RETURN(EINVAL);
         }
 
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "HAL_ETH_Init()");
         if( HAL_ETH_Init(&eth->hal_handle) != HAL_OK ){
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_ETH_Init() failed");
             return SYSFS_SET_RETURN(EIO);
         }
 
         HAL_ETH_DMATxDescListInit(&eth->hal_handle, &eth->tx_dma_desc, config->tx_buffer, ETH_TXBUFNB);
-
-
         HAL_ETH_DMARxDescListInit(&eth->hal_handle, &eth->rx_dma_desc, config->rx_buffer, ETH_RXBUFNB);
-
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Start Ethernet");
+        HAL_ETH_Start(&eth->hal_handle);
     }
 
     if( o_flags & ETH_FLAG_GET_STATE ){
@@ -302,13 +306,7 @@ int mcu_eth_write(const devfs_handle_t * handle, devfs_async_t * async){
         int page_size;
         u8 * buffer = (u8*)(DmaTxDesc->Buffer1Addr);
 
-
-        /* Get bytes in current lwIP buffer */
-        //byteslefttocopy = q->len;
-        //payloadoffset = 0;
-
         /* Check if the length of data to copy is bigger than Tx buffer size*/
-        //while( (byteslefttocopy + bufferoffset) > ETH_TX_BUF_SIZE )
         do {
 
             page_size = async->nbyte - bytes_written;
@@ -333,9 +331,11 @@ int mcu_eth_write(const devfs_handle_t * handle, devfs_async_t * async){
         } while( bytes_written < async->nbyte );
 
         if( bytes_written > 0 ){
+
             async->nbyte = bytes_written;
             if( HAL_ETH_TransmitFrame(&eth->hal_handle, async->nbyte) == HAL_OK ){
-                return 0;
+                eth->transfer_handler.write = 0;
+                return async->nbyte;
             }
         }
     }

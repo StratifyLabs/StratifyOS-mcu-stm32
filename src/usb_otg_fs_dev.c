@@ -594,8 +594,6 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
     memcpy(dest_buffer, src_buffer, count);
     usb->rx_count[epnum] = count;
 
-    dstr("count:"); dint(count); dstr(":"); dint(epnum); dstr("\n");
-
     //mcu_debug_root_printf("Data out %d 0x%lX %d\n", epnum, (u32)usb->read[epnum].callback, count);
     mcu_execute_event_handler(usb->read + epnum, MCU_EVENT_FLAG_DATA_READY, &event);
 

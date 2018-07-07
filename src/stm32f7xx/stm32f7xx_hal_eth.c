@@ -93,6 +93,8 @@
   ******************************************************************************
   */ 
 
+
+#include <cortexm/cortexm.h> //Added by __StratifyOS__
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
 
@@ -161,7 +163,6 @@ static void ETH_FlushTransmitFIFO(ETH_HandleTypeDef *heth);
   @endverbatim
   * @{
   */
-
 /**
   * @brief  Initializes the Ethernet MAC and DMA according to default
   *         parameters.
@@ -209,13 +210,14 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   (heth->Instance)->DMABMR |= ETH_DMABMR_SR;
   
   /* Get tick */
-  tickstart = HAL_GetTick();
+  tickstart = 0;
   
   /* Wait for software reset */
   while (((heth->Instance)->DMABMR & ETH_DMABMR_SR) != (uint32_t)RESET)
   {
+      cortexm_delay_ms(1);
     /* Check for the Timeout */
-    if((HAL_GetTick() - tickstart ) > ETH_TIMEOUT_SWRESET)
+    if((tickstart++ ) > ETH_TIMEOUT_SWRESET)
     {     
       heth->State= HAL_ETH_STATE_TIMEOUT;
   
@@ -274,7 +276,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   {
     /* In case of write timeout */
     err = ETH_ERROR;
-    
+
     /* Config MAC and DMA */
     ETH_MACDMAConfig(heth, err);
     
@@ -291,15 +293,18 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   if((heth->Init).AutoNegotiation != ETH_AUTONEGOTIATION_DISABLE)
   {
     /* Get tick */
-    tickstart = HAL_GetTick();
+    tickstart = 0;
     
     /* We wait for linked status */
     do
     {
+
       HAL_ETH_ReadPHYRegister(heth, PHY_BSR, &phyreg);
       
+      cortexm_delay_ms(1);
+
       /* Check for the Timeout */
-      if((HAL_GetTick() - tickstart ) > ETH_TIMEOUT_LINKED_STATE)
+      if((tickstart++) > ETH_TIMEOUT_LINKED_STATE)
       {
         /* In case of write timeout */
         err = ETH_ERROR;
@@ -334,15 +339,19 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
     }
     
     /* Get tick */
-    tickstart = HAL_GetTick();
+    tickstart = 0;
     
+
     /* Wait until the auto-negotiation will be completed */
     do
     {
+
       HAL_ETH_ReadPHYRegister(heth, PHY_BSR, &phyreg);
       
+      cortexm_delay_ms(1);
+
       /* Check for the Timeout */
-      if((HAL_GetTick() - tickstart ) > ETH_TIMEOUT_AUTONEGO_COMPLETED)
+      if((tickstart++ ) > ETH_TIMEOUT_AUTONEGO_COMPLETED)
       {
         /* In case of write timeout */
         err = ETH_ERROR;

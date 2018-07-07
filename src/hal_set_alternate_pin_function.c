@@ -39,6 +39,10 @@ int hal_get_alternate_function(int gpio_port, int pin, core_periph_t function, i
             }
         }
     }
+
+    if( gpio_port != 0xff ){
+        mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Failed to resolve pin:%d.%d -> %d.%d", gpio_port, pin, function, periph_port);
+    }
     return -1;
 }
 
@@ -54,7 +58,9 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
 
     if( mode != GPIO_MODE_ANALOG ){
         alternate_function = hal_get_alternate_function(pin.port, pin.pin, function, periph_port);
-        if( alternate_function < 0 ){ return -1; }
+        if( alternate_function < 0 ){
+            return -1;
+        }
     } else {
         alternate_function = 0;
     }

@@ -201,7 +201,6 @@ typedef struct {
     stm32_dma_config_t dma_config;
 } stm32_sdio_dma_config_t;
 
-
 typedef struct {
     adc_config_t adc_config;
     stm32_dma_channel_config_t dma_config;
@@ -220,7 +219,6 @@ typedef struct {
 
 typedef struct {
     eth_config_t eth_config;
-    stm32_dma_channel_config_t dma_config;
     void * tx_buffer;
     void * rx_buffer;
 } stm32_eth_dma_config_t;
