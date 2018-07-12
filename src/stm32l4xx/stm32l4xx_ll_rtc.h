@@ -1158,7 +1158,10 @@ __STATIC_INLINE void LL_RTC_TIME_SetHour(RTC_TypeDef *RTCx, uint32_t Hours)
   */
 __STATIC_INLINE uint32_t LL_RTC_TIME_GetHour(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->TR, (RTC_TR_HT | RTC_TR_HU))) >> RTC_TR_HU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->TR, (RTC_TR_HT | RTC_TR_HU));
+  return (uint32_t)((((temp & RTC_TR_HT) >> RTC_TR_HT_Pos) << 4U) | ((temp & RTC_TR_HU) >> RTC_TR_HU_Pos));
 }
 
 /**
@@ -1193,7 +1196,10 @@ __STATIC_INLINE void LL_RTC_TIME_SetMinute(RTC_TypeDef *RTCx, uint32_t Minutes)
   */
 __STATIC_INLINE uint32_t LL_RTC_TIME_GetMinute(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->TR, (RTC_TR_MNT | RTC_TR_MNU)))>> RTC_TR_MNU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->TR, (RTC_TR_MNT | RTC_TR_MNU));
+  return (uint32_t)((((temp & RTC_TR_MNT) >> RTC_TR_MNT_Pos) << 4U) | ((temp & RTC_TR_MNU) >> RTC_TR_MNU_Pos));
 }
 
 /**
@@ -1228,7 +1234,10 @@ __STATIC_INLINE void LL_RTC_TIME_SetSecond(RTC_TypeDef *RTCx, uint32_t Seconds)
   */
 __STATIC_INLINE uint32_t LL_RTC_TIME_GetSecond(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->TR, (RTC_TR_ST | RTC_TR_SU))) >> RTC_TR_SU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->TR, (RTC_TR_ST | RTC_TR_SU));
+  return (uint32_t)((((temp & RTC_TR_ST) >> RTC_TR_ST_Pos) << 4U) | ((temp & RTC_TR_SU) >> RTC_TR_SU_Pos));
 }
 
 /**
@@ -1421,7 +1430,10 @@ __STATIC_INLINE void LL_RTC_DATE_SetYear(RTC_TypeDef *RTCx, uint32_t Year)
   */
 __STATIC_INLINE uint32_t LL_RTC_DATE_GetYear(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->DR, (RTC_DR_YT | RTC_DR_YU))) >> RTC_DR_YU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->DR, (RTC_DR_YT | RTC_DR_YU));
+  return (uint32_t)((((temp & RTC_DR_YT) >> RTC_DR_YT_Pos) << 4U) | ((temp & RTC_DR_YU) >> RTC_DR_YU_Pos));
 }
 
 /**
@@ -1514,7 +1526,10 @@ __STATIC_INLINE void LL_RTC_DATE_SetMonth(RTC_TypeDef *RTCx, uint32_t Month)
   */
 __STATIC_INLINE uint32_t LL_RTC_DATE_GetMonth(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->DR, (RTC_DR_MT | RTC_DR_MU)))>> RTC_DR_MU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->DR, (RTC_DR_MT | RTC_DR_MU));
+  return (uint32_t)((((temp & RTC_DR_MT) >> RTC_DR_MT_Pos) << 4U) | ((temp & RTC_DR_MU) >> RTC_DR_MU_Pos));
 }
 
 /**
@@ -1544,7 +1559,10 @@ __STATIC_INLINE void LL_RTC_DATE_SetDay(RTC_TypeDef *RTCx, uint32_t Day)
   */
 __STATIC_INLINE uint32_t LL_RTC_DATE_GetDay(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->DR, (RTC_DR_DT | RTC_DR_DU))) >> RTC_DR_DU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->DR, (RTC_DR_DT | RTC_DR_DU));
+  return (uint32_t)((((temp & RTC_DR_DT) >> RTC_DR_DT_Pos) << 4U) | ((temp & RTC_DR_DU) >> RTC_DR_DU_Pos));
 }
 
 /**
@@ -1741,7 +1759,10 @@ __STATIC_INLINE void LL_RTC_ALMA_SetDay(RTC_TypeDef *RTCx, uint32_t Day)
   */
 __STATIC_INLINE uint32_t LL_RTC_ALMA_GetDay(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->ALRMAR, (RTC_ALRMAR_DT | RTC_ALRMAR_DU))) >> RTC_ALRMAR_DU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->ALRMAR, (RTC_ALRMAR_DT | RTC_ALRMAR_DU));
+  return (uint32_t)((((temp & RTC_ALRMAR_DT) >> RTC_ALRMAR_DT_Pos) << 4U) | ((temp & RTC_ALRMAR_DU) >> RTC_ALRMAR_DU_Pos));
 }
 
 /**
@@ -1833,7 +1854,10 @@ __STATIC_INLINE void LL_RTC_ALMA_SetHour(RTC_TypeDef *RTCx, uint32_t Hours)
   */
 __STATIC_INLINE uint32_t LL_RTC_ALMA_GetHour(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->ALRMAR, (RTC_ALRMAR_HT | RTC_ALRMAR_HU))) >> RTC_ALRMAR_HU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->ALRMAR, (RTC_ALRMAR_HT | RTC_ALRMAR_HU));
+  return (uint32_t)((((temp & RTC_ALRMAR_HT) >> RTC_ALRMAR_HT_Pos) << 4U) | ((temp & RTC_ALRMAR_HU) >> RTC_ALRMAR_HU_Pos));
 }
 
 /**
@@ -1861,7 +1885,10 @@ __STATIC_INLINE void LL_RTC_ALMA_SetMinute(RTC_TypeDef *RTCx, uint32_t Minutes)
   */
 __STATIC_INLINE uint32_t LL_RTC_ALMA_GetMinute(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->ALRMAR, (RTC_ALRMAR_MNT | RTC_ALRMAR_MNU))) >> RTC_ALRMAR_MNU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->ALRMAR, (RTC_ALRMAR_MNT | RTC_ALRMAR_MNU));
+  return (uint32_t)((((temp & RTC_ALRMAR_MNT) >> RTC_ALRMAR_MNT_Pos) << 4U) | ((temp & RTC_ALRMAR_MNU) >> RTC_ALRMAR_MNU_Pos));
 }
 
 /**
@@ -1889,7 +1916,10 @@ __STATIC_INLINE void LL_RTC_ALMA_SetSecond(RTC_TypeDef *RTCx, uint32_t Seconds)
   */
 __STATIC_INLINE uint32_t LL_RTC_ALMA_GetSecond(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->ALRMAR, (RTC_ALRMAR_ST | RTC_ALRMAR_SU))) >> RTC_ALRMAR_SU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->ALRMAR, (RTC_ALRMAR_ST | RTC_ALRMAR_SU));
+  return (uint32_t)((((temp & RTC_ALRMAR_ST) >> RTC_ALRMAR_ST_Pos) << 4U) | ((temp & RTC_ALRMAR_SU) >> RTC_ALRMAR_SU_Pos));
 }
 
 /**
@@ -2107,7 +2137,10 @@ __STATIC_INLINE void LL_RTC_ALMB_SetDay(RTC_TypeDef *RTCx, uint32_t Day)
   */
 __STATIC_INLINE uint32_t LL_RTC_ALMB_GetDay(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->ALRMBR, (RTC_ALRMBR_DT | RTC_ALRMBR_DU))) >> RTC_ALRMBR_DU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->ALRMBR, (RTC_ALRMBR_DT | RTC_ALRMBR_DU));
+  return (uint32_t)((((temp & RTC_ALRMBR_DT) >> RTC_ALRMBR_DT_Pos) << 4U) | ((temp & RTC_ALRMBR_DU) >> RTC_ALRMBR_DU_Pos));
 }
 
 /**
@@ -2199,7 +2232,10 @@ __STATIC_INLINE void LL_RTC_ALMB_SetHour(RTC_TypeDef *RTCx, uint32_t Hours)
   */
 __STATIC_INLINE uint32_t LL_RTC_ALMB_GetHour(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->ALRMBR, (RTC_ALRMBR_HT | RTC_ALRMBR_HU))) >> RTC_ALRMBR_HU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->ALRMBR, (RTC_ALRMBR_HT | RTC_ALRMBR_HU));
+  return (uint32_t)((((temp & RTC_ALRMBR_HT) >> RTC_ALRMBR_HT_Pos) << 4U) | ((temp & RTC_ALRMBR_HU) >> RTC_ALRMBR_HU_Pos));
 }
 
 /**
@@ -2227,7 +2263,10 @@ __STATIC_INLINE void LL_RTC_ALMB_SetMinute(RTC_TypeDef *RTCx, uint32_t Minutes)
   */
 __STATIC_INLINE uint32_t LL_RTC_ALMB_GetMinute(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->ALRMBR, (RTC_ALRMBR_MNT | RTC_ALRMBR_MNU))) >> RTC_ALRMBR_MNU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->ALRMBR, (RTC_ALRMBR_MNT | RTC_ALRMBR_MNU));
+  return (uint32_t)((((temp & RTC_ALRMBR_MNT) >> RTC_ALRMBR_MNT_Pos) << 4U) | ((temp & RTC_ALRMBR_MNU) >> RTC_ALRMBR_MNU_Pos));
 }
 
 /**
@@ -2255,7 +2294,10 @@ __STATIC_INLINE void LL_RTC_ALMB_SetSecond(RTC_TypeDef *RTCx, uint32_t Seconds)
   */
 __STATIC_INLINE uint32_t LL_RTC_ALMB_GetSecond(RTC_TypeDef *RTCx)
 {
-  return ((READ_BIT(RTCx->ALRMBR, (RTC_ALRMBR_ST | RTC_ALRMBR_SU))) >> RTC_ALRMBR_SU_Pos);
+  register uint32_t temp = 0U;
+
+  temp = READ_BIT(RTCx->ALRMBR, (RTC_ALRMBR_ST | RTC_ALRMBR_SU));
+  return (uint32_t)((((temp & RTC_ALRMBR_ST) >> RTC_ALRMBR_ST_Pos) << 4U) | ((temp & RTC_ALRMBR_SU) >> RTC_ALRMBR_SU_Pos));
 }
 
 /**

@@ -35,8 +35,8 @@
 typedef struct {
     ETH_HandleTypeDef hal_handle;
     devfs_transfer_handler_t transfer_handler;
-    ETH_DMADescTypeDef tx_dma_desc;
-    ETH_DMADescTypeDef rx_dma_desc;
+    ETH_DMADescTypeDef tx_dma_desc[ETH_TXBUFNB];
+    ETH_DMADescTypeDef rx_dma_desc[ETH_RXBUFNB];
     u8 ref_count;
 } eth_local_t;
 
@@ -170,14 +170,18 @@ int mcu_eth_setattr(const devfs_handle_t * handle, void * ctl){
             return SYSFS_SET_RETURN(EIO);
         }
 
-        HAL_ETH_DMATxDescListInit(&eth->hal_handle, &eth->tx_dma_desc, config->tx_buffer, ETH_TXBUFNB);
-        HAL_ETH_DMARxDescListInit(&eth->hal_handle, &eth->rx_dma_desc, config->rx_buffer, ETH_RXBUFNB);
+        HAL_ETH_DMATxDescListInit(&eth->hal_handle, eth->tx_dma_desc, config->tx_buffer, ETH_TXBUFNB);
+        HAL_ETH_DMARxDescListInit(&eth->hal_handle, eth->rx_dma_desc, config->rx_buffer, ETH_RXBUFNB);
         mcu_debug_log_info(MCU_DEBUG_DEVICE, "Start Ethernet");
         HAL_ETH_Start(&eth->hal_handle);
     }
 
-    if( o_flags & ETH_FLAG_GET_STATE ){
-        return HAL_ETH_GetState(&eth->hal_handle);
+    if( o_flags & ETH_FLAG_GET_STATE ){ return HAL_ETH_GetState(&eth->hal_handle); }
+    if( o_flags & ETH_FLAG_STOP ){
+        HAL_ETH_Stop(&eth->hal_handle);
+
+        //if a read or write is active -- abort the read/write and execute the callback
+
     }
 
     return 0;
@@ -235,9 +239,10 @@ int mcu_eth_read(const devfs_handle_t * handle, devfs_async_t * async){
     if( HAL_ETH_GetReceivedFrame(&eth->hal_handle) != HAL_OK ){
         //failed to check for the frame
         eth->transfer_handler.read = 0;
-        return SYSFS_SET_RETURN(EIO);
+        return SYSFS_SET_RETURN(EAGAIN);
 
     } else {
+
 
         if( async->nbyte > eth->hal_handle.RxFrameInfos.length ){
             //buffer has enough bytes to read everything
@@ -273,10 +278,10 @@ int mcu_eth_read(const devfs_handle_t * handle, devfs_async_t * async){
             }
 
             dma_rx_descriptor = (ETH_DMADescTypeDef *)(dma_rx_descriptor->Buffer2NextDescAddr);
+
             buffer = (u8*)dma_rx_descriptor->Buffer1Addr;
 
         } while( bytes_read < async->nbyte );
-
 
         /* When Rx Buffer unavailable flag is set: clear it and resume reception */
         if ((eth->hal_handle.Instance->DMASR & ETH_DMASR_RBUS) != (uint32_t)RESET)

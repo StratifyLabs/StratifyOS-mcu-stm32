@@ -1200,6 +1200,11 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
       pllvco = 0U;
     }
 
+#if !defined(RCC_PLLSAI1M_DIV_1_16_SUPPORT) && !defined(RCC_PLLSAI2M_DIV_1_16_SUPPORT)
+    /* f(PLL Source) / PLLM */
+    pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
+#endif
+
     switch(PeriphClk)
     {
 #if defined(SAI2)
@@ -1252,8 +1257,6 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
         {
           if(__HAL_RCC_GET_PLLCLKOUT_CONFIG(RCC_PLL_SAI3CLK) != RESET)
           {
-            /* f(PLL Source) / PLLM */
-            pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
             /* f(PLLSAI3CLK) = f(VCO input) * PLLN / PLLP */
             plln = READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLN) >> RCC_PLLCFGR_PLLN_Pos;
 #if defined(RCC_PLLP_DIV_2_31_SUPPORT)
@@ -1278,12 +1281,8 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
           if(__HAL_RCC_GET_PLLSAI1CLKOUT_CONFIG(RCC_PLLSAI1_SAI1CLK) != RESET)
           {
 #if defined(RCC_PLLSAI1M_DIV_1_16_SUPPORT)
-            /* PLLSAI1M exists: apply PLLSAI1M divider for PLLSAI1 output computation */
             /* f(PLLSAI1 Source) / PLLSAI1M */
             pllvco = (pllvco / ((READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1M) >> RCC_PLLSAI1CFGR_PLLSAI1M_Pos) + 1U));
-#else
-            /* f(PLL Source) / PLLM */
-            pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
 #endif
             /* f(PLLSAI1CLK) = f(VCOSAI1 input) * PLLSAI1N / PLLSAI1P */
             plln = READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1N) >> RCC_PLLSAI1CFGR_PLLSAI1N_Pos;
@@ -1319,8 +1318,6 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
         {
           if(__HAL_RCC_GET_PLLCLKOUT_CONFIG(RCC_PLL_SAI2CLK) != RESET)
           {
-            /* f(PLL Source) / PLLM */
-            pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
             /* f(PLLSAI2CLK) = f(VCO input) * PLLN / PLLP */
             plln = READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLN) >> RCC_PLLCFGR_PLLN_Pos;
 #if defined(RCC_PLLP_DIV_2_31_SUPPORT)
@@ -1356,12 +1353,8 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
           if(__HAL_RCC_GET_PLLSAI1CLKOUT_CONFIG(RCC_PLLSAI1_SAI1CLK) != RESET)
           {
 #if defined(RCC_PLLSAI1M_DIV_1_16_SUPPORT)
-            /* PLLSAI1M exists: apply PLLSAI1M divider for PLLSAI1 output computation */
             /* f(PLLSAI1 Source) / PLLSAI1M */
             pllvco = (pllvco / ((READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1M) >> RCC_PLLSAI1CFGR_PLLSAI1M_Pos) + 1U));
-#else
-            /* f(PLL Source) / PLLM */
-            pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
 #endif
             /* f(PLLSAI1CLK) = f(VCOSAI1 input) * PLLSAI1N / PLLSAI1P */
             plln = READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1N) >> RCC_PLLSAI1CFGR_PLLSAI1N_Pos;
@@ -1402,12 +1395,8 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
           if(__HAL_RCC_GET_PLLSAI2CLKOUT_CONFIG(RCC_PLLSAI2_SAI2CLK) != RESET)
           {
 #if defined(RCC_PLLSAI2M_DIV_1_16_SUPPORT)
-            /* PLLSAI2M exists: apply PLLSAI2M divider for PLLSAI2 output computation */
             /* f(PLLSAI2 Source) / PLLSAI2M */
             pllvco = (pllvco / ((READ_BIT(RCC->PLLSAI2CFGR, RCC_PLLSAI2CFGR_PLLSAI2M) >> RCC_PLLSAI2CFGR_PLLSAI2M_Pos) + 1U));
-#else
-            /* f(PLL Source) / PLLM */
-            pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
 #endif
             /* f(PLLSAI2CLK) = f(VCOSAI2 input) * PLLSAI2N / PLLSAI2P */
             plln = READ_BIT(RCC->PLLSAI2CFGR, RCC_PLLSAI2CFGR_PLLSAI2N) >> RCC_PLLSAI2CFGR_PLLSAI2N_Pos;
@@ -1471,8 +1460,10 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
       {
         if(HAL_IS_BIT_SET(RCC->CR, RCC_CR_PLLRDY) && HAL_IS_BIT_SET(RCC->PLLCFGR, RCC_PLLCFGR_PLLQEN))
         {
+#if defined(RCC_PLLSAI1M_DIV_1_16_SUPPORT) || defined(RCC_PLLSAI2M_DIV_1_16_SUPPORT)
           /* f(PLL Source) / PLLM */
           pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
+#endif
           /* f(PLL48M1CLK) = f(VCO input) * PLLN / PLLQ */
           plln = READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLN) >> RCC_PLLCFGR_PLLN_Pos;
           frequency = (pllvco * plln) / (((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLQ) >> RCC_PLLCFGR_PLLQ_Pos) + 1U) << 1U);
@@ -1487,12 +1478,8 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
         if(HAL_IS_BIT_SET(RCC->CR, RCC_CR_PLLSAI1RDY) && HAL_IS_BIT_SET(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1QEN))
         {
 #if defined(RCC_PLLSAI1M_DIV_1_16_SUPPORT)
-          /* PLLSAI1M exists: apply PLLSAI1M divider for PLLSAI1 output computation */
           /* f(PLLSAI1 Source) / PLLSAI1M */
           pllvco = (pllvco / ((READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1M) >> RCC_PLLSAI1CFGR_PLLSAI1M_Pos) + 1U));
-#else
-          /* f(PLL Source) / PLLM */
-          pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
 #endif
           /* f(PLL48M2CLK) = f(VCOSAI1 input) * PLLSAI1N / PLLSAI1Q */
           plln = READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1N) >> RCC_PLLSAI1CFGR_PLLSAI1N_Pos;
@@ -1528,8 +1515,10 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
       {
         if(HAL_IS_BIT_SET(RCC->CR, RCC_CR_PLLRDY) && HAL_IS_BIT_SET(RCC->PLLCFGR, RCC_PLLCFGR_PLLPEN))
         {
+#if defined(RCC_PLLSAI1M_DIV_1_16_SUPPORT) || defined(RCC_PLLSAI2M_DIV_1_16_SUPPORT)
           /* f(PLL Source) / PLLM */
           pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
+#endif
           /* f(PLLSAI3CLK) = f(VCO input) * PLLN / PLLP */
           plln = READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLN) >> RCC_PLLCFGR_PLLN_Pos;
 #if defined(RCC_PLLP_DIV_2_31_SUPPORT)
@@ -1573,8 +1562,10 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
         {
           if(HAL_IS_BIT_SET(RCC->CR, RCC_CR_PLLRDY) && HAL_IS_BIT_SET(RCC->PLLCFGR, RCC_PLLCFGR_PLLQEN))
           {
+#if defined(RCC_PLLSAI1M_DIV_1_16_SUPPORT) || defined(RCC_PLLSAI2M_DIV_1_16_SUPPORT)
             /* f(PLL Source) / PLLM */
             pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
+#endif
             /* f(PLL48M1CLK) = f(VCO input) * PLLN / PLLQ */
             plln = READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLN) >> RCC_PLLCFGR_PLLN_Pos;
             frequency = (pllvco * plln) / (((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLQ) >> RCC_PLLCFGR_PLLQ_Pos) + 1U) << 1U);
@@ -1589,12 +1580,8 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
           if(HAL_IS_BIT_SET(RCC->CR, RCC_CR_PLLSAI1RDY) && HAL_IS_BIT_SET(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1QEN))
           {
 #if defined(RCC_PLLSAI1M_DIV_1_16_SUPPORT)
-            /* PLLSAI1M exists: apply PLLSAI1M divider for PLLSAI1 output computation */
             /* f(PLLSAI1 Source) / PLLSAI1M */
             pllvco = (pllvco / ((READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1M) >> RCC_PLLSAI1CFGR_PLLSAI1M_Pos) + 1U));
-#else
-            /* f(PLL Source) / PLLM */
-            pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
 #endif
             /* f(PLL48M2CLK) = f(VCOSAI1 input) * PLLSAI1N / PLLSAI1Q */
             plln = READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1N) >> RCC_PLLSAI1CFGR_PLLSAI1N_Pos;
@@ -1805,12 +1792,8 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
         if(__HAL_RCC_GET_PLLSAI1CLKOUT_CONFIG(RCC_PLLSAI1_ADC1CLK) != RESET)
         {
 #if defined(RCC_PLLSAI1M_DIV_1_16_SUPPORT)
-          /* PLLSAI1M exists: apply PLLSAI1M divider for PLLSAI1 output computation */
           /* f(PLLSAI1 Source) / PLLSAI1M */
           pllvco = (pllvco / ((READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1M) >> RCC_PLLSAI1CFGR_PLLSAI1M_Pos) + 1U));
-#else
-          /* f(PLL Source) / PLLM */
-          pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
 #endif
           /* f(PLLADC1CLK) = f(VCOSAI1 input) * PLLSAI1N / PLLSAI1R */
           plln = READ_BIT(RCC->PLLSAI1CFGR, RCC_PLLSAI1CFGR_PLLSAI1N) >> RCC_PLLSAI1CFGR_PLLSAI1N_Pos;
@@ -1823,12 +1806,8 @@ uint32_t HAL_RCCEx_GetPeriphCLKFreq(uint32_t PeriphClk)
         if(__HAL_RCC_GET_PLLSAI2CLKOUT_CONFIG(RCC_PLLSAI2_ADC2CLK) != RESET)
         {
 #if defined(RCC_PLLSAI2M_DIV_1_16_SUPPORT)
-          /* PLLSAI2M exists: apply PLLSAI2M divider for PLLSAI2 output computation */
           /* f(PLLSAI2 Source) / PLLSAI2M */
           pllvco = (pllvco / ((READ_BIT(RCC->PLLSAI2CFGR, RCC_PLLSAI2CFGR_PLLSAI2M) >> RCC_PLLSAI2CFGR_PLLSAI2M_Pos) + 1U));
-#else
-          /* f(PLL Source) / PLLM */
-          pllvco = (pllvco / ((READ_BIT(RCC->PLLCFGR, RCC_PLLCFGR_PLLM) >> RCC_PLLCFGR_PLLM_Pos) + 1U));
 #endif
           /* f(PLLADC2CLK) = f(VCOSAI2 input) * PLLSAI2N / PLLSAI2R */
           plln = READ_BIT(RCC->PLLSAI2CFGR, RCC_PLLSAI2CFGR_PLLSAI2N) >> RCC_PLLSAI2CFGR_PLLSAI2N_Pos;

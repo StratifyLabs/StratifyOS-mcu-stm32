@@ -31,17 +31,17 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
-  */
+  */ 
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef STM32L4xx_HAL_LTDC_EX_H
-#define STM32L4xx_HAL_LTDC_EX_H
+#ifndef __STM32L4xx_HAL_LTDC_EX_H
+#define __STM32L4xx_HAL_LTDC_EX_H
 
 #ifdef __cplusplus
  extern "C" {
 #endif
 
-#if defined (LTDC) && defined (DSI)
+#if defined (STM32L4R9xx) || defined (STM32L4S9xx)
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal_def.h"
@@ -55,7 +55,7 @@
   * @{
   */
 
-/* Exported types ------------------------------------------------------------*/
+/* Exported types ------------------------------------------------------------*/ 
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions --------------------------------------------------------*/
@@ -70,11 +70,11 @@ HAL_StatusTypeDef HAL_LTDCEx_StructInitFromVideoConfig(LTDC_HandleTypeDef* hltdc
 HAL_StatusTypeDef HAL_LTDCEx_StructInitFromAdaptedCommandConfig(LTDC_HandleTypeDef* hltdc, DSI_CmdCfgTypeDef *CmdCfg);
 /**
   * @}
-  */
-
+  */ 
+ 
 /**
   * @}
-  */
+  */ 
 
 /* Private types -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -84,18 +84,18 @@ HAL_StatusTypeDef HAL_LTDCEx_StructInitFromAdaptedCommandConfig(LTDC_HandleTypeD
 
 /**
   * @}
-  */
+  */ 
 
 /**
   * @}
   */
 
-#endif /* LTDC && DSI */
-
+#endif /* STM32L4R9xx || STM32L4S9xx */
+  
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* STM32L4xx_HAL_LTDC_EX_H */
+#endif /* __STM32L4xx_HAL_LTDC_EX_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

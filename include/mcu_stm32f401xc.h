@@ -48,6 +48,7 @@
 #define MCU_SPI_IRQS { SPI1_IRQn, SPI2_IRQn, SPI3_IRQn, SPI4_IRQn }
 
 //I2S is available on 2 SPI ports SPI2 and SPI3
+#define MCU_I2S_SPI_PORTS 2
 #define MCU_I2S_ON_SPI1 0
 #define MCU_I2S_ON_SPI2 1
 #define MCU_I2S_ON_SPI3 1

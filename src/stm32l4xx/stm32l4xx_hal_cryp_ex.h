@@ -31,7 +31,7 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
-  */
+  */ 
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __STM32L4xx_HAL_CRYP_EX_H
@@ -41,7 +41,8 @@
  extern "C" {
 #endif
 
-#if defined(AES)
+#if defined (STM32L442xx) || defined (STM32L443xx) || defined (STM32L462xx) || defined(STM32L485xx) || defined(STM32L486xx) || defined(STM32L4A6xx) || defined(STM32L4S5xx) || defined(STM32L4S7xx) || defined(STM32L4S9xx)
+   
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal_def.h"
@@ -52,9 +53,9 @@
 
 /** @addtogroup CRYPEx
   * @{
-  */
+  */ 
 
-/* Exported types ------------------------------------------------------------*/
+/* Exported types ------------------------------------------------------------*/ 
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions --------------------------------------------------------*/
 
@@ -71,7 +72,7 @@ void HAL_CRYPEx_ComputationCpltCallback(CRYP_HandleTypeDef *hcryp);
 
 /**
   * @}
-  */
+  */ 
 
 /** @addtogroup CRYPEx_Exported_Functions_Group2
   * @{
@@ -89,7 +90,7 @@ HAL_StatusTypeDef HAL_CRYPEx_AES_Auth_DMA(CRYP_HandleTypeDef *hcryp, uint8_t *pI
 
 /**
   * @}
-  */
+  */ 
 
 /** @addtogroup CRYPEx_Exported_Functions_Group3
   * @{
@@ -108,13 +109,13 @@ void HAL_CRYPEx_ProcessSuspend(CRYP_HandleTypeDef *hcryp);
 
 /**
   * @}
-  */
-
+  */  
+  
 
 /**
   * @}
-  */
-
+  */ 
+  
 /* Private functions -----------------------------------------------------------*/
 /** @addtogroup CRYPEx_Private_Functions CRYPEx Private Functions
   * @{
@@ -124,18 +125,18 @@ HAL_StatusTypeDef CRYP_AES_Auth_IT(CRYP_HandleTypeDef *hcryp);
 /**
   * @}
   */
-
-
-/**
-  * @}
-  */
+  
 
 /**
   * @}
-  */
+  */ 
 
-#endif /* AES */
-
+/**
+  * @}
+  */ 
+  
+#endif /* defined (STM32L442xx) || defined (STM32L443xx) || defined (STM32L462xx) || defined(STM32L485xx) || defined(STM32L486xx) || defined(STM32L4A6xx) || defined(STM32L4S5xx) || defined(STM32L4S7xx) || defined(STM32L4S9xx) */     
+  
 #ifdef __cplusplus
 }
 #endif

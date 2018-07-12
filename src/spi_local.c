@@ -285,24 +285,28 @@ void spi_execute_transfer_handlers(devfs_transfer_handler_t * transfer_handler, 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI TX DONE:%d,%d", hspi->TxXferSize, spi->transfer_handler.write ? spi->transfer_handler.write->nbyte : 0);
     spi_execute_write_handler(&spi->transfer_handler, hspi->TxXferSize);
 }
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI RX DONE:%d,%d", hspi->RxXferSize, spi->transfer_handler.read ? spi->transfer_handler.read->nbyte : 0);
     spi_execute_read_handler(&spi->transfer_handler, hspi->RxXferSize);
 }
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD DONE");
     spi_execute_transfer_handlers(&spi->transfer_handler, hspi->TxXferSize, 0);
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
     spi_local_t * spi = (spi_local_t*)hspi;
 
+    mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI Error:0x%X", hspi->ErrorCode);
     spi_execute_transfer_handlers(
                 &spi->transfer_handler,
                 SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode),
@@ -312,6 +316,7 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
 void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
     spi_local_t * spi = (spi_local_t*)hspi;
 
+    mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SPI Abort:0x%X", hspi->ErrorCode);
     spi_execute_transfer_handlers(
                 &spi->transfer_handler,
                 hspi->TxXferSize - hspi->TxXferCount,

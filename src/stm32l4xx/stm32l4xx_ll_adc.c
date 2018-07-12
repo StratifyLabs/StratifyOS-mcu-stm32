@@ -512,8 +512,7 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
     while ((  LL_ADC_REG_IsStopConversionOngoing(ADCx) 
             | LL_ADC_INJ_IsStopConversionOngoing(ADCx)) == 1U)
     {
-      timeout_cpu_cycles--;
-      if(timeout_cpu_cycles == 0U)
+      if(timeout_cpu_cycles-- == 0U)
       {
         /* Time-out error */
         status = ERROR;
@@ -532,8 +531,7 @@ ErrorStatus LL_ADC_DeInit(ADC_TypeDef *ADCx)
     timeout_cpu_cycles = ADC_TIMEOUT_DISABLE_CPU_CYCLES;
     while (LL_ADC_IsDisableOngoing(ADCx) == 1U)
     {
-      timeout_cpu_cycles--;
-      if(timeout_cpu_cycles == 0U)
+      if(timeout_cpu_cycles-- == 0U)
       {
         /* Time-out error */
         status = ERROR;

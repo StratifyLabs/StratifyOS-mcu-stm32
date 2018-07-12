@@ -78,6 +78,7 @@ int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
             return SYSFS_SET_RETURN(EINVAL);
         }
 
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD WRITE:%d", async->nbyte);
         //execute the TX/RX transfer
         ret = HAL_SPI_TransmitReceive_IT(
                     &spi_local[port].hal_handle,
@@ -85,10 +86,12 @@ int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
                     spi_local[port].transfer_handler.read->buf,
                     async->nbyte);
     } else {
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI HD WRITE:%d", async->nbyte);
         ret = HAL_SPI_Transmit_IT(&spi_local[port].hal_handle, async->buf, async->nbyte);
     }
 
     if( ret != HAL_OK ){
+        mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI ERROR:%d", ret);
         spi_local[port].transfer_handler.write = 0;
         return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }

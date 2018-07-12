@@ -34,8 +34,8 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef STM32L4xx_HAL_SMBUS_H
-#define STM32L4xx_HAL_SMBUS_H
+#ifndef __STM32L4xx_HAL_SMBUS_H
+#define __STM32L4xx_HAL_SMBUS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -136,10 +136,6 @@ typedef struct
 #define HAL_SMBUS_ERROR_BUSTIMEOUT      (0x00000020U)    /*!< Bus Timeout error    */
 #define HAL_SMBUS_ERROR_ALERT           (0x00000040U)    /*!< Alert error          */
 #define HAL_SMBUS_ERROR_PECERR          (0x00000080U)    /*!< PEC error            */
-#if (USE_HAL_SMBUS_REGISTER_CALLBACKS == 1)
-#define HAL_SMBUS_ERROR_INVALID_CALLBACK  (0x00000100U)    /*!< Invalid Callback error */
-#endif /* USE_HAL_SMBUS_REGISTER_CALLBACKS */
-#define HAL_SMBUS_ERROR_INVALID_PARAM    (0x00000200U)   /*!< Invalid Parameters error */
 /**
   * @}
   */
@@ -148,7 +144,7 @@ typedef struct
   * @brief  SMBUS handle Structure definition
   * @{
   */
-typedef struct __SMBUS_HandleTypeDef
+typedef struct
 {
   I2C_TypeDef                  *Instance;       /*!< SMBUS registers base address       */
 
@@ -170,47 +166,7 @@ typedef struct __SMBUS_HandleTypeDef
 
   __IO uint32_t                ErrorCode;       /*!< SMBUS Error code                   */
 
-#if (USE_HAL_SMBUS_REGISTER_CALLBACKS == 1)
-  void (* MasterTxCpltCallback)(struct __SMBUS_HandleTypeDef *hsmbus);           /*!< SMBUS Master Tx Transfer completed callback */
-  void (* MasterRxCpltCallback)(struct __SMBUS_HandleTypeDef *hsmbus);           /*!< SMBUS Master Rx Transfer completed callback */
-  void (* SlaveTxCpltCallback)(struct __SMBUS_HandleTypeDef *hsmbus);            /*!< SMBUS Slave Tx Transfer completed callback  */
-  void (* SlaveRxCpltCallback)(struct __SMBUS_HandleTypeDef *hsmbus);            /*!< SMBUS Slave Rx Transfer completed callback  */
-  void (* ListenCpltCallback)(struct __SMBUS_HandleTypeDef *hsmbus);             /*!< SMBUS Listen Complete callback              */
-  void (* ErrorCallback)(struct __SMBUS_HandleTypeDef *hsmbus);                  /*!< SMBUS Error callback                        */
-
-  void (* AddrCallback)(struct __SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirection, uint16_t AddrMatchCode);  /*!< SMBUS Slave Address Match callback */
-
-  void (* MspInitCallback)(struct __SMBUS_HandleTypeDef *hsmbus);                /*!< SMBUS Msp Init callback                     */
-  void (* MspDeInitCallback)(struct __SMBUS_HandleTypeDef *hsmbus);              /*!< SMBUS Msp DeInit callback                   */
-
-#endif  /* USE_HAL_SMBUS_REGISTER_CALLBACKS */
 } SMBUS_HandleTypeDef;
-
-#if (USE_HAL_SMBUS_REGISTER_CALLBACKS == 1)
-/**
-  * @brief  HAL SMBUS Callback ID enumeration definition
-  */
-typedef enum
-{
-  HAL_SMBUS_MASTER_TX_COMPLETE_CB_ID      = 0x00U,    /*!< SMBUS Master Tx Transfer completed callback ID  */
-  HAL_SMBUS_MASTER_RX_COMPLETE_CB_ID      = 0x01U,    /*!< SMBUS Master Rx Transfer completed callback ID  */
-  HAL_SMBUS_SLAVE_TX_COMPLETE_CB_ID       = 0x02U,    /*!< SMBUS Slave Tx Transfer completed callback ID   */
-  HAL_SMBUS_SLAVE_RX_COMPLETE_CB_ID       = 0x03U,    /*!< SMBUS Slave Rx Transfer completed callback ID   */
-  HAL_SMBUS_LISTEN_COMPLETE_CB_ID         = 0x04U,    /*!< SMBUS Listen Complete callback ID               */
-  HAL_SMBUS_ERROR_CB_ID                   = 0x05U,    /*!< SMBUS Error callback ID                         */
-
-  HAL_SMBUS_MSPINIT_CB_ID                 = 0x06U,    /*!< SMBUS Msp Init callback ID                      */
-  HAL_SMBUS_MSPDEINIT_CB_ID               = 0x07U     /*!< SMBUS Msp DeInit callback ID                    */
-
-} HAL_SMBUS_CallbackIDTypeDef;
-
-/**
-  * @brief  HAL SMBUS Callback pointer definition
-  */
-typedef  void (*pSMBUS_CallbackTypeDef)(SMBUS_HandleTypeDef *hsmbus); /*!< pointer to an SMBUS callback function */
-typedef  void (*pSMBUS_AddrCallbackTypeDef)(SMBUS_HandleTypeDef *hsmbus, uint8_t TransferDirection, uint16_t AddrMatchCode); /*!< pointer to an SMBUS Address Match callback function */
-
-#endif /* USE_HAL_SMBUS_REGISTER_CALLBACKS */
 /**
   * @}
   */
@@ -278,7 +234,7 @@ typedef  void (*pSMBUS_AddrCallbackTypeDef)(SMBUS_HandleTypeDef *hsmbus, uint8_t
   * @}
   */
 
-/** @defgroup SMBUS_nostretch_mode SMBUS nostretch mode
+/** @defgroup SMBUS_nostretch_mode  SMBUS nostretch mode
   * @{
   */
 #define SMBUS_NOSTRETCH_DISABLE                 (0x00000000U)
@@ -417,15 +373,7 @@ typedef  void (*pSMBUS_AddrCallbackTypeDef)(SMBUS_HandleTypeDef *hsmbus, uint8_t
   * @param  __HANDLE__ specifies the SMBUS Handle.
   * @retval None
   */
-#if (USE_HAL_SMBUS_REGISTER_CALLBACKS == 1)
-#define __HAL_SMBUS_RESET_HANDLE_STATE(__HANDLE__)           do{                                                   \
-                                                                (__HANDLE__)->State = HAL_SMBUS_STATE_RESET;       \
-                                                                (__HANDLE__)->MspInitCallback = NULL;            \
-                                                                (__HANDLE__)->MspDeInitCallback = NULL;          \
-                                                             } while(0)
-#else
-#define __HAL_SMBUS_RESET_HANDLE_STATE(__HANDLE__)         ((__HANDLE__)->State = HAL_SMBUS_STATE_RESET)
-#endif
+#define __HAL_SMBUS_RESET_HANDLE_STATE(__HANDLE__) ((__HANDLE__)->State = HAL_SMBUS_STATE_RESET)
 
 /** @brief  Enable the specified SMBUS interrupts.
   * @param  __HANDLE__ specifies the SMBUS Handle.
@@ -642,7 +590,7 @@ typedef  void (*pSMBUS_AddrCallbackTypeDef)(SMBUS_HandleTypeDef *hsmbus, uint8_t
  * @{
  */
 
-/* Initialization and de-initialization functions  ****************************/
+/* Initialization and de-initialization functions  **********************************/
 HAL_StatusTypeDef HAL_SMBUS_Init(SMBUS_HandleTypeDef *hsmbus);
 HAL_StatusTypeDef HAL_SMBUS_DeInit(SMBUS_HandleTypeDef *hsmbus);
 void HAL_SMBUS_MspInit(SMBUS_HandleTypeDef *hsmbus);
@@ -650,14 +598,6 @@ void HAL_SMBUS_MspDeInit(SMBUS_HandleTypeDef *hsmbus);
 HAL_StatusTypeDef HAL_SMBUS_ConfigAnalogFilter(SMBUS_HandleTypeDef *hsmbus, uint32_t AnalogFilter);
 HAL_StatusTypeDef HAL_SMBUS_ConfigDigitalFilter(SMBUS_HandleTypeDef *hsmbus, uint32_t DigitalFilter);
 
-/* Callbacks Register/UnRegister functions  ***********************************/
-#if (USE_HAL_SMBUS_REGISTER_CALLBACKS == 1)
-HAL_StatusTypeDef HAL_SMBUS_RegisterCallback(SMBUS_HandleTypeDef *hsmbus, HAL_SMBUS_CallbackIDTypeDef CallbackID, pSMBUS_CallbackTypeDef pCallback);
-HAL_StatusTypeDef HAL_SMBUS_UnRegisterCallback(SMBUS_HandleTypeDef *hsmbus, HAL_SMBUS_CallbackIDTypeDef CallbackID);
-
-HAL_StatusTypeDef HAL_SMBUS_RegisterAddrCallback(SMBUS_HandleTypeDef *hsmbus, pSMBUS_AddrCallbackTypeDef pCallback);
-HAL_StatusTypeDef HAL_SMBUS_UnRegisterAddrCallback(SMBUS_HandleTypeDef *hsmbus);
-#endif /* USE_HAL_SMBUS_REGISTER_CALLBACKS */
 /**
   * @}
   */
@@ -754,6 +694,6 @@ uint32_t HAL_SMBUS_GetError(SMBUS_HandleTypeDef *hsmbus);
 #endif
 
 
-#endif /* STM32L4xx_HAL_SMBUS_H */
+#endif /* __STM32L4xx_HAL_SMBUS_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

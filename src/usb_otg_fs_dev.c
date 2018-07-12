@@ -527,11 +527,7 @@ int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num,
     if( type == EP_TYPE_ISOC ){
         //check to see if the packet will fit in the FIFO
         //if the packet won't fit, return EBUSY
-#if defined STM32L4
-        USB_OTG_GlobalTypeDef * USBx_BASE = usb_local[handle->port].hal_handle.Instance;
-#else
         USB_OTG_GlobalTypeDef * USBx = usb_local[handle->port].hal_handle.Instance;
-#endif
         int available = (USBx_INEP(logical_endpoint)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV);
         if( (available * 4) < size ){
             return SYSFS_SET_RETURN(EBUSY);
@@ -594,7 +590,6 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
     memcpy(dest_buffer, src_buffer, count);
     usb->rx_count[epnum] = count;
 
-    //mcu_debug_root_printf("Data out %d 0x%lX %d\n", epnum, (u32)usb->read[epnum].callback, count);
     mcu_execute_event_handler(usb->read + epnum, MCU_EVENT_FLAG_DATA_READY, &event);
 
     //prepare to receive the next packet in the local buffer
@@ -609,6 +604,7 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
     event.epnum = epnum;
 
     usb->write_pending &= ~(1<<logical_ep);
+
     mcu_execute_event_handler(usb->write + logical_ep, MCU_EVENT_FLAG_WRITE_COMPLETE, &event);
 
     if( (epnum & 0x7f) == 0 ){
@@ -627,7 +623,6 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
     int i;
     usb_local_t * usb = (usb_local_t *)hpcd;
     u32 mps = mcu_board_config.usb_max_packet_zero;
-
 
     usb->rx_buffer_used = mps;
     for(i=0; i < DEV_USB_LOGICAL_ENDPOINT_COUNT; i++){

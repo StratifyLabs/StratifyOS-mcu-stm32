@@ -41,7 +41,7 @@ int hal_get_alternate_function(int gpio_port, int pin, core_periph_t function, i
     }
 
     if( gpio_port != 0xff ){
-        mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Failed to resolve pin:%d.%d -> %d.%d", gpio_port, pin, function, periph_port);
+        //mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Failed to resolve pin:%d.%d -> %d.%d", gpio_port, pin, function, periph_port);
     }
     return -1;
 }
