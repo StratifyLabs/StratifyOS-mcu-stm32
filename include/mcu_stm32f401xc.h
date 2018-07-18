@@ -91,7 +91,7 @@
 #define MCU_MIDDLE_IRQ_PRIORITY 8
 
 
-#define MCU_RAM_PAGES 48
+#define MCU_RAM_PAGES 80
 #define MCU_DELAY_FACTOR 12
 #define MCU_TOTAL_PINS (7*16+2)
 

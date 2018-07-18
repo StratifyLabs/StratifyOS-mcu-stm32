@@ -344,9 +344,14 @@ int mcu_i2c_write(const devfs_handle_t * handle, devfs_async_t * async){
 
     if( ret == HAL_OK ){
         return 0;
+    } else {
+        if( ret == HAL_TIMEOUT ){
+            i2c->err = I2C_ERROR_TIMEOUT;
+        }
+        mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2C Write Error: %d", ret);
     }
 
-    return -1;
+    return SYSFS_SET_RETURN(EIO);
 }
 
 int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
@@ -378,9 +383,10 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
         if( ret == HAL_TIMEOUT ){
             i2c->err = I2C_ERROR_TIMEOUT;
         }
+        mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2C Read Error: %d", ret);
     }
 
-    return -1;
+    return SYSFS_SET_RETURN(EIO);
 }
 
 void exec_master_callback(i2c_local_t * i2c, u32 o_events, u32 value){
