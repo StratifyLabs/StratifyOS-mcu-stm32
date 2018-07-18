@@ -134,25 +134,26 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
     int i;
 
     const usb_attr_t * attr = mcu_select_attr(handle, ctl);
-    if( attr == 0 ){
-        return -1;
-    }
+    if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
     u32 o_flags = attr->o_flags;
+
 
     if( o_flags & USB_FLAG_SET_DEVICE ){
         //Start the USB clock
+        int result;
         mcu_core_setusbclock(attr->freq);
 
         usb_local[port].read_ready = 0;
         usb_local[port].write_pending = 0;
 
-        if( mcu_set_pin_assignment(
+
+        result = mcu_set_pin_assignment(
                     &(attr->pin_assignment),
                     MCU_CONFIG_PIN_ASSIGNMENT(usb_config_t, handle),
                     MCU_PIN_ASSIGNMENT_COUNT(usb_pin_assignment_t),
-                    CORE_PERIPH_USB, port, 0, 0, 0) < 0 ){
-            return SYSFS_SET_RETURN(EINVAL);
-        }
+                    CORE_PERIPH_USB, port, 0, 0, 0);
+
+        if( result < 0 ){ return result; }
 
 #if defined STM32L4
         if(__HAL_RCC_PWR_IS_CLK_DISABLED())
@@ -201,6 +202,7 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
         usb_local[port].hal_handle.Init.vbus_sensing_enable = DISABLE;
         usb_local[port].hal_handle.Init.use_dedicated_ep1 = DISABLE;
         usb_local[port].hal_handle.Init.battery_charging_enable = DISABLE;
+        usb_local[port].hal_handle.Init.use_external_vbus = DISABLE;
 
         if( o_flags & USB_FLAG_IS_SOF_ENABLED ){
             usb_local[port].hal_handle.Init.Sof_enable = ENABLE;
@@ -228,7 +230,6 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
                 HAL_PCDEx_SetTxFiFo(&usb_local[port].hal_handle, i, attr->tx_fifo_word_size[i]);
             }
         }
-
     }
 
 
