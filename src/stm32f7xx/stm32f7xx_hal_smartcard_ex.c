@@ -2,6 +2,8 @@
   ******************************************************************************
   * @file    stm32f7xx_hal_smartcard_ex.c
   * @author  MCD Application Team
+  * @version V1.2.2
+  * @date    14-April-2017
   * @brief   SMARTCARD HAL module driver.
   *
   *          This file provides extended firmware functions to manage the following 
@@ -94,8 +96,8 @@
 
 /**
   * @brief Update on the fly the SMARTCARD block length in RTOR register
-  * @param hsc SMARTCARD handle
-  * @param BlockLength SMARTCARD block length (8-bit long at most)  
+  * @param hsc: SMARTCARD handle
+  * @param BlockLength: SMARTCARD block length (8-bit long at most)  
   * @retval None
   */
 void HAL_SMARTCARDEx_BlockLength_Config(SMARTCARD_HandleTypeDef *hsc, uint8_t BlockLength)
@@ -105,8 +107,8 @@ void HAL_SMARTCARDEx_BlockLength_Config(SMARTCARD_HandleTypeDef *hsc, uint8_t Bl
 
 /**
   * @brief Update on the fly the receiver timeout value in RTOR register
-  * @param hsc SMARTCARD handle
-  * @param TimeOutValue receiver timeout value in number of baud blocks. The timeout
+  * @param hsc: SMARTCARD handle
+  * @param TimeOutValue: receiver timeout value in number of baud blocks. The timeout
   *                     value must be less or equal to 0x0FFFFFFFF. 
   * @retval None
   */
@@ -118,7 +120,7 @@ void HAL_SMARTCARDEx_TimeOut_Config(SMARTCARD_HandleTypeDef *hsc, uint32_t TimeO
 
 /**
   * @brief Enable the SMARTCARD receiver timeout feature
-  * @param hsc SMARTCARD handle
+  * @param hsc: SMARTCARD handle
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_SMARTCARDEx_EnableReceiverTimeOut(SMARTCARD_HandleTypeDef *hsc)
@@ -141,7 +143,7 @@ HAL_StatusTypeDef HAL_SMARTCARDEx_EnableReceiverTimeOut(SMARTCARD_HandleTypeDef 
 
 /**
   * @brief Disable the SMARTCARD receiver timeout feature
-  * @param hsc SMARTCARD handle
+  * @param hsc: SMARTCARD handle
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_SMARTCARDEx_DisableReceiverTimeOut(SMARTCARD_HandleTypeDef *hsc)

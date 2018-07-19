@@ -2,6 +2,8 @@
   ******************************************************************************
   * @file    stm32f7xx_ll_utils.h
   * @author  MCD Application Team
+  * @version V1.2.2
+  * @date    14-April-2017
   * @brief   Header file of UTILS LL module.
   @verbatim
   ==============================================================================
@@ -18,7 +20,7 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2016 STMicroelectronics</center></h2>
+  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -236,7 +238,7 @@ __STATIC_INLINE uint32_t LL_GetUID_Word2(void)
   */
 __STATIC_INLINE uint32_t LL_GetFlashSize(void)
 {
-  return (uint32_t)(READ_REG(*((uint32_t *)FLASHSIZE_BASE_ADDRESS)) & 0xFFFFU);
+  return (uint16_t)(READ_REG(*((uint32_t *)FLASHSIZE_BASE_ADDRESS)));
 }
 
 /**
@@ -251,7 +253,7 @@ __STATIC_INLINE uint32_t LL_GetFlashSize(void)
   */
 __STATIC_INLINE uint32_t LL_GetPackageType(void)
 {
-  return (uint32_t)(READ_REG(*((uint32_t *)PACKAGE_BASE_ADDRESS)) & 0x0700U);
+  return (uint16_t)(READ_REG(*((uint32_t *)PACKAGE_BASE_ADDRESS)) & 0x0700U);
 }
 
 /**

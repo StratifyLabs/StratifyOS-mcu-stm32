@@ -2,6 +2,8 @@
   ******************************************************************************
   * @file    stm32f7xx_hal_rng.c
   * @author  MCD Application Team
+  * @version V1.2.2
+  * @date    14-April-2017
   * @brief   RNG HAL module driver.
   *          This file provides firmware functions to manage the following 
   *          functionalities of the Random Number Generator (RNG) peripheral:
@@ -74,7 +76,7 @@
 /** @addtogroup RNG_Private_Constants
   * @{
   */
-#define RNG_TIMEOUT_VALUE     2U
+#define RNG_TIMEOUT_VALUE     2
 /**
   * @}
   */ 
@@ -107,7 +109,7 @@
   
 /**
   * @brief  Initializes the RNG peripheral and creates the associated handle.
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval HAL status
   */
@@ -118,11 +120,14 @@ HAL_StatusTypeDef HAL_RNG_Init(RNG_HandleTypeDef *hrng)
   {
     return HAL_ERROR;
   }
-
+  
+  __HAL_LOCK(hrng);
+  
   if(hrng->State == HAL_RNG_STATE_RESET)
   {  
     /* Allocate lock resource and initialize it */
     hrng->Lock = HAL_UNLOCKED;
+
     /* Init the low level hardware */
     HAL_RNG_MspInit(hrng);
   }
@@ -135,14 +140,16 @@ HAL_StatusTypeDef HAL_RNG_Init(RNG_HandleTypeDef *hrng)
 
   /* Initialize the RNG state */
   hrng->State = HAL_RNG_STATE_READY;
-
+  
+  __HAL_UNLOCK(hrng);
+  
   /* Return function status */
   return HAL_OK;
 }
 
 /**
   * @brief  DeInitializes the RNG peripheral. 
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval HAL status
   */
@@ -174,7 +181,7 @@ HAL_StatusTypeDef HAL_RNG_DeInit(RNG_HandleTypeDef *hrng)
 
 /**
   * @brief  Initializes the RNG MSP.
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval None
   */
@@ -182,6 +189,7 @@ __weak void HAL_RNG_MspInit(RNG_HandleTypeDef *hrng)
 {
   /* Prevent unused argument(s) compilation warning */
   UNUSED(hrng);
+  
   /* NOTE : This function should not be modified. When the callback is needed,
             function HAL_RNG_MspInit must be implemented in the user file.
    */
@@ -189,7 +197,7 @@ __weak void HAL_RNG_MspInit(RNG_HandleTypeDef *hrng)
 
 /**
   * @brief  DeInitializes the RNG MSP.
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval None
   */
@@ -197,6 +205,7 @@ __weak void HAL_RNG_MspDeInit(RNG_HandleTypeDef *hrng)
 {
   /* Prevent unused argument(s) compilation warning */
   UNUSED(hrng);
+  
   /* NOTE : This function should not be modified. When the callback is needed,
             function HAL_RNG_MspDeInit must be implemented in the user file.
    */
@@ -226,15 +235,15 @@ __weak void HAL_RNG_MspDeInit(RNG_HandleTypeDef *hrng)
   * @brief  Generates a 32-bit random number.
   * @note   Each time the random number data is read the RNG_FLAG_DRDY flag 
   *         is automatically cleared.
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
-  * @param  random32bit pointer to generated random number variable if successful.
+  * @param  random32bit: pointer to generated random number variable if successful.
   * @retval HAL status
   */
 
 HAL_StatusTypeDef HAL_RNG_GenerateRandomNumber(RNG_HandleTypeDef *hrng, uint32_t *random32bit)
 {
-  uint32_t tickstart = 0U;    
+  uint32_t tickstart = 0;    
   HAL_StatusTypeDef status = HAL_OK;
 
   /* Process Locked */
@@ -282,7 +291,7 @@ HAL_StatusTypeDef HAL_RNG_GenerateRandomNumber(RNG_HandleTypeDef *hrng, uint32_t
 
 /**
   * @brief  Generates a 32-bit random number in interrupt mode.
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval HAL status
   */
@@ -332,7 +341,7 @@ HAL_StatusTypeDef HAL_RNG_GenerateRandomNumber_IT(RNG_HandleTypeDef *hrng)
   *         the RNG peripheral to reinitialize and restart the RNG.
   * @note   User-written HAL_RNG_ErrorCallback() API is called once whether SEIS
   *         or CEIS are set.  
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval None
 
@@ -375,7 +384,7 @@ void HAL_RNG_IRQHandler(RNG_HandleTypeDef *hrng)
 /**
   * @brief  Returns generated random number in polling mode (Obsolete)
   *         Use HAL_RNG_GenerateRandomNumber() API instead.
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval Random value
   */
@@ -387,20 +396,20 @@ uint32_t HAL_RNG_GetRandomNumber(RNG_HandleTypeDef *hrng)
   }
   else
   {
-    return 0U;
+    return 0;
   }
 }
 
 /**
   * @brief  Returns a 32-bit random number with interrupt enabled (Obsolete),
   *         Use HAL_RNG_GenerateRandomNumber_IT() API instead.
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval 32-bit random number
   */
 uint32_t HAL_RNG_GetRandomNumber_IT(RNG_HandleTypeDef *hrng)
 {
-  uint32_t random32bit = 0U;
+  uint32_t random32bit = 0;
   
   /* Process locked */
   __HAL_LOCK(hrng);
@@ -420,7 +429,7 @@ uint32_t HAL_RNG_GetRandomNumber_IT(RNG_HandleTypeDef *hrng)
 
 /**
   * @brief  Read latest generated random number. 
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval random value
   */
@@ -431,16 +440,16 @@ uint32_t HAL_RNG_ReadLastRandomNumber(RNG_HandleTypeDef *hrng)
 
 /**
   * @brief  Data Ready callback in non-blocking mode. 
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
-  * @param  random32bit generated random number.
+  * @param  random32bit: generated random number.
   * @retval None
   */
 __weak void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef *hrng, uint32_t random32bit)
 {
   /* Prevent unused argument(s) compilation warning */
   UNUSED(hrng);
-  UNUSED(random32bit);
+  
   /* NOTE : This function should not be modified. When the callback is needed,
             function HAL_RNG_ReadyDataCallback must be implemented in the user file.
    */
@@ -448,7 +457,7 @@ __weak void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef *hrng, uint32_t random32
 
 /**
   * @brief  RNG error callbacks.
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval None
   */
@@ -456,6 +465,7 @@ __weak void HAL_RNG_ErrorCallback(RNG_HandleTypeDef *hrng)
 {
   /* Prevent unused argument(s) compilation warning */
   UNUSED(hrng);
+  
   /* NOTE : This function should not be modified. When the callback is needed,
             function HAL_RNG_ErrorCallback must be implemented in the user file.
    */
@@ -482,7 +492,7 @@ __weak void HAL_RNG_ErrorCallback(RNG_HandleTypeDef *hrng)
   
 /**
   * @brief  Returns the RNG state.
-  * @param  hrng pointer to a RNG_HandleTypeDef structure that contains
+  * @param  hrng: pointer to a RNG_HandleTypeDef structure that contains
   *                the configuration information for RNG.
   * @retval HAL state
   */

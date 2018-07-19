@@ -2,6 +2,8 @@
   ******************************************************************************
   * @file    stm32f7xx_hal_mmc.c
   * @author  MCD Application Team
+  * @version V1.2.2
+  * @date    14-April-2017
   * @brief   MMC card HAL module driver.
   *          This file provides firmware functions to manage the following 
   *          functionalities of the Secure Digital (MMC) peripheral:
@@ -286,7 +288,7 @@ static void MMC_DMARxAbort(DMA_HandleTypeDef *hdma);
 /**
   * @brief  Initializes the MMC according to the specified parameters in the 
             MMC_HandleTypeDef and create the associated handle.
-  * @param  hmmc Pointer to the MMC handle  
+  * @param  hmmc: Pointer to the MMC handle  
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_MMC_Init(MMC_HandleTypeDef *hmmc)
@@ -333,7 +335,7 @@ HAL_StatusTypeDef HAL_MMC_Init(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  Initializes the MMC Card.
-  * @param  hmmc Pointer to MMC handle
+  * @param  hmmc: Pointer to MMC handle
   * @note   This function initializes the MMC card. It could be used when a card 
             re-initialization is needed.
   * @retval HAL status
@@ -364,8 +366,7 @@ HAL_StatusTypeDef HAL_MMC_InitCard(MMC_HandleTypeDef *hmmc)
   __HAL_MMC_ENABLE(hmmc);
   
   /* Required power up waiting time before starting the SD initialization sequence */
-  // MBED: removed
-  //HAL_Delay(2);
+  HAL_Delay(2);
   
   /* Identify card operating voltage */
   errorstate = MMC_PowerON(hmmc);
@@ -390,7 +391,7 @@ HAL_StatusTypeDef HAL_MMC_InitCard(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  De-Initializes the MMC card.
-  * @param  hmmc Pointer to MMC handle
+  * @param  hmmc: Pointer to MMC handle
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_MMC_DeInit(MMC_HandleTypeDef *hmmc)
@@ -421,7 +422,7 @@ HAL_StatusTypeDef HAL_MMC_DeInit(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  Initializes the MMC MSP.
-  * @param  hmmc Pointer to MMC handle
+  * @param  hmmc: Pointer to MMC handle
   * @retval None
   */
 __weak void HAL_MMC_MspInit(MMC_HandleTypeDef *hmmc)
@@ -436,7 +437,7 @@ __weak void HAL_MMC_MspInit(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  De-Initialize MMC MSP.
-  * @param  hmmc Pointer to MMC handle
+  * @param  hmmc: Pointer to MMC handle
   * @retval None
   */
 __weak void HAL_MMC_MspDeInit(MMC_HandleTypeDef *hmmc)
@@ -473,11 +474,11 @@ __weak void HAL_MMC_MspDeInit(MMC_HandleTypeDef *hmmc)
   *         is managed by polling mode.
   * @note   This API should be followed by a check on the card state through
   *         HAL_MMC_GetCardState().
-  * @param  hmmc Pointer to MMC handle
-  * @param  pData pointer to the buffer that will contain the received data
-  * @param  BlockAdd Block Address from where data is to be read 
-  * @param  NumberOfBlocks Number of MMC blocks to read
-  * @param  Timeout Specify timeout value
+  * @param  hmmc: Pointer to MMC handle
+  * @param  pData: pointer to the buffer that will contain the received data
+  * @param  BlockAdd: Block Address from where data is to be read 
+  * @param  NumberOfBlocks: Number of MMC blocks to read
+  * @param  Timeout: Specify timeout value
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_MMC_ReadBlocks(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks, uint32_t Timeout)
@@ -657,11 +658,11 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks(MMC_HandleTypeDef *hmmc, uint8_t *pData, ui
   *         transfer is managed by polling mode.
   * @note   This API should be followed by a check on the card state through
   *         HAL_MMC_GetCardState().
-  * @param  hmmc Pointer to MMC handle
-  * @param  pData pointer to the buffer that will contain the data to transmit
-  * @param  BlockAdd Block Address where data will be written  
-  * @param  NumberOfBlocks Number of MMC blocks to write
-  * @param  Timeout Specify timeout value
+  * @param  hmmc: Pointer to MMC handle
+  * @param  pData: pointer to the buffer that will contain the data to transmit
+  * @param  BlockAdd: Block Address where data will be written  
+  * @param  NumberOfBlocks: Number of MMC blocks to write
+  * @param  Timeout: Specify timeout value
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_MMC_WriteBlocks(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks, uint32_t Timeout)
@@ -828,10 +829,10 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks(MMC_HandleTypeDef *hmmc, uint8_t *pData, u
   *         HAL_MMC_GetCardState().
   * @note   You could also check the IT transfer process through the MMC Rx 
   *         interrupt event.
-  * @param  hmmc Pointer to MMC handle                 
-  * @param  pData Pointer to the buffer that will contain the received data
-  * @param  BlockAdd Block Address from where data is to be read 
-  * @param  NumberOfBlocks Number of blocks to read.
+  * @param  hmmc: Pointer to MMC handle                 
+  * @param  pData: Pointer to the buffer that will contain the received data
+  * @param  BlockAdd: Block Address from where data is to be read 
+  * @param  NumberOfBlocks: Number of blocks to read.
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_MMC_ReadBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks)
@@ -930,10 +931,10 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData,
   *         HAL_MMC_GetCardState().
   * @note   You could also check the IT transfer process through the MMC Tx 
   *         interrupt event. 
-  * @param  hmmc Pointer to MMC handle
-  * @param  pData Pointer to the buffer that will contain the data to transmit
-  * @param  BlockAdd Block Address where data will be written    
-  * @param  NumberOfBlocks Number of blocks to write
+  * @param  hmmc: Pointer to MMC handle
+  * @param  pData: Pointer to the buffer that will contain the data to transmit
+  * @param  BlockAdd: Block Address where data will be written    
+  * @param  NumberOfBlocks: Number of blocks to write
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_MMC_WriteBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks)
@@ -1033,10 +1034,10 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData
   *         HAL_MMC_GetCardState().
   * @note   You could also check the DMA transfer process through the MMC Rx 
   *         interrupt event.
-  * @param  hmmc Pointer MMC handle                 
-  * @param  pData Pointer to the buffer that will contain the received data
-  * @param  BlockAdd Block Address from where data is to be read  
-  * @param  NumberOfBlocks Number of blocks to read.
+  * @param  hmmc: Pointer MMC handle                 
+  * @param  pData: Pointer to the buffer that will contain the received data
+  * @param  BlockAdd: Block Address from where data is to be read  
+  * @param  NumberOfBlocks: Number of blocks to read.
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_MMC_ReadBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks)
@@ -1147,10 +1148,10 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData
   *         HAL_MMC_GetCardState().
   * @note   You could also check the DMA transfer process through the MMC Tx 
   *         interrupt event.
-  * @param  hmmc Pointer to MMC handle
-  * @param  pData Pointer to the buffer that will contain the data to transmit
-  * @param  BlockAdd Block Address where data will be written  
-  * @param  NumberOfBlocks Number of blocks to write
+  * @param  hmmc: Pointer to MMC handle
+  * @param  pData: Pointer to the buffer that will contain the data to transmit
+  * @param  BlockAdd: Block Address where data will be written  
+  * @param  NumberOfBlocks: Number of blocks to write
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks)
@@ -1259,9 +1260,9 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pDat
   * @brief  Erases the specified memory area of the given MMC card.
   * @note   This API should be followed by a check on the card state through
   *         HAL_MMC_GetCardState().
-  * @param  hmmc Pointer to MMC handle 
-  * @param  BlockStartAdd Start Block address
-  * @param  BlockEndAdd End Block address
+  * @param  hmmc: Pointer to MMC handle 
+  * @param  BlockStartAdd: Start Block address
+  * @param  BlockEndAdd: End Block address
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_MMC_Erase(MMC_HandleTypeDef *hmmc, uint32_t BlockStartAdd, uint32_t BlockEndAdd)
@@ -1357,7 +1358,7 @@ HAL_StatusTypeDef HAL_MMC_Erase(MMC_HandleTypeDef *hmmc, uint32_t BlockStartAdd,
 
 /**
   * @brief  This function handles MMC card interrupt request.
-  * @param  hmmc Pointer to MMC handle
+  * @param  hmmc: Pointer to MMC handle
   * @retval None
   */
 void HAL_MMC_IRQHandler(MMC_HandleTypeDef *hmmc)
@@ -1503,7 +1504,7 @@ void HAL_MMC_IRQHandler(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief return the MMC state
-  * @param hmmc Pointer to mmc handle
+  * @param hmmc: Pointer to mmc handle
   * @retval HAL state
   */
 HAL_MMC_StateTypeDef HAL_MMC_GetState(MMC_HandleTypeDef *hmmc)
@@ -1513,7 +1514,7 @@ HAL_MMC_StateTypeDef HAL_MMC_GetState(MMC_HandleTypeDef *hmmc)
 
 /**
 * @brief  Return the MMC error code
-* @param  hmmc  Pointer to a MMC_HandleTypeDef structure that contains
+* @param  hmmc : Pointer to a MMC_HandleTypeDef structure that contains
   *              the configuration information.
 * @retval MMC Error Code
 */
@@ -1524,7 +1525,7 @@ uint32_t HAL_MMC_GetError(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief Tx Transfer completed callbacks
-  * @param hmmc Pointer to MMC handle
+  * @param hmmc: Pointer to MMC handle
   * @retval None
   */
  __weak void HAL_MMC_TxCpltCallback(MMC_HandleTypeDef *hmmc)
@@ -1539,7 +1540,7 @@ uint32_t HAL_MMC_GetError(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief Rx Transfer completed callbacks
-  * @param hmmc Pointer MMC handle
+  * @param hmmc: Pointer MMC handle
   * @retval None
   */
 __weak void HAL_MMC_RxCpltCallback(MMC_HandleTypeDef *hmmc)
@@ -1554,7 +1555,7 @@ __weak void HAL_MMC_RxCpltCallback(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief MMC error callbacks
-  * @param hmmc Pointer MMC handle
+  * @param hmmc: Pointer MMC handle
   * @retval None
   */
 __weak void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc)
@@ -1569,7 +1570,7 @@ __weak void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief MMC Abort callbacks
-  * @param hmmc Pointer MMC handle
+  * @param hmmc: Pointer MMC handle
   * @retval None
   */
 __weak void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc)
@@ -1605,8 +1606,8 @@ __weak void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc)
 /**
   * @brief  Returns information the information of the card which are stored on
   *         the CID register.
-  * @param  hmmc Pointer to MMC handle
-  * @param  pCID Pointer to a HAL_MMC_CIDTypedef structure that  
+  * @param  hmmc: Pointer to MMC handle
+  * @param  pCID: Pointer to a HAL_MMC_CIDTypedef structure that  
   *         contains all CID register parameters 
   * @retval HAL status
   */
@@ -1686,8 +1687,8 @@ HAL_StatusTypeDef HAL_MMC_GetCardCID(MMC_HandleTypeDef *hmmc, HAL_MMC_CardCIDTyp
 /**
   * @brief  Returns information the information of the card which are stored on
   *         the CSD register.
-  * @param  hmmc Pointer to MMC handle
-  * @param  pCSD Pointer to a HAL_MMC_CardInfoTypeDef structure that  
+  * @param  hmmc: Pointer to MMC handle
+  * @param  pCSD: Pointer to a HAL_MMC_CardInfoTypeDef structure that  
   *         contains all CSD register parameters  
   * @retval HAL status
   */
@@ -1800,8 +1801,8 @@ HAL_StatusTypeDef HAL_MMC_GetCardCSD(MMC_HandleTypeDef *hmmc, HAL_MMC_CardCSDTyp
 
 /**
   * @brief  Gets the MMC card info.
-  * @param  hmmc Pointer to MMC handle      
-  * @param  pCardInfo Pointer to the HAL_MMC_CardInfoTypeDef structure that 
+  * @param  hmmc: Pointer to MMC handle      
+  * @param  pCardInfo: Pointer to the HAL_MMC_CardInfoTypeDef structure that 
   *         will contain the MMC card status information 
   * @retval HAL status
   */
@@ -1821,8 +1822,8 @@ HAL_StatusTypeDef HAL_MMC_GetCardInfo(MMC_HandleTypeDef *hmmc, HAL_MMC_CardInfoT
 /**
   * @brief  Enables wide bus operation for the requested card if supported by 
   *         card.
-  * @param  hmmc Pointer to MMC handle       
-  * @param  WideMode Specifies the MMC card wide bus mode 
+  * @param  hmmc: Pointer to MMC handle       
+  * @param  WideMode: Specifies the MMC card wide bus mode 
   *          This parameter can be one of the following values:
   *            @arg SDMMC_BUS_WIDE_8B: 8-bit data transfer
   *            @arg SDMMC_BUS_WIDE_4B: 4-bit data transfer
@@ -1956,7 +1957,7 @@ HAL_StatusTypeDef HAL_MMC_ConfigWideBusOperation(MMC_HandleTypeDef *hmmc, uint32
 
 /**
   * @brief  Gets the current mmc card data state.
-  * @param  hmmc pointer to MMC handle
+  * @param  hmmc: pointer to MMC handle
   * @retval Card state
   */
 HAL_MMC_CardStateTypeDef HAL_MMC_GetCardState(MMC_HandleTypeDef *hmmc)
@@ -1978,7 +1979,7 @@ HAL_MMC_CardStateTypeDef HAL_MMC_GetCardState(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  Abort the current transfer and disable the MMC.
-  * @param  hmmc pointer to a MMC_HandleTypeDef structure that contains
+  * @param  hmmc: pointer to a MMC_HandleTypeDef structure that contains
   *                the configuration information for MMC module.
   * @retval HAL status
   */
@@ -2025,7 +2026,7 @@ HAL_StatusTypeDef HAL_MMC_Abort(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  Abort the current transfer and disable the MMC (IT mode).
-  * @param  hmmc pointer to a MMC_HandleTypeDef structure that contains
+  * @param  hmmc: pointer to a MMC_HandleTypeDef structure that contains
   *                the configuration information for MMC module.
   * @retval HAL status
   */
@@ -2102,7 +2103,7 @@ HAL_StatusTypeDef HAL_MMC_Abort_IT(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  DMA MMC transmit process complete callback 
-  * @param  hdma DMA handle
+  * @param  hdma: DMA handle
   * @retval None
   */
 static void MMC_DMATransmitCplt(DMA_HandleTypeDef *hdma)     
@@ -2115,7 +2116,7 @@ static void MMC_DMATransmitCplt(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  DMA MMC receive process complete callback 
-  * @param  hdma DMA handle
+  * @param  hdma: DMA handle
   * @retval None
   */
 static void MMC_DMAReceiveCplt(DMA_HandleTypeDef *hdma)  
@@ -2148,7 +2149,7 @@ static void MMC_DMAReceiveCplt(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  DMA MMC communication error callback 
-  * @param  hdma DMA handle
+  * @param  hdma: DMA handle
   * @retval None
   */
 static void MMC_DMAError(DMA_HandleTypeDef *hdma)   
@@ -2156,32 +2157,35 @@ static void MMC_DMAError(DMA_HandleTypeDef *hdma)
   MMC_HandleTypeDef* hmmc = (MMC_HandleTypeDef* )(hdma->Parent);
   HAL_MMC_CardStateTypeDef CardState;
   
-  // MBED: changed
-  if((hmmc->hdmarx->ErrorCode == HAL_DMA_ERROR_TE) || (hmmc->hdmatx->ErrorCode == HAL_DMA_ERROR_TE))
+  /* if DMA error is FIFO error ignore it */
+  if(HAL_DMA_GetError(hdma) != HAL_DMA_ERROR_FE)
   {
-    /* Clear All flags */
-    __HAL_MMC_CLEAR_FLAG(hmmc, SDMMC_STATIC_FLAGS);
-    
-    /* Disable All interrupts */
-    __HAL_MMC_DISABLE_IT(hmmc, SDMMC_IT_DATAEND | SDMMC_IT_DCRCFAIL | SDMMC_IT_DTIMEOUT|\
-      SDMMC_IT_TXUNDERR| SDMMC_IT_RXOVERR);
-    
-    hmmc->ErrorCode |= HAL_MMC_ERROR_DMA;
-    CardState = HAL_MMC_GetCardState(hmmc);
-    if((CardState == HAL_MMC_CARD_RECEIVING) || (CardState == HAL_MMC_CARD_SENDING))
+    if((hmmc->hdmarx->ErrorCode == HAL_DMA_ERROR_TE) || (hmmc->hdmatx->ErrorCode == HAL_DMA_ERROR_TE))
     {
-      hmmc->ErrorCode |= SDMMC_CmdStopTransfer(hmmc->Instance);
+      /* Clear All flags */
+      __HAL_MMC_CLEAR_FLAG(hmmc, SDMMC_STATIC_FLAGS);
+      
+      /* Disable All interrupts */
+      __HAL_MMC_DISABLE_IT(hmmc, SDMMC_IT_DATAEND | SDMMC_IT_DCRCFAIL | SDMMC_IT_DTIMEOUT|\
+        SDMMC_IT_TXUNDERR| SDMMC_IT_RXOVERR);
+      
+      hmmc->ErrorCode |= HAL_MMC_ERROR_DMA;
+      CardState = HAL_MMC_GetCardState(hmmc);
+      if((CardState == HAL_MMC_CARD_RECEIVING) || (CardState == HAL_MMC_CARD_SENDING))
+      {
+        hmmc->ErrorCode |= SDMMC_CmdStopTransfer(hmmc->Instance);
+      }
+      
+      hmmc->State= HAL_MMC_STATE_READY;
     }
     
-    hmmc->State= HAL_MMC_STATE_READY;
+    HAL_MMC_ErrorCallback(hmmc);
   }
-
-  HAL_MMC_ErrorCallback(hmmc);
 }
 
 /**
   * @brief  DMA MMC Tx Abort callback 
-  * @param  hdma DMA handle
+  * @param  hdma: DMA handle
   * @retval None
   */
 static void MMC_DMATxAbort(DMA_HandleTypeDef *hdma)   
@@ -2218,7 +2222,7 @@ static void MMC_DMATxAbort(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  DMA MMC Rx Abort callback 
-  * @param  hdma DMA handle
+  * @param  hdma: DMA handle
   * @retval None
   */
 static void MMC_DMARxAbort(DMA_HandleTypeDef *hdma)   
@@ -2256,7 +2260,7 @@ static void MMC_DMARxAbort(DMA_HandleTypeDef *hdma)
 
 /**
   * @brief  Initializes the mmc card.
-  * @param  hmmc Pointer to MMC handle
+  * @param  hmmc: Pointer to MMC handle
   * @retval MMC Card error state
   */
 static uint32_t MMC_InitCard(MMC_HandleTypeDef *hmmc)
@@ -2337,7 +2341,7 @@ static uint32_t MMC_InitCard(MMC_HandleTypeDef *hmmc)
   * @brief  Enquires cards about their operating voltage and configures clock
   *         controls and stores MMC information that will be needed in future
   *         in the MMC handle.
-  * @param  hmmc Pointer to MMC handle
+  * @param  hmmc: Pointer to MMC handle
   * @retval error state
   */
 static uint32_t MMC_PowerON(MMC_HandleTypeDef *hmmc)
@@ -2391,7 +2395,7 @@ static uint32_t MMC_PowerON(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  Turns the SDMMC output signals off.
-  * @param  hmmc Pointer to MMC handle
+  * @param  hmmc: Pointer to MMC handle
   * @retval HAL status
   */
 static HAL_StatusTypeDef MMC_PowerOFF(MMC_HandleTypeDef *hmmc)
@@ -2404,8 +2408,8 @@ static HAL_StatusTypeDef MMC_PowerOFF(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  Returns the current card's status.
-  * @param  hmmc Pointer to MMC handle
-  * @param  pCardStatus pointer to the buffer that will contain the MMC card 
+  * @param  hmmc: Pointer to MMC handle
+  * @param  pCardStatus: pointer to the buffer that will contain the MMC card 
   *         status (Card Status register)  
   * @retval error state
   */
@@ -2433,7 +2437,7 @@ static uint32_t MMC_SendStatus(MMC_HandleTypeDef *hmmc, uint32_t *pCardStatus)
 
 /**
   * @brief  Wrap up reading in non-blocking mode.
-  * @param  hmmc pointer to a MMC_HandleTypeDef structure that contains
+  * @param  hmmc: pointer to a MMC_HandleTypeDef structure that contains
   *              the configuration information.
   * @retval HAL status
   */
@@ -2457,7 +2461,7 @@ static HAL_StatusTypeDef MMC_Read_IT(MMC_HandleTypeDef *hmmc)
 
 /**
   * @brief  Wrap up writing in non-blocking mode.
-  * @param  hmmc pointer to a MMC_HandleTypeDef structure that contains
+  * @param  hmmc: pointer to a MMC_HandleTypeDef structure that contains
   *              the configuration information.
   * @retval HAL status
   */

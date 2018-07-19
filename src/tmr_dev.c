@@ -393,7 +393,8 @@ int mcu_tmr_enable(const devfs_handle_t * handle, void * ctl){
 
 int mcu_tmr_disable(const devfs_handle_t * handle, void * ctl){
     int port = handle->port;
-    HAL_TIM_Base_Stop_IT(&m_tmr_local[port].hal_handle);
+    //HAL_TIM_Base_Stop_IT(&m_tmr_local[port].hal_handle);
+    m_tmr_local[port].hal_handle.Instance->CR1 &= ~(TIM_CR1_CEN);
     return SYSFS_RETURN_SUCCESS;
 }
 

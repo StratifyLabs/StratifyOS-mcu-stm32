@@ -2,6 +2,8 @@
   ******************************************************************************
   * @file    stm32f7xx_hal_rtc_ex.h
   * @author  MCD Application Team
+  * @version V1.2.2
+  * @date    14-April-2017
   * @brief   Header file of RTC HAL Extension module.
   ******************************************************************************
   * @attention
@@ -358,22 +360,22 @@ typedef struct
 
 /**
   * @brief  Enable the RTC WakeUp Timer peripheral.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_WAKEUPTIMER_ENABLE(__HANDLE__)                     ((__HANDLE__)->Instance->CR |= (RTC_CR_WUTE))
 
 /**
   * @brief  Disable the RTC WakeUp Timer peripheral.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_WAKEUPTIMER_DISABLE(__HANDLE__)                    ((__HANDLE__)->Instance->CR &= ~(RTC_CR_WUTE))
 
 /**
   * @brief  Enable the RTC WakeUpTimer interrupt.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC WakeUpTimer interrupt sources to be enabled or disabled.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC WakeUpTimer interrupt sources to be enabled or disabled.
   *         This parameter can be:
   *            @arg RTC_IT_WUT: WakeUpTimer interrupt
   * @retval None
@@ -382,8 +384,8 @@ typedef struct
 
 /**
   * @brief  Disable the RTC WakeUpTimer interrupt.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC WakeUpTimer interrupt sources to be enabled or disabled.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC WakeUpTimer interrupt sources to be enabled or disabled.
   *         This parameter can be:
   *            @arg RTC_IT_WUT: WakeUpTimer interrupt
   * @retval None
@@ -392,8 +394,8 @@ typedef struct
 
 /**
   * @brief  Check whether the specified RTC WakeUpTimer interrupt has occurred or not.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC WakeUpTimer interrupt sources to check.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC WakeUpTimer interrupt sources to check.
   *         This parameter can be:
   *            @arg RTC_IT_WUT:  WakeUpTimer interrupt
   * @retval None
@@ -402,8 +404,8 @@ typedef struct
 
 /**
   * @brief  Check whether the specified RTC Wake Up timer interrupt has been enabled or not.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC Wake Up timer interrupt sources to check.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC Wake Up timer interrupt sources to check.
   *         This parameter can be:
   *            @arg RTC_IT_WUT:  WakeUpTimer interrupt
   * @retval None
@@ -412,8 +414,8 @@ typedef struct
 
 /**
   * @brief  Get the selected RTC WakeUpTimer's flag status.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __FLAG__ specifies the RTC WakeUpTimer Flag is pending or not.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __FLAG__: specifies the RTC WakeUpTimer Flag is pending or not.
   *          This parameter can be:
   *             @arg RTC_FLAG_WUTF
   *             @arg RTC_FLAG_WUTWF
@@ -423,8 +425,8 @@ typedef struct
 
 /**
   * @brief  Clear the RTC Wake Up timer's pending flags.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __FLAG__ specifies the RTC WakeUpTimer Flag to clear.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __FLAG__: specifies the RTC WakeUpTimer Flag to clear.
   *         This parameter can be:
   *            @arg RTC_FLAG_WUTF
   * @retval None
@@ -433,50 +435,50 @@ typedef struct
 
 /**
   * @brief  Enable the RTC Tamper1 input detection.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_TAMPER1_ENABLE(__HANDLE__)                         ((__HANDLE__)->Instance->TAMPCR |= (RTC_TAMPCR_TAMP1E))
 
 /**
   * @brief  Disable the RTC Tamper1 input detection.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_TAMPER1_DISABLE(__HANDLE__)                        ((__HANDLE__)->Instance->TAMPCR &= ~(RTC_TAMPCR_TAMP1E))
 
 /**
   * @brief  Enable the RTC Tamper2 input detection.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_TAMPER2_ENABLE(__HANDLE__)                         ((__HANDLE__)->Instance->TAMPCR |= (RTC_TAMPCR_TAMP2E))
 
 /**
   * @brief  Disable the RTC Tamper2 input detection.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_TAMPER2_DISABLE(__HANDLE__)                        ((__HANDLE__)->Instance->TAMPCR &= ~(RTC_TAMPCR_TAMP2E))
 
 /**
   * @brief  Enable the RTC Tamper3 input detection.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_TAMPER3_ENABLE(__HANDLE__)                         ((__HANDLE__)->Instance->TAMPCR |= (RTC_TAMPCR_TAMP3E))
 
 /**
   * @brief  Disable the RTC Tamper3 input detection.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_TAMPER3_DISABLE(__HANDLE__)                        ((__HANDLE__)->Instance->TAMPCR &= ~(RTC_TAMPCR_TAMP3E))
 
 /**
   * @brief  Check whether the specified RTC Tamper interrupt has occurred or not.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC Tamper interrupt to check.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC Tamper interrupt to check.
   *         This parameter can be:
   *            @arg  RTC_IT_TAMP: All tampers interrupts
   *            @arg  RTC_IT_TAMP1: Tamper1 interrupt
@@ -490,8 +492,8 @@ typedef struct
 
 /**
   * @brief  Check whether the specified RTC Tamper interrupt has been enabled or not.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC Tamper interrupt source to check.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC Tamper interrupt source to check.
   *         This parameter can be:
   *            @arg  RTC_IT_TAMP: All tampers interrupts
   *            @arg  RTC_IT_TAMP1: Tamper1 interrupt
@@ -503,8 +505,8 @@ typedef struct
 
 /**
   * @brief  Get the selected RTC Tamper's flag status.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __FLAG__ specifies the RTC Tamper Flag is pending or not.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __FLAG__: specifies the RTC Tamper Flag is pending or not.
   *          This parameter can be:
   *             @arg RTC_FLAG_TAMP1F: Tamper1 flag
   *             @arg RTC_FLAG_TAMP2F: Tamper2 flag
@@ -515,8 +517,8 @@ typedef struct
 
 /**
   * @brief  Clear the RTC Tamper's pending flags.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __FLAG__ specifies the RTC Tamper Flag sources to clear.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __FLAG__: specifies the RTC Tamper Flag sources to clear.
   *          This parameter can be:
   *             @arg RTC_FLAG_TAMP1F: Tamper1 flag
   *             @arg RTC_FLAG_TAMP2F: Tamper2 flag
@@ -527,22 +529,22 @@ typedef struct
 
 /**
   * @brief  Enable the RTC TimeStamp peripheral.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_TIMESTAMP_ENABLE(__HANDLE__)                       ((__HANDLE__)->Instance->CR |= (RTC_CR_TSE))
 
 /**
   * @brief  Disable the RTC TimeStamp peripheral.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_TIMESTAMP_DISABLE(__HANDLE__)                      ((__HANDLE__)->Instance->CR &= ~(RTC_CR_TSE))
 
 /**
   * @brief  Enable the RTC TimeStamp interrupt.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC TimeStamp interrupt sources to be enabled or disabled.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC TimeStamp interrupt sources to be enabled or disabled.
   *         This parameter can be:
   *            @arg RTC_IT_TS: TimeStamp interrupt
   * @retval None
@@ -551,8 +553,8 @@ typedef struct
 
 /**
   * @brief  Disable the RTC TimeStamp interrupt.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC TimeStamp interrupt sources to be enabled or disabled. 
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC TimeStamp interrupt sources to be enabled or disabled. 
   *         This parameter can be:
   *            @arg RTC_IT_TS: TimeStamp interrupt
   * @retval None
@@ -561,8 +563,8 @@ typedef struct
 
 /**
   * @brief  Check whether the specified RTC TimeStamp interrupt has occurred or not.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC TimeStamp interrupt sources to check.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC TimeStamp interrupt sources to check.
   *         This parameter can be:
   *            @arg RTC_IT_TS: TimeStamp interrupt
   * @retval None
@@ -571,8 +573,8 @@ typedef struct
 
 /**
   * @brief  Check whether the specified RTC Time Stamp interrupt has been enabled or not.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __INTERRUPT__ specifies the RTC Time Stamp interrupt source to check.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __INTERRUPT__: specifies the RTC Time Stamp interrupt source to check.
   *         This parameter can be:
   *            @arg RTC_IT_TS: TimeStamp interrupt
   * @retval None
@@ -581,8 +583,8 @@ typedef struct
 
 /**
   * @brief  Get the selected RTC TimeStamp's flag status.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __FLAG__ specifies the RTC TimeStamp Flag is pending or not.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __FLAG__: specifies the RTC TimeStamp Flag is pending or not.
   *         This parameter can be:
   *            @arg RTC_FLAG_TSF
   *            @arg RTC_FLAG_TSOVF
@@ -592,8 +594,8 @@ typedef struct
 
 /**
   * @brief  Clear the RTC Time Stamp's pending flags.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __FLAG__ specifies the RTC Alarm Flag sources to clear.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __FLAG__: specifies the RTC Alarm Flag sources to clear.
   *          This parameter can be:
   *             @arg RTC_FLAG_TSF
   *             @arg RTC_FLAG_TSOVF
@@ -603,22 +605,22 @@ typedef struct
 
 /**
   * @brief  Enable the RTC internal TimeStamp peripheral.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_INTERNAL_TIMESTAMP_ENABLE(__HANDLE__)                ((__HANDLE__)->Instance->CR |= (RTC_CR_ITSE))
 
 /**
   * @brief  Disable the RTC internal TimeStamp peripheral.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_INTERNAL_TIMESTAMP_DISABLE(__HANDLE__)               ((__HANDLE__)->Instance->CR &= ~(RTC_CR_ITSE))
 
 /**
   * @brief  Get the selected RTC Internal Time Stamp's flag status.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __FLAG__ specifies the RTC Internal Time Stamp Flag is pending or not.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __FLAG__: specifies the RTC Internal Time Stamp Flag is pending or not.
   *         This parameter can be:
   *            @arg RTC_FLAG_ITSF
   * @retval None
@@ -627,8 +629,8 @@ typedef struct
 
 /**
   * @brief  Clear the RTC Internal Time Stamp's pending flags.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __FLAG__ specifies the RTC Internal Time Stamp Flag source to clear.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __FLAG__: specifies the RTC Internal Time Stamp Flag source to clear.
   *          This parameter can be:
   *             @arg RTC_FLAG_ITSF
   * @retval None
@@ -637,36 +639,36 @@ typedef struct
 
 /**
   * @brief  Enable the RTC calibration output.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_CALIBRATION_OUTPUT_ENABLE(__HANDLE__)                ((__HANDLE__)->Instance->CR |= (RTC_CR_COE))
 
 /**
   * @brief  Disable the calibration output.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_CALIBRATION_OUTPUT_DISABLE(__HANDLE__)               ((__HANDLE__)->Instance->CR &= ~(RTC_CR_COE))
 
 /**
   * @brief  Enable the clock reference detection.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_CLOCKREF_DETECTION_ENABLE(__HANDLE__)                ((__HANDLE__)->Instance->CR |= (RTC_CR_REFCKON))
 
 /**
   * @brief  Disable the clock reference detection.
-  * @param  __HANDLE__ specifies the RTC handle.
+  * @param  __HANDLE__: specifies the RTC handle.
   * @retval None
   */
 #define __HAL_RTC_CLOCKREF_DETECTION_DISABLE(__HANDLE__)               ((__HANDLE__)->Instance->CR &= ~(RTC_CR_REFCKON))
 
 /**
   * @brief  Get the selected RTC shift operation's flag status.
-  * @param  __HANDLE__ specifies the RTC handle.
-  * @param  __FLAG__ specifies the RTC shift operation Flag is pending or not.
+  * @param  __HANDLE__: specifies the RTC handle.
+  * @param  __FLAG__: specifies the RTC shift operation Flag is pending or not.
   *          This parameter can be:
   *             @arg RTC_FLAG_SHPF
   * @retval None

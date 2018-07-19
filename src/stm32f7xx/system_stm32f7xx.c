@@ -142,10 +142,6 @@
   * @{
   */
 
-/*+ MBED */
-#if 0
-/*- MBED */
-
 /**
   * @brief  Setup the microcontroller system
   *         Initialize the Embedded Flash Interface, the PLL and update the 
@@ -185,10 +181,6 @@ void SystemInit(void)
   SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
 #endif
 }
-
-/*+ MBED */
-#endif
-/*- MBED */
 
 /**
    * @brief  Update SystemCoreClock variable according to Clock Register Values.
