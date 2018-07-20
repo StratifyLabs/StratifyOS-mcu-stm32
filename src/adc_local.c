@@ -49,14 +49,20 @@ int adc_local_open(adc_local_t * adc, const devfs_handle_t * handle){
 
         switch(port){
         case 0:
+#if defined __HAL_RCC_ADC1_CLK_ENABLE
             __HAL_RCC_ADC1_CLK_ENABLE();
+#elif defined __HAL_RCC_ADC_CLK_ENABLE
+            __HAL_RCC_ADC_CLK_ENABLE();
+#else
+#error("__HAL_RCC_ADC_CLK_ENABLE is not defined")
+#endif
             break;
-#if defined ADC2
+#if defined __HAL_RCC_ADC2_CLK_ENABLE
         case 1:
             __HAL_RCC_ADC2_CLK_ENABLE();
             break;
 #endif
-#if defined ADC3
+#if defined __HAL_RCC_ADC3_CLK_ENABLE
         case 2:
             __HAL_RCC_ADC3_CLK_ENABLE();
             break;
@@ -82,19 +88,25 @@ int adc_local_close(adc_local_t * adc, const devfs_handle_t * handle){
             cortexm_disable_irq(adc_irqs[port]);
             switch(port){
             case 0:
+#if defined __HAL_RCC_ADC1_CLK_DISABLE
                 __HAL_RCC_ADC1_CLK_DISABLE();
+#elif defined __HAL_RCC_ADC_CLK_DISABLE
+                __HAL_RCC_ADC_CLK_DISABLE();
+#else
+#error("__HAL_RCC_ADC_CLK_DISABLE not defined")
+#endif
                 break;
-#if defined ADC2
+#if defined __HAL_RCC_ADC2_CLK_DISABLE
             case 1:
                 __HAL_RCC_ADC2_CLK_DISABLE();
                 break;
 #endif
-#if defined ADC3
+#if defined __HAL_RCC_ADC3_CLK_DISABLE
             case 2:
                 __HAL_RCC_ADC3_CLK_DISABLE();
                 break;
 #endif
-#if defined ADC4
+#if defined __HAL_RCC_ADC4_CLK_DISABLE
             case 3:
                 __HAL_RCC_ADC4_CLK_DISABLE();
                 break;
@@ -150,7 +162,7 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
 
     if( o_flags & ADC_FLAG_SET_CONVERTER ){
 
-        adc->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV8; //set based on the frequency
+        adc->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4; //set based on the frequency
 
         //ADC_RESOLUTION_12B
         //ADC_RESOLUTION_10B
@@ -214,6 +226,7 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
         //ADC_EXTERNALTRIGCONV_T8_TRGO
         //ADC_EXTERNALTRIGCONV_Ext_IT11
         adc->hal_handle.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+#if !defined STM32L4
         if( o_flags & ADC_FLAG_IS_TRIGGER_TMR ){
             if( attr->trigger.port == 0 ){
                 switch(attr->trigger.pin){
@@ -267,7 +280,9 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
             } else {
                 return SYSFS_SET_RETURN(EINVAL);
             }
-        } else if( o_flags & ADC_FLAG_IS_TRIGGER_EINT ){
+        } else
+#endif
+            if( o_flags & ADC_FLAG_IS_TRIGGER_EINT ){
 #if defined ADC_EXTERNALTRIGCONV_Ext_IT11
             adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_Ext_IT11;
 #elif defined ADC_EXTERNALTRIGCONV_EXT_IT11
@@ -319,6 +334,10 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
         channel_config.Rank = attr->rank;
         if( channel_config.Rank < 1 ){ channel_config.Rank = 1; }
         if( channel_config.Rank > 16 ){ channel_config.Rank = 16;  }
+
+#if defined STM32L4
+
+#else
         channel_config.SamplingTime = ADC_SAMPLETIME_3CYCLES;
         if( attr->sampling_time >= 480 ){
             channel_config.SamplingTime = ADC_SAMPLETIME_480CYCLES;
@@ -335,6 +354,7 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
         } else if( attr->sampling_time >= 15 ){
             channel_config.SamplingTime = ADC_SAMPLETIME_15CYCLES;
         }
+#endif
 
         if( HAL_ADC_ConfigChannel(&adc->hal_handle, &channel_config) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
@@ -352,7 +372,9 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc){
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
     adc_local_t * adc = (adc_local_t*)hadc;
     mcu_debug_log_error(MCU_DEBUG_DEVICE, "ADC Error %d", hadc->ErrorCode);
+#if defined ADC_SR_OVR
     hadc->Instance->SR &= ~ADC_SR_OVR;
+#endif
     mcu_execute_read_handler_with_flags(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
     if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
         HAL_ADC_Stop_IT(hadc);

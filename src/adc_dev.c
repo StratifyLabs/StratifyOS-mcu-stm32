@@ -185,7 +185,9 @@ int mcu_adc_read(const devfs_handle_t * handle, devfs_async_t * async){
         channel_config.Offset = 0;
         channel_config.Channel = adc_channels[async->loc];
         channel_config.Rank = 1;
+#if defined ADC_SAMPLETIME_15CYCLES
         channel_config.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+#endif
         if( HAL_ADC_ConfigChannel(&adc->hal_handle, &channel_config) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
         }

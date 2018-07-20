@@ -103,6 +103,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <cortexm/cortexm.h>
 #include "stm32l4xx_hal.h"
 
 /** @addtogroup STM32L4xx_HAL_Driver
@@ -650,13 +651,14 @@ HAL_StatusTypeDef FLASH_WaitForLastOperation(uint32_t Timeout)
      Even if the FLASH operation fails, the BUSY flag will be reset and an error
      flag will be set */
     
-  uint32_t tickstart = HAL_GetTick();
+  uint32_t tickstart = 0;
      
   while(__HAL_FLASH_GET_FLAG(FLASH_FLAG_BSY)) 
   { 
     if(Timeout != HAL_MAX_DELAY)
     {
-      if((HAL_GetTick() - tickstart) >= Timeout)
+        cortexm_delay_ms(1);
+      if((tickstart++) >= Timeout)
       {
         return HAL_TIMEOUT;
       }

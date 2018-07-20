@@ -1,4 +1,4 @@
-flash_page_count = 6;
+flash_page_count = 8;
 
 MEMORY {
 	 flash : ORIGIN = 0x08000000, LENGTH = 512K

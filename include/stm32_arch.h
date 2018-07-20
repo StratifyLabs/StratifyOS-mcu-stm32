@@ -34,6 +34,16 @@
 #include "mcu_stm32f401xc.h"
 #endif
 
+#if defined __stm32f401xe
+#define CORE_M4 1
+#define ARM_MATH_CM4 1
+#define STM32_FLASH_LAYOUT_16_16_16_16_64_128_128_128 1
+#if !defined STM32F401xE
+#define STM32F401xE 1
+#endif
+#include "mcu_stm32f401xe.h"
+#endif
+
 #if defined __stm32f411xe
 #define CORE_M4 1
 #define ARM_MATH_CM4 1

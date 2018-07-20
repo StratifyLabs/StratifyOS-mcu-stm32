@@ -4,6 +4,9 @@
 set(SOURCES
 	${SOURCES_PREFIX}/adc_local.h
 	${SOURCES_PREFIX}/adc_local.c
+	${SOURCES_PREFIX}/dac_local.c
+	${SOURCES_PREFIX}/dac_local.h
+	${SOURCES_PREFIX}/dac_dev.c
 	${SOURCES_PREFIX}/adc_dev.c
 	${SOURCES_PREFIX}/adc_dma_dev.c
 	${SOURCES_PREFIX}/core_dev.c

@@ -17,6 +17,7 @@
  *
  */
 
+#include <mcu/boot_debug.h>
 #include "stm32_flash.h"
 
 #if defined STM32_FLASH_LAYOUT_32_32_32_32_128_256_256_256
@@ -51,12 +52,22 @@ int stm32_flash_write(u32 addr, const void * buf, int nbyte){
     int err;
 
     cortexm_disable_interrupts();
-    HAL_FLASH_Unlock();
+    if( HAL_FLASH_Unlock() != HAL_OK ){
+        return -1;
+    }
 
 #if defined STM32L4
     const u64 * pbuf = buf;
+    u8 empty[8];
+    memset(empty, 0xff, 8);
+
     for(i=0; i < nbyte; i+=8){
-        err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr + i, *pbuf++);
+        if( memcmp(pbuf, empty, 8) ){ //don't touch unless it is non 0xFF
+            err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr + i, *pbuf);
+        } else {
+            err = HAL_OK;
+        }
+        pbuf++;
         if( err != HAL_OK ){
             break;
         }

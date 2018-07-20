@@ -97,19 +97,27 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         stm32_dma_channel_t * dma_channel = &adc_local[port].dma_rx_channel;
         stm32_dma_set_handle(dma_channel, config->dma_config.dma_number, config->dma_config.stream_number); //need to get the DMA# and stream# from a table -- or from config
         dma_channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_config.dma_number, config->dma_config.stream_number); //DMA1 stream 0
+
+#if defined DMA_REQUEST_0
+        dma_channel->handle.Init.Request = stm32_dma_decode_channel(config->dma_config.channel_number);
+#else
         dma_channel->handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.channel_number);
+#endif
         dma_channel->handle.Init.Mode = DMA_NORMAL;
         dma_channel->handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
         dma_channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
         dma_channel->handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
+#if defined DMA_FIFOMODE_ENABLE
         dma_channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
         dma_channel->handle.Init.FIFOMode = DMA_FIFO_THRESHOLD_HALFFULL;
+        dma_channel->handle.Init.MemBurst = DMA_MBURST_INC4;
+        dma_channel->handle.Init.PeriphBurst = DMA_MBURST_INC4;
+#endif
 
         dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
         dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-        dma_channel->handle.Init.MemBurst = DMA_MBURST_INC4;
-        dma_channel->handle.Init.PeriphBurst = DMA_MBURST_INC4;
+
 
         dma_channel->handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.priority);
 
@@ -167,7 +175,12 @@ int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
         channel_config.Offset = 0;
         channel_config.Channel = adc_channels[async->loc];
         channel_config.Rank = 1;
+
+#if defined ADC_SAMPLETIME_15CYCLES
         channel_config.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+#elif defined ADC_SAMPLETIME_12CYCLES_5
+        channel_config.SamplingTime = ADC_SAMPLETIME_12CYCLES_5;
+#endif
         mcu_debug_log_info(MCU_DEBUG_DEVICE, "Configure %d", channel_config.Channel);
         if( HAL_ADC_ConfigChannel(&adc->adc.hal_handle, &channel_config) != HAL_OK ){
             mcu_debug_log_error(MCU_DEBUG_DEVICE, "%s, %d", __FUNCTION__, __LINE__);

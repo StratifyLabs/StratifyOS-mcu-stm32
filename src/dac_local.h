@@ -17,37 +17,36 @@
  *
  */
 
-#ifndef ADC_LOCAL_H_
-#define ADC_LOCAL_H_
+#ifndef DAC_LOCAL_H_
+#define DAC_LOCAL_H_
 
-#include <mcu/adc.h>
-
+#include <mcu/dac.h>
 #include "stm32_dma.h"
 
-#define ADC_LOCAL_FLAG_IS_DMA (1<<0)
+#define DAC_LOCAL_FLAG_IS_DMA (1<<0)
 
 typedef struct {
-    ADC_HandleTypeDef hal_handle;
+    DAC_HandleTypeDef hal_handle;
     devfs_transfer_handler_t transfer_handler;
-    int words_read;
+    int words_written;
     u32 o_flags;
     u8 ref_count;
-} adc_local_t;
+} dac_local_t;
 
 typedef struct {
-    adc_local_t adc;
-    stm32_dma_channel_t dma_rx_channel;
-} adc_dma_local_t;
+    dac_local_t adc;
+    stm32_dma_channel_t dma_tx_channel;
+} dac_dma_local_t;
 
-extern ADC_TypeDef * const adc_regs_table[MCU_ADC_PORTS];
-extern u8 const adc_irqs[MCU_ADC_PORTS];
-extern const u32 adc_channels[MCU_ADC_CHANNELS];
+extern DAC_TypeDef * const dac_regs_table[MCU_DAC_PORTS];
+extern u8 const dac_irqs[MCU_DAC_PORTS];
+extern const u32 dac_channels[MCU_DAC_CHANNELS];
 
-int adc_local_open(adc_local_t * adc, const devfs_handle_t * handle);
-int adc_local_close(adc_local_t * adc, const devfs_handle_t * handle);
-int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * ctl);
-int adc_local_getinfo(adc_local_t * adc, const devfs_handle_t * handle, void * ctl);
+int dac_local_open(dac_local_t * dac, const devfs_handle_t * handle);
+int dac_local_close(dac_local_t * dac, const devfs_handle_t * handle);
+int dac_local_setattr(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
+int dac_local_getinfo(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
 
 
 
-#endif /* ADC_LOCAL_H_ */
+#endif /* DAC_LOCAL_H_ */

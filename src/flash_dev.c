@@ -143,7 +143,7 @@ int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
 	if( err == 0 ){
 		err = nbyte;
 	}
-	return nbyte;
+    return err;
 
 }
 
