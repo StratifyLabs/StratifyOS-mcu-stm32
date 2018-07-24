@@ -24,7 +24,7 @@
 
 #include "stm32_dma.h"
 
-typedef struct MCU_PACK {
+typedef struct {
     union { //must be first
         SPI_HandleTypeDef hal_handle;
 #if MCU_I2S_SPI_PORTS > 0

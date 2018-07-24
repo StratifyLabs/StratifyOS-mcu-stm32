@@ -23,6 +23,7 @@
 #include <mcu/sdio.h>
 #include <mcu/i2s.h>
 #include <mcu/adc.h>
+#include <mcu/dac.h>
 
 #if defined __stm32f401xc
 #define CORE_M4 1
@@ -215,6 +216,11 @@ typedef struct {
     adc_config_t adc_config;
     stm32_dma_channel_config_t dma_config;
 } stm32_adc_dma_config_t;
+
+typedef struct {
+    dac_config_t dac_config;
+    stm32_dma_channel_config_t dma_config;
+} stm32_dac_dma_config_t;
 
 #define STM32_ETH_DMA_MAX_PACKET_SIZE (1524U) //must match ETH_MAX_PACKET_SIZE in hal_conf.h
 #define STM32_ETH_DMA_DESCRIPTOR_COUNT (4U) //must match ETH_RXBUFNB and ETH_TXBUFNB in hal_conf.h

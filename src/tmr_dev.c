@@ -255,7 +255,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
             m_tmr_local[port].hal_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 
             if( HAL_TIM_Base_Init(&m_tmr_local[port].hal_handle) != HAL_OK ){
-                return -1;
+                return SYSFS_SET_RETURN(EIO);
             }
 
             if( o_flags & TMR_FLAG_IS_SOURCE_CPU ){
@@ -263,11 +263,44 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
                 TIM_ClockConfigTypeDef clock_source_config;
                 clock_source_config.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
                 if( HAL_TIM_ConfigClockSource(&m_tmr_local[port].hal_handle, &clock_source_config) != HAL_OK ){
-                    return -1;
+                    return SYSFS_SET_RETURN(EIO);
                 }
             }
         }
     }
+
+
+    if( o_flags & TMR_FLAG_SET_TRIGGER ){
+
+        if( o_flags & TMR_FLAG_IS_SLAVE ){
+
+        } else {
+            TIM_MasterConfigTypeDef master_config;
+
+            master_config.MasterOutputTrigger = TIM_TRGO_RESET;
+            if( o_flags & TMR_FLAG_IS_TRIGGER_RELOAD ){
+                master_config.MasterOutputTrigger = TIM_TRGO_UPDATE;
+            } else if( o_flags & TMR_FLAG_IS_TRIGGER_OC0 ){
+                master_config.MasterOutputTrigger = TIM_TRGO_OC1REF;
+            } else if( o_flags & TMR_FLAG_IS_TRIGGER_OC1 ){
+                master_config.MasterOutputTrigger = TIM_TRGO_OC2REF;
+            } else if( o_flags & TMR_FLAG_IS_TRIGGER_OC2 ){
+                master_config.MasterOutputTrigger = TIM_TRGO_OC3REF;
+            } else if( o_flags & TMR_FLAG_IS_TRIGGER_OC3 ){
+                master_config.MasterOutputTrigger = TIM_TRGO_OC4REF;
+            }
+
+            if( o_flags & TMR_FLAG_IS_MASTER ){
+                master_config.MasterSlaveMode = TIM_MASTERSLAVEMODE_ENABLE;
+            } else {
+                master_config.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+            }
+            if (HAL_TIMEx_MasterConfigSynchronization(&m_tmr_local[port].hal_handle, &master_config) != HAL_OK){
+                return SYSFS_SET_RETURN(EIO);
+            }
+        }
+    }
+
 
     if( o_flags & TMR_FLAG_SET_CHANNEL ){
         int chan = attr->channel.loc & ~MCU_CHANNEL_FLAG_IS_INPUT;
@@ -310,14 +343,6 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
                 init_oc.OCMode = TIM_OCMODE_TIMING;
             }
 
-
-            TIM_MasterConfigTypeDef master_config;
-            master_config.MasterOutputTrigger = TIM_TRGO_RESET;
-            master_config.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-            if (HAL_TIMEx_MasterConfigSynchronization(&m_tmr_local[port].hal_handle, &master_config) != HAL_OK){
-                return SYSFS_SET_RETURN(EIO);
-            }
-
             ret = 0;
 
             init_oc.Pulse = 0;
@@ -328,26 +353,26 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
         switch(channel_configure_type){
         case CHANNEL_TYPE_OUTPUT_COMPARE:
             ret = HAL_TIM_OC_Init(&m_tmr_local[port].hal_handle);
-            if( ret != HAL_OK ){ return -1; }
+            if( ret != HAL_OK ){ return SYSFS_SET_RETURN(EIO); }
             ret = HAL_TIM_OC_ConfigChannel(&m_tmr_local[port].hal_handle, &init_oc, tim_channel);
-            if( ret != HAL_OK ){ return -1; }
+            if( ret != HAL_OK ){ return SYSFS_SET_RETURN(EIO); }
             ret = HAL_TIM_OC_Start(&m_tmr_local[port].hal_handle, tim_channel);
             break;
 
         case CHANNEL_TYPE_PWM:
             ret = HAL_TIM_PWM_Init(&m_tmr_local[port].hal_handle);
-            if( ret != HAL_OK ){ return -1; }
+            if( ret != HAL_OK ){ return SYSFS_SET_RETURN(EIO); }
             ret = HAL_TIM_PWM_ConfigChannel(&m_tmr_local[port].hal_handle, &init_oc, tim_channel);
-            if( ret != HAL_OK ){ return -1; }
+            if( ret != HAL_OK ){ return SYSFS_SET_RETURN(EIO); }
             ret = HAL_TIM_PWM_Start(&m_tmr_local[port].hal_handle, tim_channel);
             break;
 
         case CHANNEL_TYPE_INPUT_CAPTURE:
             ret = HAL_OK;
             ret = HAL_TIM_IC_Init(&m_tmr_local[port].hal_handle);
-            if( ret != HAL_OK ){ return -1; }
+            if( ret != HAL_OK ){ return SYSFS_SET_RETURN(EIO); }
             ret = HAL_TIM_IC_ConfigChannel(&m_tmr_local[port].hal_handle, &init_ic, tim_channel);
-            if( ret != HAL_OK ){ return -1; }
+            if( ret != HAL_OK ){ return SYSFS_SET_RETURN(EIO); }
             ret = HAL_TIM_IC_Start(&m_tmr_local[port].hal_handle, tim_channel);
             break;
         case CHANNEL_TYPE_NONE:

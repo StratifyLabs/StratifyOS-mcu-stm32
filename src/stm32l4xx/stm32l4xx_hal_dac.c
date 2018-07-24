@@ -459,6 +459,7 @@ __weak void HAL_DAC_MspDeInit(DAC_HandleTypeDef* hdac)
   *            @arg DAC_CHANNEL_2: DAC Channel2 selected (when supported)
   * @retval HAL status
   */
+#include <mcu/debug.h>
 HAL_StatusTypeDef HAL_DAC_Start(DAC_HandleTypeDef* hdac, uint32_t Channel)
 {
   /* Check the parameters */
@@ -502,6 +503,7 @@ HAL_StatusTypeDef HAL_DAC_Start(DAC_HandleTypeDef* hdac, uint32_t Channel)
     /* Check if software trigger enabled */
     if((hdac->Instance->CR & (DAC_CR_TEN1 | DAC_CR_TSEL1)) == (DAC_CR_TEN1 | DAC_CR_TSEL1))
     {
+        mcu_debug_printf("SW TRIG %d\n", __LINE__);
       /* Enable the selected DAC software conversion */
       SET_BIT(hdac->Instance->SWTRIGR, DAC_SWTRIGR_SWTRIG1);
     }
@@ -511,6 +513,7 @@ HAL_StatusTypeDef HAL_DAC_Start(DAC_HandleTypeDef* hdac, uint32_t Channel)
     /* Check if software trigger enabled */
     if((hdac->Instance->CR & (DAC_CR_TEN2 | DAC_CR_TSEL2)) == (DAC_CR_TEN2 | DAC_CR_TSEL2))
     {
+        mcu_debug_printf("SW TRIG %d\n", __LINE__);
       /* Enable the selected DAC software conversion*/
       SET_BIT(hdac->Instance->SWTRIGR, DAC_SWTRIGR_SWTRIG2);
     }

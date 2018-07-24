@@ -23,6 +23,8 @@
 #include <mcu/dac.h>
 #include "stm32_dma.h"
 
+#if MCU_DAC_PORTS > 0
+
 #define DAC_LOCAL_FLAG_IS_DMA (1<<0)
 
 typedef struct {
@@ -34,19 +36,25 @@ typedef struct {
 } dac_local_t;
 
 typedef struct {
-    dac_local_t adc;
+    dac_local_t dac;
     stm32_dma_channel_t dma_tx_channel;
 } dac_dma_local_t;
 
 extern DAC_TypeDef * const dac_regs_table[MCU_DAC_PORTS];
 extern u8 const dac_irqs[MCU_DAC_PORTS];
-extern const u32 dac_channels[MCU_DAC_CHANNELS];
+extern const u32 dac_channels[MCU_DAC_PORTS];
 
 int dac_local_open(dac_local_t * dac, const devfs_handle_t * handle);
 int dac_local_close(dac_local_t * dac, const devfs_handle_t * handle);
 int dac_local_setattr(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
 int dac_local_getinfo(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
 
+int dac_local_set(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
+int dac_local_get(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
 
+u32 dac_local_get_alignment(dac_local_t * dac);
+
+
+#endif
 
 #endif /* DAC_LOCAL_H_ */

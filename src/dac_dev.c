@@ -24,7 +24,7 @@
 
 static dac_local_t dac_local[MCU_DAC_PORTS] MCU_SYS_MEM;
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(dac, DAC_VERSION, DAC_IOC_IDENT_CHAR)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(dac, DAC_VERSION, DAC_IOC_IDENT_CHAR, I_MCU_TOTAL + I_DAC_TOTAL, mcu_dac_get, mcu_dac_set)
 
 int mcu_dac_open(const devfs_handle_t * handle){
     int result;
@@ -58,27 +58,7 @@ int mcu_dac_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_dac_setattr(const devfs_handle_t * handle, void * ctl){
-    int result;
-    u32 o_flags;
-    const dac_attr_t * attr;
-    attr = mcu_select_attr(handle, ctl);
-    if( attr == 0 ){
-        return SYSFS_SET_RETURN(EINVAL);
-    }
-
-    o_flags = attr->o_flags;
-
-    if( (result = dac_local_setattr(&dac_local[handle->port], handle, (void*)attr)) < 0 ){
-        return result;
-    }
-
-    if( o_flags & DAC_FLAG_SET_CONVERTER ){
-        if( HAL_DAC_Init(&dac_local[handle->port].hal_handle) != HAL_OK ){
-            return SYSFS_SET_RETURN(EIO);
-        }
-    }
-
-    return SYSFS_RETURN_SUCCESS;
+    return dac_local_setattr(&dac_local[handle->port], handle, ctl);
 }
 
 
@@ -92,12 +72,19 @@ int mcu_dac_setaction(const devfs_handle_t * handle, void * ctl){
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             //execute the read callback if not null
             mcu_execute_read_handler_with_flags(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
-            HAL_DAC_Stop_IT(&adc->hal_handle);
         }
     }
 
     cortexm_set_irq_priority(dac_irqs[port], action->prio, action->o_events);
     return 0;
+}
+
+int mcu_dac_get(const devfs_handle_t * handle, void * ctl){
+    return dac_local_get(&dac_local[handle->port], handle, ctl);
+}
+
+int mcu_dac_set(const devfs_handle_t * handle, void * ctl){
+    return dac_local_set(&dac_local[handle->port], handle, ctl);
 }
 
 int mcu_dac_read(const devfs_handle_t * handle, devfs_async_t * async){
@@ -107,19 +94,18 @@ int mcu_dac_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 int mcu_dac_write(const devfs_handle_t * handle, devfs_async_t * async){
 
-
-    return SYSFS_SET_RETURN(ENOTSUP);
+    //this driver is only capable of writing a single value -- no interrupt -- value is written synchronously
+    int result;
+    mcu_channel_t mcu_channel;
+    mcu_channel.loc = handle->port;
+    mcu_channel.value = ((u16*)async->buf_const)[0];
+    result = dac_local_set(&dac_local[handle->port], handle, &mcu_channel);
+    if( result < 0 ){
+        return result;
+    }
+    return 2;
 }
 
-void mcu_core_dac_isr(){
-    HAL_DAC_IRQHandler(&dac_local[0].hal_handle);
-#if MCU_DAC_PORTS > 1
-    HAL_DAC_IRQHandler(&dac_local[1].hal_handle);
-#endif
-#if MCU_DAC_PORTS > 2
-    HAL_DAC_IRQHandler(&dac_local[2].hal_handle);
-#endif
-}
 
 
 #endif

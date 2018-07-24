@@ -75,10 +75,10 @@ int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
     if( spi_local[port].is_full_duplex && spi_local[port].transfer_handler.read ){
 
         if( spi_local[port].transfer_handler.read->nbyte < async->nbyte ){
+            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read bytes error %d < %d", spi_local[port].transfer_handler.read->nbyte, async->nbyte);
             return SYSFS_SET_RETURN(EINVAL);
         }
 
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD WRITE:%d", async->nbyte);
         //execute the TX/RX transfer
         ret = HAL_SPI_TransmitReceive_IT(
                     &spi_local[port].hal_handle,
@@ -86,8 +86,14 @@ int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
                     spi_local[port].transfer_handler.read->buf,
                     async->nbyte);
     } else {
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI HD WRITE:%d", async->nbyte);
-        ret = HAL_SPI_Transmit_IT(&spi_local[port].hal_handle, async->buf, async->nbyte);
+        //this should be busy if a read is in progress
+        if( spi_local[port].transfer_handler.read == 0 ){
+            ret = HAL_SPI_Transmit_IT(&spi_local[port].hal_handle, async->buf, async->nbyte);
+        } else {
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI BUSY WRITE FAIL");
+            spi_local[port].transfer_handler.write = 0;
+            return SYSFS_SET_RETURN(EBUSY);
+        }
     }
 
     if( ret != HAL_OK ){
@@ -113,6 +119,7 @@ int mcu_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
 
     if( ret != HAL_OK ){
         spi_local[port].transfer_handler.read = 0;
+        mcu_debug_log_error(MCU_DEBUG_DEVICE, "read failed:%d", spi_local[port].hal_handle.ErrorCode);
         return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }
 

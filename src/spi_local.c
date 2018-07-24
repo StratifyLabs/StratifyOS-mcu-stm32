@@ -184,50 +184,62 @@ int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * c
         spi->hal_handle.Init.Mode = SPI_MODE_SLAVE;
     }
 
-    spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_LOW;
-    spi->hal_handle.Init.CLKPhase = SPI_PHASE_1EDGE;
-    if( o_flags & SPI_FLAG_IS_MODE1 ){
+
+    if( o_flags & (SPI_FLAG_SET_SLAVE | SPI_FLAG_SET_MASTER) ){
         spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_LOW;
-        spi->hal_handle.Init.CLKPhase = SPI_PHASE_2EDGE;
-    } else if( o_flags & SPI_FLAG_IS_MODE2 ){
-        spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_HIGH;
         spi->hal_handle.Init.CLKPhase = SPI_PHASE_1EDGE;
-    } else if( o_flags & SPI_FLAG_IS_MODE3 ){
-        spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_HIGH;
-        spi->hal_handle.Init.CLKPhase = SPI_PHASE_2EDGE;
+        if( o_flags & SPI_FLAG_IS_MODE1 ){
+            spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_LOW;
+            spi->hal_handle.Init.CLKPhase = SPI_PHASE_2EDGE;
+        } else if( o_flags & SPI_FLAG_IS_MODE2 ){
+            spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_HIGH;
+            spi->hal_handle.Init.CLKPhase = SPI_PHASE_1EDGE;
+        } else if( o_flags & SPI_FLAG_IS_MODE3 ){
+            spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_HIGH;
+            spi->hal_handle.Init.CLKPhase = SPI_PHASE_2EDGE;
+        }
+
+        if( attr->width == 8 ){
+            spi->hal_handle.Init.DataSize = SPI_DATASIZE_8BIT;
+        } else if( attr->width == 16 ){
+            spi->hal_handle.Init.DataSize = SPI_DATASIZE_16BIT;
+        } else {
+            return SYSFS_SET_RETURN(EINVAL);
+        }
+
+        spi->hal_handle.Init.Direction = SPI_DIRECTION_2LINES;
+
+        spi->hal_handle.Init.NSS = SPI_NSS_SOFT;
+        spi->hal_handle.Init.FirstBit = SPI_FIRSTBIT_MSB;
+        if( o_flags & SPI_FLAG_IS_FORMAT_TI ){
+            spi->hal_handle.Init.TIMode = SPI_TIMODE_ENABLE;
+        } else {
+            spi->hal_handle.Init.TIMode = SPI_TIMODE_DISABLE;
+        }
+        spi->hal_handle.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+        spi->hal_handle.Init.CRCPolynomial = 10;
+
+        if( mcu_set_pin_assignment(
+                    &(attr->pin_assignment),
+                    MCU_CONFIG_PIN_ASSIGNMENT(spi_config_t, handle),
+                    MCU_PIN_ASSIGNMENT_COUNT(spi_pin_assignment_t),
+                    CORE_PERIPH_SPI, handle->port, 0, 0, 0) < 0 ){
+            return SYSFS_SET_RETURN(EINVAL);
+        }
+
+        if( HAL_SPI_Init(&spi->hal_handle) != HAL_OK ){
+            return SYSFS_SET_RETURN(EINVAL);
+        }
     }
 
-    if( attr->width == 8 ){
-        spi->hal_handle.Init.DataSize = SPI_DATASIZE_8BIT;
-    } else if( attr->width == 16 ){
-        spi->hal_handle.Init.DataSize = SPI_DATASIZE_16BIT;
+    if( o_flags & SPI_FLAG_IS_FULL_DUPLEX ){
+        spi->is_full_duplex = 1;
     } else {
-        return SYSFS_SET_RETURN(EINVAL);
+        spi->is_full_duplex = 0;
     }
 
-    spi->hal_handle.Init.Direction = SPI_DIRECTION_2LINES;
 
-    spi->hal_handle.Init.NSS = SPI_NSS_SOFT;
-    spi->hal_handle.Init.FirstBit = SPI_FIRSTBIT_MSB;
-    if( o_flags & SPI_FLAG_IS_FORMAT_TI ){
-        spi->hal_handle.Init.TIMode = SPI_TIMODE_ENABLE;
-    } else {
-        spi->hal_handle.Init.TIMode = SPI_TIMODE_DISABLE;
-    }
-    spi->hal_handle.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-    spi->hal_handle.Init.CRCPolynomial = 10;
 
-    if( mcu_set_pin_assignment(
-                &(attr->pin_assignment),
-                MCU_CONFIG_PIN_ASSIGNMENT(spi_config_t, handle),
-                MCU_PIN_ASSIGNMENT_COUNT(spi_pin_assignment_t),
-                CORE_PERIPH_SPI, handle->port, 0, 0, 0) < 0 ){
-        return SYSFS_SET_RETURN(EINVAL);
-    }
-
-    if( HAL_SPI_Init(&spi->hal_handle) != HAL_OK ){
-        return SYSFS_SET_RETURN(EINVAL);
-    }
 
     return 0;
 }
@@ -277,7 +289,7 @@ int spi_execute_write_handler(devfs_transfer_handler_t * transfer_handler, int n
 void spi_execute_transfer_handlers(devfs_transfer_handler_t * transfer_handler, int nbyte, u32 o_flags){
     spi_event_data_t event;
     event.value = nbyte;
-    mcu_execute_transfer_handlers(transfer_handler, &event, o_flags, nbyte);
+    mcu_execute_transfer_handlers(transfer_handler, &event, nbyte, o_flags);
 }
 
 
@@ -285,21 +297,21 @@ void spi_execute_transfer_handlers(devfs_transfer_handler_t * transfer_handler, 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI TX DONE:%d,%d", hspi->TxXferSize, spi->transfer_handler.write ? spi->transfer_handler.write->nbyte : 0);
+    //mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI TX DONE:%d,%d", hspi->TxXferSize, spi->transfer_handler.write ? spi->transfer_handler.write->nbyte : 0);
     spi_execute_write_handler(&spi->transfer_handler, hspi->TxXferSize);
 }
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI RX DONE:%d,%d", hspi->RxXferSize, spi->transfer_handler.read ? spi->transfer_handler.read->nbyte : 0);
+    //mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI RX DONE:%d,%d", hspi->RxXferSize, spi->transfer_handler.read ? spi->transfer_handler.read->nbyte : 0);
     spi_execute_read_handler(&spi->transfer_handler, hspi->RxXferSize);
 }
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD DONE");
+    //mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD DONE %d", hspi->TxXferSize);
     spi_execute_transfer_handlers(&spi->transfer_handler, hspi->TxXferSize, 0);
 }
 
@@ -307,6 +319,12 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
     spi_local_t * spi = (spi_local_t*)hspi;
 
     mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI Error:0x%X", hspi->ErrorCode);
+
+    //deal with overrrun errors
+    spi->hal_handle.Instance->DR;
+    spi->hal_handle.Instance->SR;
+
+
     spi_execute_transfer_handlers(
                 &spi->transfer_handler,
                 SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode),
