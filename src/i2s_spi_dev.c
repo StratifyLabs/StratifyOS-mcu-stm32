@@ -155,8 +155,8 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * spi = (spi_local_t *)hi2s;
     volatile u32 status = hi2s->Instance->SR;
     status = hi2s->Instance->DR;
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2S Error %d\n", hi2s->ErrorCode);
-    mcu_execute_transfer_handlers(&spi->transfer_handler, (void*)&status, SYSFS_SET_RETURN_WITH_VALUE(EIO, hi2s->ErrorCode), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    mcu_debug_log_error(MCU_DEBUG_DEVICE, " I2S Error %d on %p", hi2s->ErrorCode, hi2s->Instance);
+    mcu_execute_transfer_handlers(&spi->transfer_handler, (void*)&status, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
 }
 
 #endif

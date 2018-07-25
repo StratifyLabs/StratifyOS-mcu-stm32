@@ -40,6 +40,7 @@
   */ 
 
 /* Includes ------------------------------------------------------------------*/
+#include <cortexm/cortexm.h>
 #include <stm32f4xx/stm32f4xx_hal.h>
 
 /** @addtogroup STM32F4xx_HAL_Driver
@@ -2543,6 +2544,7 @@ HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(RCC_PeriphCLKInitTypeDef  *PeriphClk
     /* Wait till PLLI2S is disabled */
     while(__HAL_RCC_GET_FLAG(RCC_FLAG_PLLI2SRDY)  != RESET)
     {
+        cortexm_delay_ms(1);
       if((HAL_GetTick() - tickstart ) > PLLI2S_TIMEOUT_VALUE)
       {
         /* return in case of Timeout detected */
@@ -2569,6 +2571,7 @@ HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(RCC_PeriphCLKInitTypeDef  *PeriphClk
     /* Wait till PLLI2S is ready */
     while(__HAL_RCC_GET_FLAG(RCC_FLAG_PLLI2SRDY)  == RESET)
     {
+        cortexm_delay_ms(1);
       if((HAL_GetTick() - tickstart ) > PLLI2S_TIMEOUT_VALUE)
       {
         /* return in case of Timeout detected */
@@ -2594,6 +2597,7 @@ HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(RCC_PeriphCLKInitTypeDef  *PeriphClk
     
     while((PWR->CR & PWR_CR_DBP) == RESET)
     {
+        cortexm_delay_ms(1);
       if((HAL_GetTick() - tickstart ) > RCC_DBP_TIMEOUT_VALUE)
       {
         return HAL_TIMEOUT;
@@ -2620,6 +2624,7 @@ HAL_StatusTypeDef HAL_RCCEx_PeriphCLKConfig(RCC_PeriphCLKInitTypeDef  *PeriphClk
         /* Wait till LSE is ready */  
         while(__HAL_RCC_GET_FLAG(RCC_FLAG_LSERDY) == RESET)
         {
+            cortexm_delay_ms(1);
           if((HAL_GetTick() - tickstart ) > RCC_LSE_TIMEOUT_VALUE)
           {
             return HAL_TIMEOUT;

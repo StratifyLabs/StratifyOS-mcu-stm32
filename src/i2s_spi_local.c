@@ -132,7 +132,9 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
         PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
         PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
         PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
-        if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK){
+        int result;
+        if ( (result = HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct)) != HAL_OK){
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "PERIPH CLOCK SET FAILED %d", result);
             return SYSFS_SET_RETURN(EIO);
         }
 #endif

@@ -544,6 +544,7 @@ int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num,
 #endif
         return 0;
     }
+
     return SYSFS_SET_RETURN(EIO);
 }
 

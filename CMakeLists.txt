@@ -19,7 +19,7 @@ project(${SOS_LIB_NAME} C ASM)
 
 
 set(F401xC 0)
-set(F401xE 0)
+set(F401xE 1)
 set(F411 0)
 set(F412 0)
 set(F417 0)
@@ -30,7 +30,7 @@ set(F723 0)
 set(F746 0)
 set(F767 0)
 
-set(L475 1)
+set(L475 0)
 
 if(F401xC)
 set(STM32_VARIANT stm32f401xc)

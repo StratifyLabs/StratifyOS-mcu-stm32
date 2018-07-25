@@ -265,7 +265,9 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority){
 }
 
 uint32_t HAL_GetTick(void){
-    return 0x00ffffff - cortexm_get_systick_value();
+    static int count = 0;
+    //cortexm_delay_ms(1);
+    return count++;
 }
 
 void HAL_Delay(__IO uint32_t Delay){
