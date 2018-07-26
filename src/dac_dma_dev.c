@@ -115,7 +115,7 @@ int mcu_dac_dma_setaction(const devfs_handle_t * handle, void * ctl){
         //if there is an ongoing operation -- cancel it
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             //execute the read callback if not null
-            mcu_execute_read_handler_with_flags(&dac->dac.transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
+            devfs_execute_read_handler(&dac->dac.transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
             HAL_DAC_Stop_DMA(&dac->dac.hal_handle, DAC_CHANNEL_1);
         }
     }

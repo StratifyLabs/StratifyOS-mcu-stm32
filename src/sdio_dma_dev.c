@@ -147,12 +147,12 @@ int mcu_sdio_dma_setaction(const devfs_handle_t * handle, void * ctl){
     if( action->handler.callback == 0 ){
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             //HAL_SD_Abort_IT(&sdio_local[port].hal_handle);
-            mcu_execute_read_handler_with_flags(&sdio_local[port].sdio.transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
+            devfs_execute_read_handler(&sdio_local[port].sdio.transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
         }
 
         if( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
             //HAL_SD_Abort_IT(&sdio_local[port].hal_handle);
-            mcu_execute_write_handler_with_flags(&sdio_local[port].sdio.transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
+            devfs_execute_write_handler(&sdio_local[port].sdio.transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
         }
     }
 

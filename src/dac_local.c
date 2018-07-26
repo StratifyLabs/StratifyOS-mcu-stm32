@@ -291,7 +291,7 @@ void HAL_DAC_ErrorCallback(DAC_HandleTypeDef *hdac){
 #if defined DAC_SR_OVR
     hdac->Instance->SR &= ~DAC_SR_OVR;
 #endif
-    mcu_execute_write_handler_with_flags(&dac->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    devfs_execute_write_handler(&dac->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
     if( (dac->o_flags & DAC_LOCAL_FLAG_IS_DMA) == 0 ){
         //HAL_DAC_Stop_IT(hdac);
     } else {
@@ -309,7 +309,7 @@ void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef* hdac){
     devfs_async_t * async = dac->dac.transfer_handler.write;
     int result;
 
-    result = mcu_execute_write_handler_with_flags(&dac->dac.transfer_handler, 0, 2, MCU_EVENT_FLAG_HALF_TRANSFER | MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_STREAMING);
+    result = devfs_execute_write_handler(&dac->dac.transfer_handler, 0, 2, MCU_EVENT_FLAG_HALF_TRANSFER | MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_STREAMING);
     if( result ){
         dac->dac.transfer_handler.write = async;
     } else {
@@ -325,7 +325,7 @@ void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef * hdac){
     devfs_async_t * async = dac->dac.transfer_handler.write;
     int result;
 
-    result = mcu_execute_write_handler(&dac->dac.transfer_handler, 0, 0);
+    result = devfs_execute_write_handler(&dac->dac.transfer_handler, 0, 0);
     if( result ){
         dac->dac.transfer_handler.write = async;
     } else {

@@ -252,68 +252,65 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * local = (spi_local_t *)hi2s;
-    int result;
 
     //MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW -- first half
-
-    //mcu_execute_transfer_event_handler -- won't get rid of the callback -- needs to be circular -- setaction can abort the reception of data
-
-    result = mcu_execute_transfer_handler(
-                &local->transfer_handler.write->handler,
-                MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW,
-                0);
-    if( result == 0 ){
-        //abort reception
-        HAL_I2S_DMAStop(hi2s);
+    if( local->transfer_handler.write ){
+        //this will leave the async in place for circular mode
+        devfs_execute_event_handler(
+                    &local->transfer_handler.write->handler,
+                    MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW,
+                    0);
     }
 }
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * local = (spi_local_t *)hi2s;
-    int result;
+    int result = 0;
 
     //MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW -- first half
 
-    result = mcu_execute_transfer_handler(
-                &local->transfer_handler.write->handler,
-                MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_HIGH,
-                0);
+    if( local->transfer_handler.write ){
+        //this will return 1 to keep the same async transfer going in circular mode
+        result = devfs_execute_event_handler(
+                    &local->transfer_handler.write->handler,
+                    MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_HIGH,
+                    0);
+    }
+
     if( result == 0 ){
         //abort reception
+        local->transfer_handler.write = 0;
         HAL_I2S_DMAStop(hi2s);
     }
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * local = (spi_local_t *)hi2s;
-    int result;
 
     //MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_LOW -- first half
-
-    //mcu_execute_transfer_event_handler -- won't get rid of the callback -- needs to be circular -- setaction can abort the reception of data
-
-    result = mcu_execute_transfer_handler(
-                &local->transfer_handler.read->handler,
-                MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_LOW,
-                0);
-    if( result == 0 ){
-        //abort reception
-        HAL_I2S_DMAStop(hi2s);
+    if( local->transfer_handler.read ){
+        devfs_execute_event_handler(
+                    &local->transfer_handler.read->handler,
+                    MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_LOW,
+                    0);
     }
+
 }
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
-    int result;
-    //MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_HIGH -- second half -- preserve callback
     spi_local_t * local = (spi_local_t *)hi2s;
-    //mcu_execute_read_handler(&local->transfer_handler, 0, hi2s->TxXferSize);
+    int result = 0;
 
-    result = mcu_execute_transfer_handler(
-                &local->transfer_handler.read->handler,
-                MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_HIGH,
-                0);
+    if( local->transfer_handler.read ){
+        result = devfs_execute_event_handler(
+                    &local->transfer_handler.read->handler,
+                    MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_HIGH,
+                    0);
+    }
+
     if( result == 0 ){
-        //abort reception
+        //abort reception -- transaction is complete
+        local->transfer_handler.read = 0;
         HAL_I2S_DMAStop(hi2s);
     }
 }
@@ -321,8 +318,7 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
 void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
     //called on overflow and underrun
     spi_local_t * local = (spi_local_t *)hi2s;
-
-    mcu_execute_transfer_handlers(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), hi2s->TxXferSize);
+    devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 }
 
 

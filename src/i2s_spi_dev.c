@@ -129,7 +129,11 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * spi = (spi_local_t *)hi2s;
-    mcu_execute_write_handler(&spi->transfer_handler, 0, spi->transfer_handler.write->nbyte);
+    devfs_execute_write_handler(
+                &spi->transfer_handler,
+                0,
+                0, //zero means leave nbyte value alone
+                MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
@@ -139,15 +143,11 @@ void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * spi = (spi_local_t *)hi2s;
-    devfs_async_t * async = spi->transfer_handler.read;
-    //execute handler
-    int nbyte;
-    if( async ){
-        nbyte = async->nbyte;
-    } else {
-        nbyte = SYSFS_SET_RETURN(ENODATA);
-    }
-    mcu_execute_read_handler(&spi->transfer_handler, 0, nbyte);
+    devfs_execute_read_handler(
+                &spi->transfer_handler,
+                0,
+                0,
+                MCU_EVENT_FLAG_DATA_READY);
 }
 
 void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
@@ -156,7 +156,7 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
     volatile u32 status = hi2s->Instance->SR;
     status = hi2s->Instance->DR;
     mcu_debug_log_error(MCU_DEBUG_DEVICE, " I2S Error %d on %p", hi2s->ErrorCode, hi2s->Instance);
-    mcu_execute_transfer_handlers(&spi->transfer_handler, (void*)&status, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    devfs_execute_cancel_handler(&spi->transfer_handler, (void*)&status, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 }
 
 #endif

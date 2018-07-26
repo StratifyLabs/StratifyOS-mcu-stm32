@@ -228,13 +228,13 @@ void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi){
 
 void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
     qspi_local_t * qspi =  (qspi_local_t *)hqspi;
-    mcu_execute_read_handler(&qspi->transfer_handler, 0, hqspi->RxXferCount);
+    devfs_execute_read_handler(&qspi->transfer_handler, 0, hqspi->RxXferCount, MCU_EVENT_FLAG_DATA_READY);
 
 }
 
 void HAL_QSPI_TxCpltCallback(QSPI_HandleTypeDef *hqspi){
     qspi_local_t * qspi =  (qspi_local_t *)hqspi;
-    mcu_execute_write_handler(&qspi->transfer_handler, 0, hqspi->TxXferCount);
+    devfs_execute_write_handler(&qspi->transfer_handler, 0, hqspi->TxXferCount, MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 void HAL_QSPI_RxHalfCpltCallback(QSPI_HandleTypeDef *hqspi){

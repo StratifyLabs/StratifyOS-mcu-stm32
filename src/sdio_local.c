@@ -156,12 +156,12 @@ int sdio_local_setaction(sdio_local_t * sdio, const devfs_handle_t * handle, voi
     if( action->handler.callback == 0 ){
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             HAL_SD_Abort_IT(&sdio->hal_handle);
-            mcu_execute_read_handler_with_flags(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
+            devfs_execute_read_handler(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
         }
 
         if( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
             HAL_SD_Abort_IT(&sdio->hal_handle);
-            mcu_execute_write_handler_with_flags(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
+            devfs_execute_write_handler(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
         }
     }
 
@@ -196,13 +196,13 @@ int sdio_local_getstatus(sdio_local_t * sdio, const devfs_handle_t * handle, voi
 void HAL_SD_TxCpltCallback(SD_HandleTypeDef *hsd){
     sdio_local_t * sdio = (sdio_local_t *)hsd;
     //mcu_debug_root_printf("w:%ld\n", TIM2->CNT - sdio->start_time);
-    mcu_execute_write_handler(&sdio->transfer_handler, 0, hsd->TxXferSize);
+    devfs_execute_write_handler(&sdio->transfer_handler, 0, hsd->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd){
     sdio_local_t * sdio = (sdio_local_t *)hsd;
     //mcu_debug_root_printf("read complete %d 0x%lX %ld\n", hsd->RxXferSize, hsd->Instance->STA, TIM2->CNT - sdio->start_time);
-    mcu_execute_read_handler(&sdio->transfer_handler, 0, hsd->RxXferSize);
+    devfs_execute_read_handler(&sdio->transfer_handler, 0, hsd->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
 }
 
 void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd){
@@ -210,7 +210,7 @@ void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd){
     //mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SD Error? 0x%lX 0x%lX %ld", hsd->ErrorCode, hsd->hdmatx->ErrorCode, TIM2->CNT - sdio->start_time);
     if( hsd->ErrorCode ){
         mcu_debug_log_error(MCU_DEBUG_DEVICE, "SD Error 0x%lX", hsd->ErrorCode);
-        mcu_execute_transfer_handlers(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+        devfs_execute_cancel_handler(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
     }
 }
 
@@ -218,7 +218,7 @@ void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd){
     sdio_local_t * sdio = (sdio_local_t *)hsd;
     //abort read and write
     mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Abort\n");
-    mcu_execute_transfer_handlers(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
+    devfs_execute_cancel_handler(&sdio->transfer_handler, 0, SYSFS_SET_RETURN(EIO), 0);
 }
 
 void mcu_core_sdio_isr(){

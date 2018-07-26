@@ -125,7 +125,7 @@ int mcu_rng_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 void HAL_RNG_ErrorCallback(RNG_HandleTypeDef *hrng){
     rng_local_t * rng = (rng_local_t *)hrng;
-    mcu_execute_read_handler_with_flags(&rng->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_CANCELED);
+    devfs_execute_read_handler(&rng->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_CANCELED);
 }
 
 void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef* hrng, uint32_t random32bit){
@@ -135,7 +135,7 @@ void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef* hrng, uint32_t random32bit){
     rng->bytes_read += sizeof(uint32_t);
 
     if( rng->bytes_read == rng->transfer_handler.read->nbyte ){
-        mcu_execute_read_handler(&rng->transfer_handler, 0, rng->transfer_handler.read->nbyte);
+        devfs_execute_read_handler(&rng->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
     } else {
         HAL_RNG_GenerateRandomNumber_IT(hrng);
     }

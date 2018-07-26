@@ -23,10 +23,6 @@
 
 #if MCU_SPI_PORTS > 0
 
-static int spi_execute_read_handler(devfs_transfer_handler_t * transfer_handler, int nbyte);
-static int spi_execute_write_handler(devfs_transfer_handler_t * transfer_handler, int nbyte);
-static void spi_execute_transfer_handlers(devfs_transfer_handler_t * transfer_handler, int nbyte, u32 o_flags);
-
 SPI_TypeDef * const spi_regs[MCU_SPI_PORTS] = MCU_SPI_REGS;
 u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
 
@@ -260,36 +256,25 @@ int spi_local_swap(spi_local_t * spi, const devfs_handle_t * handle, void * ctl)
 int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void * ctl, int interrupt_number){
     mcu_action_t * action = (mcu_action_t*)ctl;
 
+    //callback = 0 with flags set will cancel an ongoing operation
     if(action->handler.callback == 0){
         if (action->o_events & MCU_EVENT_FLAG_DATA_READY){
-            spi_execute_read_handler(&spi->transfer_handler, -1);
+            devfs_execute_read_handler(
+                        &spi->transfer_handler, 0,
+                        SYSFS_SET_RETURN(EINTR),
+                        MCU_EVENT_FLAG_CANCELED);
         }
 
         if (action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE){
-            spi_execute_write_handler(&spi->transfer_handler, -1);
+            devfs_execute_write_handler(
+                        &spi->transfer_handler, 0,
+                        SYSFS_SET_RETURN(EINTR),
+                        MCU_EVENT_FLAG_CANCELED);
         }
     }
 
     cortexm_set_irq_priority(interrupt_number, action->prio, action->o_events);
     return 0;
-}
-
-int spi_execute_read_handler(devfs_transfer_handler_t * transfer_handler, int nbyte){
-    spi_event_data_t event;
-    event.value = nbyte;
-    return mcu_execute_read_handler(transfer_handler, &event, nbyte);
-}
-
-int spi_execute_write_handler(devfs_transfer_handler_t * transfer_handler, int nbyte){
-    spi_event_data_t event;
-    event.value = nbyte;
-    return mcu_execute_write_handler(transfer_handler, &event, nbyte);
-}
-
-void spi_execute_transfer_handlers(devfs_transfer_handler_t * transfer_handler, int nbyte, u32 o_flags){
-    spi_event_data_t event;
-    event.value = nbyte;
-    mcu_execute_transfer_handlers(transfer_handler, &event, nbyte, o_flags);
 }
 
 
@@ -298,21 +283,23 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
     //mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI TX DONE:%d,%d", hspi->TxXferSize, spi->transfer_handler.write ? spi->transfer_handler.write->nbyte : 0);
-    spi_execute_write_handler(&spi->transfer_handler, hspi->TxXferSize);
+    devfs_execute_write_handler(&spi->transfer_handler, 0, hspi->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
     //mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI RX DONE:%d,%d", hspi->RxXferSize, spi->transfer_handler.read ? spi->transfer_handler.read->nbyte : 0);
-    spi_execute_read_handler(&spi->transfer_handler, hspi->RxXferSize);
+    devfs_execute_read_handler(&spi->transfer_handler, 0, hspi->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
 }
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
     //execute the handler
     spi_local_t * spi = (spi_local_t*)hspi;
     //mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD DONE %d", hspi->TxXferSize);
-    spi_execute_transfer_handlers(&spi->transfer_handler, hspi->TxXferSize, 0);
+    devfs_execute_write_handler(&spi->transfer_handler,0, hspi->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
+    devfs_execute_read_handler(&spi->transfer_handler,0, hspi->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
+
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
@@ -324,21 +311,14 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
     spi->hal_handle.Instance->DR;
     spi->hal_handle.Instance->SR;
 
-
-    spi_execute_transfer_handlers(
-                &spi->transfer_handler,
-                SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode),
-                MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    devfs_execute_cancel_handler(&spi->transfer_handler,0, SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode), MCU_EVENT_FLAG_ERROR);
 }
 
 void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
     spi_local_t * spi = (spi_local_t*)hspi;
 
     mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SPI Abort:0x%X", hspi->ErrorCode);
-    spi_execute_transfer_handlers(
-                &spi->transfer_handler,
-                hspi->TxXferSize - hspi->TxXferCount,
-                MCU_EVENT_FLAG_CANCELED);
+    devfs_execute_cancel_handler(&spi->transfer_handler,0, hspi->RxXferSize - hspi->RxXferCount, 0);
 }
 
 #endif

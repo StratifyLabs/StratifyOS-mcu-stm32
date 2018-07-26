@@ -32,8 +32,7 @@
 
 typedef struct MCU_PACK {
     I2C_HandleTypeDef hal_handle;
-    mcu_event_handler_t master;
-    mcu_event_handler_t slave;
+    devfs_transfer_handler_t transfer_handler;
     void * slave_memory;
     u32 slave_memory_offset;
     u32 slave_memory_size;
@@ -48,9 +47,6 @@ static i2c_local_t i2c_local[MCU_I2C_PORTS] MCU_SYS_MEM;
 static I2C_TypeDef * const i2c_regs_table[MCU_I2C_PORTS] = MCU_I2C_REGS;
 static u8 const i2c_irqs[MCU_I2C_PORTS] = MCU_I2C_IRQS;
 static u8 const i2c_er_irqs[MCU_I2C_PORTS] = MCU_I2C_ER_IRQS;
-
-static void exec_master_callback(i2c_local_t * i2c, u32 o_events, u32 value);
-static void exec_slave_callback(i2c_local_t * i2c, u32 o_events, u32 value);
 
 static void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c);
 
@@ -83,7 +79,8 @@ int mcu_i2c_open(const devfs_handle_t * handle){
             break;
 #endif
         }
-        i2c->master.callback = 0;
+        i2c->transfer_handler.read = 0;
+        i2c->transfer_handler.write = 0;
         i2c->hal_handle.Instance = i2c_regs_table[port];
         cortexm_enable_irq(i2c_irqs[port]);
         cortexm_enable_irq(i2c_er_irqs[port]);
@@ -97,7 +94,7 @@ int mcu_i2c_close(const devfs_handle_t * handle){
     i2c_local_t * i2c = i2c_local + port;
     if ( i2c->ref_count > 0 ){
         if ( i2c->ref_count == 1 ){
-            i2c->master.callback = 0;
+            devfs_execute_cancel_handler(&i2c->transfer_handler, 0, SYSFS_SET_RETURN(EINTR), 0);
             i2c->hal_handle.Instance = 0;
             cortexm_disable_irq(i2c_irqs[port]);
             cortexm_disable_irq(i2c_er_irqs[port]);
@@ -322,11 +319,8 @@ int mcu_i2c_write(const devfs_handle_t * handle, devfs_async_t * async){
     i2c_local_t * i2c = i2c_local + handle->port;
     int addr_size;
 
-    if( i2c->master.callback ){
-        return SYSFS_SET_RETURN(EBUSY);
-    }
 
-    i2c->master = async->handler;
+    DEVFS_DRIVER_IS_BUSY(i2c->transfer_handler.write, async);
 
     if( i2c->o_flags & I2C_FLAG_IS_PTR_16 ){
         addr_size = I2C_MEMADD_SIZE_16BIT;
@@ -351,6 +345,7 @@ int mcu_i2c_write(const devfs_handle_t * handle, devfs_async_t * async){
         mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2C Write Error: %d", ret);
     }
 
+    i2c->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EIO);
 }
 
@@ -359,10 +354,8 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
     i2c_local_t * i2c = i2c_local + handle->port;
     int addr_size;
 
-    if( i2c->master.callback ){
-        return SYSFS_SET_RETURN(EBUSY);
-    }
 
+    DEVFS_DRIVER_IS_BUSY(i2c->transfer_handler.read, async);
 
     if( i2c->o_flags & I2C_FLAG_IS_PTR_16 ){
         addr_size = I2C_MEMADD_SIZE_16BIT;
@@ -377,7 +370,6 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
     }
 
     if( ret == HAL_OK ){
-        i2c->master = async->handler;
         return 0;
     } else {
         if( ret == HAL_TIMEOUT ){
@@ -386,41 +378,42 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
         mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2C Read Error: %d", ret);
     }
 
+    i2c->transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EIO);
-}
-
-void exec_master_callback(i2c_local_t * i2c, u32 o_events, u32 value){
-    i2c_event_t i2c_event;
-    i2c_event.value = value;
-    mcu_execute_event_handler(&i2c->master, o_events, &i2c_event);
-}
-
-void exec_slave_callback(i2c_local_t * i2c, u32 o_events, u32 value){
-    i2c_event_t i2c_event;
-    i2c_event.value = value;
-    mcu_execute_event_handler(&i2c->master, o_events, &i2c_event);
 }
 
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c){
     i2c_local_t * i2c = (i2c_local_t*)hi2c;
 
     //TX complete
-    exec_master_callback(i2c, MCU_EVENT_FLAG_WRITE_COMPLETE, 0);
+    devfs_execute_write_handler(&i2c->transfer_handler,
+                                0,
+                                0,
+                                MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c){
     i2c_local_t * i2c = (i2c_local_t*)hi2c;
-    exec_master_callback(i2c, MCU_EVENT_FLAG_DATA_READY, 0);
+    devfs_execute_read_handler(&i2c->transfer_handler,
+                                0,
+                                0,
+                                MCU_EVENT_FLAG_DATA_READY);
 }
 
 void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c){
     i2c_local_t * i2c = (i2c_local_t*)hi2c;
-    exec_slave_callback(i2c, 0, 0);
+    devfs_execute_write_handler(&i2c->transfer_handler,
+                                0,
+                                hi2c->XferSize,
+                                MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c){
     i2c_local_t * i2c = (i2c_local_t*)hi2c;
-    exec_slave_callback(i2c, 0, 0);
+    devfs_execute_read_handler(&i2c->transfer_handler,
+                                0,
+                                hi2c->XferSize,
+                                MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode){
@@ -435,12 +428,18 @@ void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c){
     i2c_local_t * i2c = (i2c_local_t*)hi2c;
 
     //TX complete
-    exec_master_callback(i2c, MCU_EVENT_FLAG_WRITE_COMPLETE, 0);
+    devfs_execute_write_handler(&i2c->transfer_handler,
+                                0,
+                                0,
+                                MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c){
     i2c_local_t * i2c = (i2c_local_t*)hi2c;
-    exec_master_callback(i2c, MCU_EVENT_FLAG_DATA_READY, 0);
+    devfs_execute_read_handler(&i2c->transfer_handler,
+                                0,
+                                0,
+                                MCU_EVENT_FLAG_DATA_READY);
 }
 
 void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c){
@@ -458,20 +457,20 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c){
     }
 
     if( hi2c->Mode == HAL_I2C_MODE_MASTER ){
-        exec_master_callback(i2c, MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR, 0);
+        devfs_execute_cancel_handler(&i2c->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
     } else {
         //?
-        exec_slave_callback(i2c, MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR, 0);
+        //exec_slave_callback(i2c, MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR, 0);
     }
 }
 
 void HAL_I2C_AbortCpltCallback(I2C_HandleTypeDef *hi2c){
     i2c_local_t * i2c = (i2c_local_t*)hi2c;
     if( hi2c->Mode == HAL_I2C_MODE_MASTER ){
-        exec_master_callback(i2c, MCU_EVENT_FLAG_CANCELED, 0);
+        devfs_execute_cancel_handler(&i2c->transfer_handler, 0, SYSFS_SET_RETURN(EINTR), 0);
     } else {
         //?
-        exec_slave_callback(i2c, MCU_EVENT_FLAG_CANCELED, 0);
+        //exec_slave_callback(i2c, MCU_EVENT_FLAG_CANCELED, 0);
     }
 }
 

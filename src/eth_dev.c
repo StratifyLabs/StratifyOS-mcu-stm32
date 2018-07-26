@@ -361,7 +361,7 @@ int mcu_eth_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth){
     eth_local_t * eth =  (eth_local_t *)heth;
-    mcu_execute_read_handler(&eth->transfer_handler, 0, 0);
+    devfs_execute_read_handler(&eth->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
 
 }
 
@@ -370,7 +370,7 @@ void HAL_ETH_TxCpltCallback(ETH_HandleTypeDef *heth){
 
     //have all bytes been sent?
 
-    mcu_execute_write_handler(&eth->transfer_handler, 0, 0);
+    devfs_execute_write_handler(&eth->transfer_handler, 0, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 

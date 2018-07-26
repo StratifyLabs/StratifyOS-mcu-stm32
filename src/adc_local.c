@@ -375,7 +375,7 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
 #if defined ADC_SR_OVR
     hadc->Instance->SR &= ~ADC_SR_OVR;
 #endif
-    mcu_execute_read_handler_with_flags(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+    devfs_execute_read_handler(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
     if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
         HAL_ADC_Stop_IT(hadc);
     } else {
@@ -395,14 +395,14 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef * hadc){
         if( adc->o_flags & ADC_LOCAL_FLAG_IS_DMA ){
             //HAL_ADC_Stop_IT(hadc);
             mcu_debug_root_printf("w\n");
-            mcu_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte);
+            devfs_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte, MCU_EVENT_FLAG_DATA_READY);
         } else {
             u16 * dest = read_async->buf;
             dest[adc->words_read] = HAL_ADC_GetValue(hadc);
             adc->words_read++;
             if( adc->words_read * 2 == read_async->nbyte ){
                 HAL_ADC_Stop_IT(hadc); //only needed for non software triggers
-                mcu_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte);
+                devfs_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte, MCU_EVENT_FLAG_DATA_READY);
             } else {
                 HAL_ADC_Start_IT(hadc);
                 return;
