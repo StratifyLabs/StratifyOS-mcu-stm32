@@ -70,8 +70,12 @@ void core_init(){
 	  __HAL_RCC_GPIOA_CLK_ENABLE();
 	  __HAL_RCC_GPIOB_CLK_ENABLE();
 	  __HAL_RCC_GPIOC_CLK_ENABLE();
+#if defined GPIOD
 	  __HAL_RCC_GPIOD_CLK_ENABLE();
+#endif
+#if defined GPIOE
 	  __HAL_RCC_GPIOE_CLK_ENABLE();
+#endif
 #if defined GPIOF
 	  __HAL_RCC_GPIOF_CLK_ENABLE();
 #endif

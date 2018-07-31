@@ -33,12 +33,12 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi_dma, SPI_VERSION, SPI_IOC_IDENT_CHAR, I_MCU_
 int mcu_spi_dma_open(const devfs_handle_t * handle){
 
     //send DMA interrupt number
-    return spi_local_open(&spi_dma_local[handle->port].spi, handle, DMA_INTERRUPT_NUMBER);
+    return spi_local_open(&spi_dma_local[handle->port].spi, handle, spi_irqs[handle->port]);
 
 }
 
 int mcu_spi_dma_close(const devfs_handle_t * handle){
-    return spi_local_close(&spi_dma_local[handle->port].spi, handle, DMA_INTERRUPT_NUMBER);
+    return spi_local_close(&spi_dma_local[handle->port].spi, handle, spi_irqs[handle->port]);
 }
 
 int mcu_spi_dma_getinfo(const devfs_handle_t * handle, void * ctl){
@@ -204,7 +204,8 @@ int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
     spi_dma_local[port].spi.transfer_handler.write = async;
 
-    if( spi_dma_local[port].spi.is_full_duplex && spi_dma_local[port].spi.transfer_handler.read ){
+    if( (spi_dma_local[port].spi.o_flags & SPI_LOCAL_IS_FULL_DUPLEX) &&
+            spi_dma_local[port].spi.transfer_handler.read ){
 
         if( spi_dma_local[port].spi.transfer_handler.read->nbyte < async->nbyte ){
             return SYSFS_SET_RETURN(EINVAL);
@@ -242,7 +243,7 @@ int mcu_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 
     spi_dma_local[port].spi.transfer_handler.read = async;
 
-    if( spi_dma_local[port].spi.is_full_duplex ){
+    if( spi_dma_local[port].spi.o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
         //just set up the buffer
         ret = HAL_OK;
     } else {

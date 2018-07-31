@@ -26,6 +26,8 @@
 SPI_TypeDef * const spi_regs[MCU_SPI_PORTS] = MCU_SPI_REGS;
 u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
 
+spi_local_t * spi_local_ptrs[MCU_SPI_PORTS];
+
 int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle, int interrupt_number){
     int port = handle->port;
     if( port < MCU_SPI_PORTS ){
@@ -35,32 +37,33 @@ int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle, int interru
             case 0:
                 __HAL_RCC_SPI1_CLK_ENABLE();
                 break;
-#if MCU_SPI_PORTS > 1
+#if defined SPI2
             case 1:
                 __HAL_RCC_SPI2_CLK_ENABLE();
                 break;
 #endif
-#if MCU_SPI_PORTS > 2
+#if defined SPI3
             case 2:
                 __HAL_RCC_SPI3_CLK_ENABLE();
                 break;
 #endif
-#if MCU_SPI_PORTS > 3
+#if defined SPI4
             case 3:
                 __HAL_RCC_SPI4_CLK_ENABLE();
                 break;
 #endif
-#if MCU_SPI_PORTS > 4
+#if defined SPI5
             case 4:
                 __HAL_RCC_SPI5_CLK_ENABLE();
                 break;
 #endif
-#if MCU_SPI_PORTS > 5
+#if defined SPI6
             case 5:
                 __HAL_RCC_SPI6_CLK_ENABLE();
                 break;
 #endif
             }
+            spi_local_ptrs[port] = spi;
             spi->transfer_handler.read = NULL;
             spi->transfer_handler.write = NULL;
             spi->hal_handle.Instance = spi_regs[port];
@@ -77,11 +80,11 @@ int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle, int interr
     int port = handle->port;
     if ( spi->ref_count > 0 ){
         if ( spi->ref_count == 1 ){
-            cortexm_disable_irq(interrupt_number);
 
 #if MCU_I2S_SPI_PORTS > 0
-            if( spi->is_i2s ){
+            if( spi->o_flags & SPI_LOCAL_IS_I2S ){
                 HAL_I2S_DeInit(&spi->i2s_hal_handle);
+                mcu_debug_log_info(MCU_DEBUG_DEVICE, "Done I2S DeInit");
             } else {
                 HAL_SPI_DeInit(&spi->hal_handle);
             }
@@ -89,32 +92,36 @@ int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle, int interr
             HAL_SPI_DeInit(&spi->hal_handle);
 #endif
 
+            cortexm_disable_irq(interrupt_number);
+            devfs_execute_cancel_handler(&spi->transfer_handler, 0, SYSFS_SET_RETURN(EDEADLK), MCU_EVENT_FLAG_CANCELED);
+
+
             //turn off RCC clock
             switch(port){
             case 0:
                 __HAL_RCC_SPI1_CLK_DISABLE();
                 break;
-#if MCU_SPI_PORTS > 1
+#if defined SPI2
             case 1:
                 __HAL_RCC_SPI2_CLK_DISABLE();
                 break;
 #endif
-#if MCU_SPI_PORTS > 2
+#if defined SPI3
             case 2:
                 __HAL_RCC_SPI3_CLK_DISABLE();
                 break;
 #endif
-#if MCU_SPI_PORTS > 3
+#if defined SPI4
             case 3:
                 __HAL_RCC_SPI4_CLK_DISABLE();
                 break;
 #endif
-#if MCU_SPI_PORTS > 4
+#if defined SPI5
             case 4:
                 __HAL_RCC_SPI5_CLK_DISABLE();
                 break;
 #endif
-#if MCU_SPI_PORTS > 5
+#if defined SPI6
             case 5:
                 __HAL_RCC_SPI6_CLK_DISABLE();
                 break;
@@ -137,7 +144,7 @@ int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * c
 
     u32 o_flags = attr->o_flags;
 
-    spi->is_i2s = 0;
+    spi->o_flags = 0;
 
     if( o_flags & SPI_FLAG_SET_MASTER ){
         spi->hal_handle.Init.Mode = SPI_MODE_MASTER;
@@ -229,9 +236,9 @@ int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * c
     }
 
     if( o_flags & SPI_FLAG_IS_FULL_DUPLEX ){
-        spi->is_full_duplex = 1;
+        spi->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
     } else {
-        spi->is_full_duplex = 0;
+        spi->o_flags &= ~SPI_LOCAL_IS_FULL_DUPLEX;
     }
 
 
@@ -320,6 +327,69 @@ void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
     mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SPI Abort:0x%X", hspi->ErrorCode);
     devfs_execute_cancel_handler(&spi->transfer_handler,0, hspi->RxXferSize - hspi->RxXferCount, 0);
 }
+
+//these handlers need to move to the local file
+void mcu_core_spi1_isr(){
+    //No I2S on SPI 1
+#if MCU_I2S_ON_SPI1 != 0
+    if( spi_local_ptrs[0]->o_flags & SPI_LOCAL_IS_I2S ){
+        HAL_I2S_IRQHandler(&spi_local_ptrs[0]->i2s_hal_handle);
+    } else {
+        HAL_SPI_IRQHandler(&spi_local_ptrs[0]->hal_handle);
+    }
+#else
+    HAL_SPI_IRQHandler(&spi_local_ptrs[0]->hal_handle);
+#endif
+}
+
+void mcu_core_spi2_isr(){
+#if MCU_I2S_ON_SPI2 != 0
+    if( spi_local_ptrs[1]->o_flags & SPI_LOCAL_IS_I2S ){
+        HAL_I2S_IRQHandler(&spi_local_ptrs[1]->i2s_hal_handle);
+    } else {
+        HAL_SPI_IRQHandler(&spi_local_ptrs[1]->hal_handle);
+    }
+#else
+    HAL_SPI_IRQHandler(&spi_local_ptrs[1]->hal_handle);
+#endif
+}
+
+void mcu_core_spi3_isr(){
+#if MCU_I2S_ON_SPI3 != 0
+    mcu_debug_printf("SPI3 IRQ\n");
+    if( spi_local_ptrs[2]->o_flags & SPI_LOCAL_IS_I2S ){
+        HAL_I2S_IRQHandler(&spi_local_ptrs[2]->i2s_hal_handle);
+    } else {
+        HAL_SPI_IRQHandler(&spi_local_ptrs[2]->hal_handle);
+    }
+#else
+    HAL_SPI_IRQHandler(&spi_local_ptrs[2]->hal_handle);
+#endif
+}
+
+void mcu_core_spi4_isr(){
+#if MCU_I2S_ON_SPI4 != 0
+    if( spi_local_ptrs[3]->o_flags & SPI_LOCAL_IS_I2S ){
+        HAL_I2S_IRQHandler(&spi_local_ptrs[3]->i2s_hal_handle);
+    } else {
+        HAL_SPI_IRQHandler(&spi_local_ptrs[3]->hal_handle);
+    }
+#else
+    HAL_SPI_IRQHandler(&spi_local_ptrs[3]->hal_handle);
+#endif
+}
+
+#if MCU_SPI_PORTS > 4
+void mcu_core_spi5_isr(){
+    HAL_SPI_IRQHandler(&spi_local_ptrs[4]->hal_handle);
+}
+#endif
+
+#if MCU_SPI_PORTS > 5
+void mcu_core_spi6_isr(){
+    HAL_SPI_IRQHandler(&spi_local_ptrs[5]->hal_handle);
+}
+#endif
 
 #endif
 

@@ -208,21 +208,27 @@ int dac_local_setattr(dac_local_t * dac, const devfs_handle_t * handle, void * c
                 case 1: //TIM2
                     channel_config.DAC_Trigger = DAC_TRIGGER_T2_TRGO;
                     break;
+#if defined DAC_TRIGGER_T4_TRGO
                 case 3: //TIM4
                     channel_config.DAC_Trigger = DAC_TRIGGER_T4_TRGO;
                     break;
+#endif
+#if defined DAC_TRIGGER_T5_TRGO
                 case 4: //TIM5
                     channel_config.DAC_Trigger = DAC_TRIGGER_T5_TRGO;
                     break;
+#endif
                 case 5: //TIM6
                     channel_config.DAC_Trigger = DAC_TRIGGER_T6_TRGO;
                     break;
                 case 6: //TIM7
                     channel_config.DAC_Trigger = DAC_TRIGGER_T7_TRGO;
                     break;
+#if defined DAC_TRIGGER_T8_TRGO
                 case 8: //TIM8
                     channel_config.DAC_Trigger = DAC_TRIGGER_T8_TRGO;
                     break;
+#endif
                 default:
                     return SYSFS_SET_RETURN(EINVAL);
                 }
@@ -309,7 +315,7 @@ void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef* hdac){
     devfs_async_t * async = dac->dac.transfer_handler.write;
     int result;
 
-    result = devfs_execute_write_handler(&dac->dac.transfer_handler, 0, 2, MCU_EVENT_FLAG_HALF_TRANSFER | MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_STREAMING);
+    result = devfs_execute_write_handler(&dac->dac.transfer_handler, 0, 2, MCU_EVENT_FLAG_LOW | MCU_EVENT_FLAG_WRITE_COMPLETE);
     if( result ){
         dac->dac.transfer_handler.write = async;
     } else {
@@ -325,7 +331,7 @@ void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef * hdac){
     devfs_async_t * async = dac->dac.transfer_handler.write;
     int result;
 
-    result = devfs_execute_write_handler(&dac->dac.transfer_handler, 0, 0);
+    result = devfs_execute_write_handler(&dac->dac.transfer_handler, 0, 0, MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
     if( result ){
         dac->dac.transfer_handler.write = async;
     } else {

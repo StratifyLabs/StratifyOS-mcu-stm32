@@ -145,6 +145,16 @@
 #include "mcu_stm32l475xx.h"
 #endif
 
+#if defined __stm32l432xx
+#define CORE_M4 1
+#define ARM_MATH_CM4 1
+#define STM32_FLASH_LAYOUT_2K_PAGES 1
+#if !defined STM32L432xx
+#define STM32L432xx 1
+#endif
+#include "mcu_stm32l432xx.h"
+#endif
+
 
 typedef struct MCU_PACK {
     u32 o_flags;
@@ -158,6 +168,8 @@ typedef struct MCU_PACK {
     u16 clock_apb2_clock_divider;
     u16 clock_voltage_scale;
     u16 clock_flash_latency;
+    u16 clock_i2s_plln;
+    u16 clock_i2s_pllr;
     u16 usb_rx_buffer_size;
     void * usb_rx_buffer;
 } stm32_config_t;
@@ -165,7 +177,10 @@ typedef struct MCU_PACK {
 enum {
     STM32_CONFIG_FLAG_IS_HSE_ON = (1<<0),
     STM32_CONFIG_FLAG_IS_48_CLOCK_PLLQ = 0, //default values
-    STM32_CONFIG_FLAG_IS_OVERDRIVE_ON = (1<<1)
+    STM32_CONFIG_FLAG_IS_OVERDRIVE_ON = (1<<1),
+    STM32_CONFIG_FLAG_IS_LSE_ON = (1<<2),
+    STM32_CONFIG_FLAG_IS_MSE_ON = (1<<3),
+    STM32_CONFIG_FLAG_IS_I2S_PLL_ON = (1<<4)
 };
 
 enum {

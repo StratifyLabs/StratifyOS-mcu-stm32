@@ -81,7 +81,11 @@ int mcu_usb_open(const devfs_handle_t * handle){
         usb_local[port].hal_handle.Instance = usb_regs_table[port];
 
         if( port == 0 ){
-            __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
+#if MCU_USB_API > 0
+                __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
+#else
+                __HAL_RCC_USB_CLK_ENABLE();
+#endif
         } else {
 #if MCU_USB_PORTS > 1
 #if defined __HAL_RCC_OTGPHYC_CLK_ENABLE
@@ -105,7 +109,11 @@ int mcu_usb_close(const devfs_handle_t * handle){
             cortexm_disable_irq(usb_irqs[port]);  //Disable the USB interrupt
             usb_local[port].hal_handle.Instance = 0;
             if( port == 0 ){
+#if MCU_USB_API > 0
                 __HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+#else
+                __HAL_RCC_USB_CLK_DISABLE();
+#endif
             } else {
 #if MCU_USB_PORTS > 1
 #if defined __HAL_RCC_OTGPHYC_CLK_DISABLE
@@ -131,7 +139,6 @@ int mcu_usb_getinfo(const devfs_handle_t * handle, void * ctl){
 
 int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
     u32 port = handle->port;
-    int i;
 
     const usb_attr_t * attr = mcu_select_attr(handle, ctl);
     if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
@@ -199,10 +206,17 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
         usb_local[port].hal_handle.Init.Sof_enable = DISABLE;
         usb_local[port].hal_handle.Init.low_power_enable = DISABLE;
         usb_local[port].hal_handle.Init.lpm_enable = DISABLE;
+        usb_local[port].hal_handle.Init.battery_charging_enable = DISABLE;
+
+#if MCU_USB_API > 0
         usb_local[port].hal_handle.Init.vbus_sensing_enable = DISABLE;
         usb_local[port].hal_handle.Init.use_dedicated_ep1 = DISABLE;
-        usb_local[port].hal_handle.Init.battery_charging_enable = DISABLE;
         usb_local[port].hal_handle.Init.use_external_vbus = DISABLE;
+
+        if( o_flags & USB_FLAG_IS_VBUS_SENSING_ENABLED ){
+            usb_local[port].hal_handle.Init.vbus_sensing_enable = ENABLE;
+        }
+#endif
 
         if( o_flags & USB_FLAG_IS_SOF_ENABLED ){
             usb_local[port].hal_handle.Init.Sof_enable = ENABLE;
@@ -210,10 +224,6 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 
         if( o_flags & USB_FLAG_IS_LOW_POWER_MODE_ENABLED ){
             usb_local[port].hal_handle.Init.lpm_enable = ENABLE;
-        }
-
-        if( o_flags & USB_FLAG_IS_VBUS_SENSING_ENABLED ){
-            usb_local[port].hal_handle.Init.vbus_sensing_enable = ENABLE;
         }
 
         if( o_flags & USB_FLAG_IS_BATTERY_CHARGING_ENABLED ){
@@ -224,12 +234,15 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
             return SYSFS_SET_RETURN(EIO);
         }
 
+#if MCU_USB_API > 0
+        int i;
         HAL_PCDEx_SetRxFiFo(&usb_local[port].hal_handle, attr->rx_fifo_word_size);  //size is in 32-bit words for all fifo - 512
         for(i=0; i < USB_TX_FIFO_WORD_SIZE_COUNT; i++){
             if( attr->tx_fifo_word_size[i] > 0 ){
                 HAL_PCDEx_SetTxFiFo(&usb_local[port].hal_handle, i, attr->tx_fifo_word_size[i]);
             }
         }
+#endif
     }
 
 
@@ -518,13 +531,12 @@ int mcu_usb_root_read_endpoint(const devfs_handle_t * handle, u32 endpoint_num, 
     return -1;
 }
 
-
-
 int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num, const void * src, u32 size){
     int ret;
+
+#if MCU_USB_API > 0
     int logical_endpoint = endpoint_num & 0x7f;
     int type = usb_local[handle->port].hal_handle.IN_ep[logical_endpoint].type;
-
     if( type == EP_TYPE_ISOC ){
         //check to see if the packet will fit in the FIFO
         //if the packet won't fit, return EBUSY
@@ -534,6 +546,7 @@ int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num,
             return SYSFS_SET_RETURN(EBUSY);
         }
     }
+#endif
 
     ret = HAL_PCD_EP_Transmit(&usb_local[handle->port].hal_handle, endpoint_num, (void*)src, size);
     if( ret == HAL_OK ){
@@ -636,7 +649,9 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
+#if MCU_USB_API > 0
     __HAL_PCD_GATE_PHYCLOCK(hpcd);
+#endif
 
 }
 

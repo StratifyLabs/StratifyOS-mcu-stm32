@@ -31,6 +31,7 @@ set(F746 0)
 set(F767 0)
 
 set(L475 0)
+set(L432 0)
 
 if(F401xC)
 set(STM32_VARIANT stm32f401xc)
@@ -105,6 +106,12 @@ endif()
 if(L475)
 set(STM32_VARIANT stm32l475xx)
 set(STM32_VARIANT_DEFINE STM32L475xx)
+include(${CMAKE_SOURCE_DIR}/stm32l4.cmake)
+endif()
+
+if(L432)
+set(STM32_VARIANT stm32l432xx)
+set(STM32_VARIANT_DEFINE STM32L432xx)
 include(${CMAKE_SOURCE_DIR}/stm32l4.cmake)
 endif()
 

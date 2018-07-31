@@ -25,11 +25,15 @@
 
 
 int i2s_spi_local_mute(const devfs_handle_t * handle, void * ctl){
-    return 0;
+    MCU_UNUSED_ARGUMENT(handle);
+    MCU_UNUSED_ARGUMENT(ctl);
+    return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int i2s_spi_local_unmute(const devfs_handle_t * handle, void * ctl){
-    return 0;
+    MCU_UNUSED_ARGUMENT(handle);
+    MCU_UNUSED_ARGUMENT(ctl);
+    return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * ctl){
@@ -44,11 +48,9 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
 
     //set I2S Flags
 
-    spi->is_i2s = 1;
-
-
     if( o_flags & (I2S_FLAG_SET_MASTER|I2S_FLAG_SET_SLAVE) ){
-#if defined I2S_FULLDUPLEXMODE_ENABLE
+        spi->o_flags = SPI_LOCAL_IS_I2S;
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
         spi->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
 #endif
 
@@ -57,9 +59,9 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
             if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
                 spi->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_TX;
                 if( o_flags & I2S_FLAG_IS_RECEIVER ){
-#if defined I2S_FULLDUPLEXMODE_ENABLE
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
                     spi->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
-                    spi->is_full_duplex = 1;
+                    spi->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
 #endif
                 }
             } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
@@ -69,9 +71,9 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
             if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
                 spi->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_TX;
                 if( o_flags & I2S_FLAG_IS_RECEIVER ){
-#if defined I2S_FULLDUPLEXMODE_ENABLE
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
                     spi->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
-                    spi->is_full_duplex = 1;
+                    spi->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
 #endif
                 }
             } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
@@ -133,6 +135,7 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
         PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
         PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
         int result;
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Start I2S Clock");
         if ( (result = HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct)) != HAL_OK){
             mcu_debug_log_error(MCU_DEBUG_DEVICE, "PERIPH CLOCK SET FAILED %d", result);
             return SYSFS_SET_RETURN(EIO);
@@ -180,6 +183,93 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
     }
 
     return 0;
+}
+
+//where is the half callback??
+void HAL_I2SEx_TxRxCpltCallback(I2S_HandleTypeDef *hi2s){
+    //spi_local_t * spi = (spi_local_t *)hi2s;
+
+
+}
+
+void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
+    //no action when half complete -- could fire an event
+    spi_local_t * spi = (spi_local_t *)hi2s;
+    int result;
+    devfs_async_t * async;
+
+    async = spi->transfer_handler.write;
+    result = devfs_execute_write_handler(
+                &spi->transfer_handler,
+                0,
+                0,
+                MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW);
+    if( result ){
+        spi->transfer_handler.read = async;
+    } else {
+        //stop -- half transfer only happens on DMA
+        HAL_I2S_DMAStop(hi2s);
+    }
+}
+
+void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
+    spi_local_t * spi = (spi_local_t *)hi2s;
+    devfs_execute_write_handler(
+                &spi->transfer_handler,
+                0,
+                0, //zero means leave nbyte value alone
+                MCU_EVENT_FLAG_WRITE_COMPLETE);
+}
+
+void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
+    //no action when half complete -- could fire an event
+    spi_local_t * spi = (spi_local_t *)hi2s;
+    int result;
+    devfs_async_t * async;
+
+    async = spi->transfer_handler.read;
+    result = devfs_execute_read_handler(
+                &spi->transfer_handler,
+                0,
+                0,
+                MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_LOW);
+
+    if( result ){
+        spi->transfer_handler.read = async;
+    } else {
+        //stop -- half transfer only happens on DMA
+        HAL_I2S_DMAStop(hi2s);
+    }
+}
+
+
+void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
+    spi_local_t * spi = (spi_local_t *)hi2s;
+    int result;
+    devfs_async_t * async;
+
+    async = spi->transfer_handler.read;
+    result = devfs_execute_read_handler(
+                &spi->transfer_handler,
+                0,
+                0,
+                MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_HIGH);
+
+    if( result ){
+        //restore the callback if the callback requests it -- good for DMA only
+        spi->transfer_handler.read = async;
+    } else if( spi->o_flags & SPI_LOCAL_IS_DMA ){
+        HAL_I2S_DMAStop(hi2s);
+    }
+}
+
+void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
+    //called on overflow and underrun
+    spi_local_t * spi = (spi_local_t *)hi2s;
+    volatile u32 status = hi2s->Instance->SR;
+    status = hi2s->Instance->DR;
+    mcu_debug_log_error(MCU_DEBUG_DEVICE, " I2S Error %d on %p", hi2s->ErrorCode, hi2s->Instance);
+    devfs_execute_cancel_handler(&spi->transfer_handler, (void*)&status, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 }
 
 

@@ -27,29 +27,44 @@
 
 #if MCU_I2S_SPI_PORTS > 0
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi, I2S_VERSION, I2S_IOC_IDENT_CHAR, I_MCU_TOTAL + I_I2S_TOTAL, mcu_i2s_spi_dma_mute, mcu_i2s_spi_dma_unmute)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi_dma, I2S_VERSION, I2S_IOC_IDENT_CHAR, I_MCU_TOTAL + I_I2S_TOTAL, mcu_i2s_spi_dma_mute, mcu_i2s_spi_dma_unmute)
 
 int mcu_i2s_spi_dma_open(const devfs_handle_t * handle){
-    u32 port = handle->port;
-    if( port < MCU_SPI_PORTS ){
+    return spi_local_open(&spi_dma_local[handle->port].spi, handle, spi_irqs[handle->port]);
 
-        //same as SPI
-        if( mcu_spi_dma_open(handle) < 0 ){
-            return SYSFS_SET_RETURN(EINVAL);
-        }
-
-        //ensure Instance is correctly assigned
-        if ( spi_local[port].ref_count == 0 ){
-            spi_local[port].i2s_hal_handle.Instance = spi_regs[port];
-        }
-        return 0;
-    }
-    return SYSFS_SET_RETURN(EINVAL);
 }
 
 int mcu_i2s_spi_dma_close(const devfs_handle_t * handle){
     //same as SPI
-    mcu_spi_close(handle);
+    const u32 port = handle->port;
+
+    if( spi_local[handle->port].ref_count == 1 ){
+        //disable the DMA
+        const stm32_i2s_spi_dma_config_t * config;
+        config = handle->config;
+        HAL_I2S_DMAStop(&spi_dma_local[handle->port].spi.i2s_hal_handle);
+
+        if( spi_dma_local[port].dma_rx_channel.interrupt_number > 0 ){
+            HAL_DMA_DeInit(&spi_dma_local[port].dma_rx_channel.handle);
+        }
+
+        if( spi_dma_local[port].dma_tx_channel.interrupt_number > 0 ){
+            HAL_DMA_DeInit(&spi_dma_local[port].dma_tx_channel.handle);
+        }
+
+        if( config ){
+            stm32_dma_clear_handle(&spi_dma_local[port].dma_rx_channel, config->dma_config.rx.dma_number, config->dma_config.rx.stream_number);
+            stm32_dma_clear_handle(&spi_dma_local[port].dma_tx_channel, config->dma_config.tx.dma_number, config->dma_config.tx.stream_number);
+        }
+
+
+
+
+    }
+
+    spi_local_close(&spi_dma_local[port].spi, handle, spi_irqs[handle->port]);
+
+
     return 0;
 }
 
@@ -57,7 +72,14 @@ int mcu_i2s_spi_dma_getinfo(const devfs_handle_t * handle, void * ctl){
     i2s_info_t * info = ctl;
 
     //set I2S Capability flags
-    info->o_flags = 0;
+    info->o_flags = I2S_FLAG_SET_MASTER |
+            I2S_FLAG_SET_SLAVE |
+            I2S_FLAG_IS_WIDTH_8 |
+            I2S_FLAG_IS_WIDTH_16 |
+            I2S_FLAG_IS_WIDTH_16_EXTENDED |
+            I2S_FLAG_IS_WIDTH_24 |
+            I2S_FLAG_IS_WIDTH_32;
+
     info->o_events = MCU_EVENT_FLAG_DATA_READY |
             MCU_EVENT_FLAG_WRITE_COMPLETE |
             MCU_EVENT_FLAG_HIGH |
@@ -68,11 +90,11 @@ int mcu_i2s_spi_dma_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_i2s_spi_dma_mute(const devfs_handle_t * handle, void * ctl){
-    return 0;
+    return i2s_spi_local_mute(handle, ctl);
 }
 
 int mcu_i2s_spi_dma_unmute(const devfs_handle_t * handle, void * ctl){
-    return 0;
+    return i2s_spi_local_unmute(handle, ctl);
 }
 
 int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
@@ -88,18 +110,20 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
     if( attr->o_flags & (I2S_FLAG_SET_MASTER | I2S_FLAG_SET_SLAVE) ){
 
+        spi_dma_local[port].spi.o_flags = SPI_LOCAL_IS_DMA | SPI_LOCAL_IS_I2S;
+
         if( attr->o_flags & I2S_FLAG_IS_RECEIVER ){
 
+            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set I2S DMA as receiver");
             //setup the DMA for receiving
-            stm32_dma_set_handle(&spi_dma_local[port].dma_rx_channel, config->dma_config.rx.dma_number, config->dma_config.rx.stream_number); //need to get the DMA# and stream# from a table -- or from config
+            stm32_dma_set_handle(&spi_dma_local[port].dma_rx_channel, config->dma_config.rx.dma_number, config->dma_config.rx.stream_number);
             spi_dma_local[port].dma_rx_channel.handle.Instance = stm32_dma_get_stream_instance(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number); //DMA1 stream 0
             spi_dma_local[port].dma_rx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
-            spi_dma_local[port].dma_rx_channel.handle.Init.Mode = DMA_CIRCULAR;
             spi_dma_local[port].dma_rx_channel.handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
             spi_dma_local[port].dma_rx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
             spi_dma_local[port].dma_rx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
-            spi_dma_local[port].dma_rx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+            spi_dma_local[port].dma_rx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
             spi_dma_local[port].dma_rx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
 
             if( attr->o_flags & I2S_FLAG_IS_WIDTH_8 ){
@@ -119,16 +143,20 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
                 spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
             }
 
+            spi_dma_local[port].dma_rx_channel.handle.Init.Mode = DMA_CIRCULAR;
             spi_dma_local[port].dma_rx_channel.handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.rx.priority);
 
             if (HAL_DMA_Init(&spi_dma_local[port].dma_rx_channel.handle) != HAL_OK){
                 return SYSFS_SET_RETURN(EIO);
             }
 
-            __HAL_LINKDMA((&spi_dma_local[port].spi.hal_handle), hdmarx, spi_dma_local[port].dma_rx_channel.handle);
+            __HAL_LINKDMA((&spi_dma_local[port].spi.i2s_hal_handle), hdmarx, spi_dma_local[port].dma_rx_channel.handle);
+
 
         }
         if( attr->o_flags & I2S_FLAG_IS_TRANSMITTER ){
+
+            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set I2S DMA as transmitter");
 
             //setup the DMA for transmitting
             stm32_dma_set_handle(&spi_dma_local[port].dma_tx_channel, config->dma_config.tx.dma_number, config->dma_config.tx.stream_number); //need to get the DMA# and stream# from a table -- or from config
@@ -165,7 +193,8 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
                 return SYSFS_SET_RETURN(EIO);
             }
 
-            __HAL_LINKDMA((&spi_dma_local[port].spi.hal_handle), hdmatx, spi_dma_local[port].dma_tx_channel.handle);
+            __HAL_LINKDMA((&spi_dma_local[port].spi.i2s_hal_handle), hdmatx, spi_dma_local[port].dma_tx_channel.handle);
+
         }
     }
 
@@ -184,9 +213,9 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
     DEVFS_DRIVER_IS_BUSY(spi->spi.transfer_handler.write, async);
 
-    if( spi->spi.is_full_duplex && spi_dma_local[port].spi.transfer_handler.read ){
+    if( (spi->spi.o_flags & SPI_LOCAL_IS_DMA) && spi_dma_local[port].spi.transfer_handler.read ){
 
-#if defined I2S_FULLDUPLEXMODE_ENABLE
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
         if( spi->spi.transfer_handler.read->nbyte < async->nbyte ){
             return SYSFS_SET_RETURN(EINVAL);
         }
@@ -201,7 +230,7 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 #endif
 
     } else {
-        result = HAL_I2S_Transmit_DMA(&spi->spi.i2s_hal_handle, async->buf, async->nbyte);
+        result = HAL_I2S_Transmit_DMA(&spi->spi.i2s_hal_handle, async->buf,  async->nbyte/spi->spi.size_mult);
     }
 
     if( result != HAL_OK ){
@@ -227,14 +256,20 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 
     DEVFS_DRIVER_IS_BUSY(spi->spi.transfer_handler.read, async);
 
-    if( spi->spi.is_full_duplex ){
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
+    if( spi->spi.o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
         //Receive assigns the transfer handler but then blocks until a write happens
-        ret = 0;
-    } else {
-        ret = HAL_I2S_Receive_DMA(&spi->spi.i2s_hal_handle, async->buf, async->nbyte);
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Wait FD");
+        return 0;
     }
+#endif
+
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read DMA 0x%lX %d %d", spi->spi.i2s_hal_handle.Init.Mode, async->nbyte/spi->spi.size_mult, spi->spi.size_mult);
+
+    ret = HAL_I2S_Receive_DMA(&spi->spi.i2s_hal_handle, async->buf,  async->nbyte/spi->spi.size_mult);
 
     if( ret != HAL_OK ){
+        mcu_debug_log_error(MCU_DEBUG_DEVICE, "Failed to start I2S DMA Read (%d, %d) %d/%d", ret, spi->spi.i2s_hal_handle.ErrorCode, async->nbyte, spi->spi.size_mult);
         spi->spi.transfer_handler.read = 0;
         if( ret == HAL_BUSY ){
             return SYSFS_SET_RETURN(EIO);
@@ -248,77 +283,6 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     }
 
     return 0;
-}
-
-void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
-    spi_local_t * local = (spi_local_t *)hi2s;
-
-    //MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW -- first half
-    if( local->transfer_handler.write ){
-        //this will leave the async in place for circular mode
-        devfs_execute_event_handler(
-                    &local->transfer_handler.write->handler,
-                    MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW,
-                    0);
-    }
-}
-
-void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
-    spi_local_t * local = (spi_local_t *)hi2s;
-    int result = 0;
-
-    //MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW -- first half
-
-    if( local->transfer_handler.write ){
-        //this will return 1 to keep the same async transfer going in circular mode
-        result = devfs_execute_event_handler(
-                    &local->transfer_handler.write->handler,
-                    MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_HIGH,
-                    0);
-    }
-
-    if( result == 0 ){
-        //abort reception
-        local->transfer_handler.write = 0;
-        HAL_I2S_DMAStop(hi2s);
-    }
-}
-
-void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
-    spi_local_t * local = (spi_local_t *)hi2s;
-
-    //MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_LOW -- first half
-    if( local->transfer_handler.read ){
-        devfs_execute_event_handler(
-                    &local->transfer_handler.read->handler,
-                    MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_LOW,
-                    0);
-    }
-
-}
-
-void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
-    spi_local_t * local = (spi_local_t *)hi2s;
-    int result = 0;
-
-    if( local->transfer_handler.read ){
-        result = devfs_execute_event_handler(
-                    &local->transfer_handler.read->handler,
-                    MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_HIGH,
-                    0);
-    }
-
-    if( result == 0 ){
-        //abort reception -- transaction is complete
-        local->transfer_handler.read = 0;
-        HAL_I2S_DMAStop(hi2s);
-    }
-}
-
-void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
-    //called on overflow and underrun
-    spi_local_t * local = (spi_local_t *)hi2s;
-    devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 }
 
 

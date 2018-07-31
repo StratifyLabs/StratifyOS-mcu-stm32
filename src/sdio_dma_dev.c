@@ -17,11 +17,11 @@
  *
  */
 
-#include <mcu/sdio.h>
-#include "sdio_local.h"
 
 #if MCU_SDIO_PORTS > 0
 
+#include <mcu/sdio.h>
+#include "sdio_local.h"
 
 static sdio_dma_local_t sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 

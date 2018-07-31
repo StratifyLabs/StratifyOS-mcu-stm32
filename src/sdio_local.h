@@ -24,6 +24,7 @@
 
 #include "stm32_dma.h"
 
+
 typedef struct {
     SD_HandleTypeDef hal_handle; //must be the first member of the struct
     devfs_transfer_handler_t transfer_handler;

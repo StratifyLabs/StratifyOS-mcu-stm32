@@ -36,6 +36,8 @@
 #if defined STM32F4
 #include "stm32f4xx/stm32f4xx_hal_conf.h"
 
+//#define STM32_LOCAL_HAS_PERIPH_CLOCK_SELECTOR 1
+
 #if defined(STM32F410Tx) || defined(STM32F410Cx) || defined(STM32F410Rx) || defined(STM32F446xx) || defined(STM32F469xx) ||\
     defined(STM32F479xx) || defined(STM32F412Zx) || defined(STM32F412Vx) || defined(STM32F412Rx) || defined(STM32F412Cx) ||\
     defined(STM32F413xx) || defined(STM32F423xx)

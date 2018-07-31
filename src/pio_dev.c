@@ -53,8 +53,12 @@ int mcu_pio_open(const devfs_handle_t * handle){
         case 0: __HAL_RCC_GPIOA_CLK_ENABLE(); break;
         case 1: __HAL_RCC_GPIOB_CLK_ENABLE(); break;
         case 2: __HAL_RCC_GPIOC_CLK_ENABLE(); break;
+#if defined GPIOD
         case 3: __HAL_RCC_GPIOD_CLK_ENABLE(); break;
+#endif
+#if defined GPIOE
         case 4: __HAL_RCC_GPIOE_CLK_ENABLE(); break;
+#endif
 #if defined GPIOF
         case 5: __HAL_RCC_GPIOF_CLK_ENABLE(); break;
 #endif

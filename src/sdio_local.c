@@ -17,11 +17,11 @@
  *
  */
 
-#include <mcu/sdio.h>
-#include "sdio_local.h"
 
 #if MCU_SDIO_PORTS > 0
 
+#include <mcu/sdio.h>
+#include "sdio_local.h"
 
 SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS] = MCU_SDIO_REGS;
 const int sdio_irqs[MCU_SDIO_PORTS] = MCU_SDIO_IRQS;

@@ -68,12 +68,13 @@ int mcu_i2c_open(const devfs_handle_t * handle){
         case 0:
             __HAL_RCC_I2C1_CLK_ENABLE();
             break;
-#if MCU_I2C_PORTS > 1
+#if defined I2C2
+
         case 1:
             __HAL_RCC_I2C2_CLK_ENABLE();
             break;
 #endif
-#if MCU_I2C_PORTS > 2
+#if defined I2C3
         case 2:
             __HAL_RCC_I2C3_CLK_ENABLE();
             break;
@@ -102,12 +103,12 @@ int mcu_i2c_close(const devfs_handle_t * handle){
             case 0:
                 __HAL_RCC_I2C1_CLK_DISABLE();
                 break;
-#if MCU_I2C_PORTS > 1
+#if defined I2C2
             case 1:
                 __HAL_RCC_I2C2_CLK_DISABLE();
                 break;
 #endif
-#if MCU_I2C_PORTS > 2
+#if defined I2C3
             case 2:
                 __HAL_RCC_I2C3_CLK_DISABLE();
                 break;

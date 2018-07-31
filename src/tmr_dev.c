@@ -82,29 +82,37 @@ int mcu_tmr_open(const devfs_handle_t * handle){
         case 0:
             __HAL_RCC_TIM1_CLK_ENABLE();
             break;
+#if defined TIM2
         case 1:
             __HAL_RCC_TIM2_CLK_ENABLE();
             break;
+#endif
+#if defined TIM3
         case 2:
             __HAL_RCC_TIM3_CLK_ENABLE();
             break;
+#endif
+#if defined TIM4
         case 3:
             __HAL_RCC_TIM4_CLK_ENABLE();
             break;
+#endif
+#if defined TIM5
         case 4:
             __HAL_RCC_TIM5_CLK_ENABLE();
             break;
-#if defined __HAL_RCC_TIM6_CLK_ENABLE
+#endif
+#if defined TIM6
         case 5:
             __HAL_RCC_TIM6_CLK_ENABLE();
             break;
 #endif
-#if defined __HAL_RCC_TIM7_CLK_ENABLE
+#if defined TIM7
         case 6:
             __HAL_RCC_TIM7_CLK_ENABLE();
             break;
 #endif
-#if defined __HAL_RCC_TIM8_CLK_ENABLE
+#if defined TIM8
         case 7:
             __HAL_RCC_TIM8_CLK_ENABLE();
             break;
@@ -132,29 +140,37 @@ int mcu_tmr_close(const devfs_handle_t * handle){
             case 0:
                 __HAL_RCC_TIM1_CLK_DISABLE();
                 break;
+#if defined TIM2
             case 1:
                 __HAL_RCC_TIM2_CLK_DISABLE();
                 break;
+#endif
+#if defined TIM3
             case 2:
                 __HAL_RCC_TIM3_CLK_DISABLE();
                 break;
+#endif
+#if defined TIM4
             case 3:
                 __HAL_RCC_TIM4_CLK_DISABLE();
                 break;
+#endif
+#if defined TIM5
             case 4:
                 __HAL_RCC_TIM5_CLK_DISABLE();
                 break;
-#if defined __HAL_RCC_TIM6_CLK_DISABLE
+#endif
+#if defined TIM6
             case 5:
                 __HAL_RCC_TIM6_CLK_DISABLE();
                 break;
 #endif
-#if defined __HAL_RCC_TIM7_CLK_DISABLE
+#if defined TIM7
             case 6:
                 __HAL_RCC_TIM7_CLK_DISABLE();
                 break;
 #endif
-#if defined __HAL_RCC_TIM8_CLK_DISABLE
+#if defined TIM8
             case 7:
                 __HAL_RCC_TIM8_CLK_DISABLE();
                 break;

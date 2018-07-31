@@ -32,11 +32,16 @@ typedef struct {
 #endif
     };
     devfs_transfer_handler_t transfer_handler;
-    u8 is_full_duplex;
-    u8 is_i2s;
+    u16 o_flags;
     u8 ref_count;
     u8 size_mult;
 } spi_local_t;
+
+enum {
+    SPI_LOCAL_IS_DMA = (1<<0),
+    SPI_LOCAL_IS_I2S = (1<<1),
+    SPI_LOCAL_IS_FULL_DUPLEX = (1<<2)
+};
 
 typedef struct {
     spi_local_t spi;

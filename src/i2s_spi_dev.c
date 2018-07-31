@@ -70,7 +70,7 @@ int mcu_i2s_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
     DEVFS_DRIVER_IS_BUSY(spi_local[port].transfer_handler.write, async);
 
 
-    if( spi_local[port].is_full_duplex ){
+    if( spi_local[port].o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
 
 #if defined I2S_FULLDUPLEXMODE_ENABLE
         if( spi_local[port].transfer_handler.read->nbyte < async->nbyte ){
@@ -105,13 +105,13 @@ int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
 
     DEVFS_DRIVER_IS_BUSY(spi_local[port].transfer_handler.read, async);
 
-    if( spi_local[port].is_full_duplex ){
-        ret = HAL_OK;
-    } else {
-        //check for overrun
-        ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte/spi_local[port].size_mult);
-        //mcu_debug_root_printf("1\n");
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
+    if( spi_local[port].o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
+        return SYSFS_RETURN_SUCCESS;
     }
+#endif
+    //check for overrun
+    ret = HAL_I2S_Receive_IT(&spi_local[port].i2s_hal_handle, async->buf, async->nbyte/spi_local[port].size_mult);
 
     if( ret != HAL_OK ){
         spi_local[port].transfer_handler.read = 0;
@@ -122,42 +122,6 @@ int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
     return 0;
 }
 
-
-void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
-    //no action when half complete -- could fire an event
-}
-
-void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
-    spi_local_t * spi = (spi_local_t *)hi2s;
-    devfs_execute_write_handler(
-                &spi->transfer_handler,
-                0,
-                0, //zero means leave nbyte value alone
-                MCU_EVENT_FLAG_WRITE_COMPLETE);
-}
-
-void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
-    //no action when half complete -- could fire an event
-}
-
-
-void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
-    spi_local_t * spi = (spi_local_t *)hi2s;
-    devfs_execute_read_handler(
-                &spi->transfer_handler,
-                0,
-                0,
-                MCU_EVENT_FLAG_DATA_READY);
-}
-
-void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
-    //called on overflow and underrun
-    spi_local_t * spi = (spi_local_t *)hi2s;
-    volatile u32 status = hi2s->Instance->SR;
-    status = hi2s->Instance->DR;
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, " I2S Error %d on %p", hi2s->ErrorCode, hi2s->Instance);
-    devfs_execute_cancel_handler(&spi->transfer_handler, (void*)&status, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
-}
 
 #endif
 

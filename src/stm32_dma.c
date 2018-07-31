@@ -100,9 +100,10 @@ void stm32_dma_set_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 str
         }
 
         interrupt_number = stm32_dma_get_interrupt_number(dma_number, stream_number);
-        if( interrupt_number >= 0 ){
+        if( interrupt_number > 0 ){
             channel->interrupt_number = interrupt_number;
             cortexm_enable_irq( interrupt_number );
+            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Enable interrupt %d", channel->interrupt_number);
         } else {
             return;
         }
@@ -135,6 +136,38 @@ int stm32_dma_get_interrupt_number(u32 dma_number, u32 stream_number){
 
 void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number){
     //remove a handle that is in the list
+    if( dma_number < MCU_DMA_PORTS ){
+
+        //ON STM32 Interrupt zero is the WDT (or something else that typically doesn't support DMA -- so zero is not valid
+        if( channel->interrupt_number <= 0 ){
+            return;
+        }
+
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Disable interrupt %d", channel->interrupt_number);
+
+        cortexm_enable_irq( channel->interrupt_number );
+        channel->interrupt_number = -1;
+
+        if( channel == stm32_dma_handle[dma_number].stream[stream_number] ){
+            stm32_dma_handle[dma_number].stream[stream_number] = channel->next;
+            channel->next = 0;
+            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Channel was first");
+        } else {
+            stm32_dma_channel_t * channel_list = stm32_dma_handle[dma_number].stream[stream_number];
+            while( channel_list != 0 ){
+                if( channel_list->next == channel ){
+                    channel_list->next = channel->next;
+                    channel_list = 0;
+                    channel->next = 0;
+                    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Channel was not first");
+                } else {
+                    channel_list = channel_list->next;
+                }
+            }
+
+        }
+    }
+
 }
 
 
