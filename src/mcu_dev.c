@@ -21,7 +21,8 @@ const mcu_config_t mcu_config = {
     .irq_total = MCU_LAST_IRQ,
     .irq_middle_prio = MCU_MIDDLE_IRQ_PRIORITY,
     .usb_logical_endpoint_count = 4,
-    .delay_factor = MCU_DELAY_FACTOR
+    .delay_factor = MCU_DELAY_FACTOR,
+    .git_hash = SOS_GIT_HASH
 };
 
 u32 mcu_ram_usage_table[APPFS_RAM_USAGE_WORDS(MCU_RAM_PAGES)] MCU_SYS_MEM;

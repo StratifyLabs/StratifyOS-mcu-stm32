@@ -155,9 +155,9 @@ int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * c
 
             //#if defined __stm32f401xc
             if( (handle->port == 0) || (handle->port == 3) ){
-                pclk = HAL_RCC_GetPCLK1Freq(); //42MHz max
+                pclk = HAL_RCC_GetPCLK1Freq();
             } else {
-                pclk = HAL_RCC_GetPCLK2Freq(); //84MHz max
+                pclk = HAL_RCC_GetPCLK2Freq();
             }
             //#endif
 

@@ -551,7 +551,7 @@ int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num,
     ret = HAL_PCD_EP_Transmit(&usb_local[handle->port].hal_handle, endpoint_num, (void*)src, size);
     if( ret == HAL_OK ){
 #if 0
-        if( usb_local[handle->port].hal_handle.IN_ep[logical_endpoint].type == EP_TYPE_ISOC ){
+        if( type == EP_TYPE_ISOC ){
             return size;
         }
 #endif
