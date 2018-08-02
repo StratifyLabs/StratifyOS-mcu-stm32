@@ -22,6 +22,8 @@ set(SOURCES
 	${SOURCES_PREFIX}/eth_dev.c
 	${SOURCES_PREFIX}/crc_dev.c
 	${SOURCES_PREFIX}/i2c_dev.c
+	${SOURCES_PREFIX}/sai_local.c
+	${SOURCES_PREFIX}/sai_local.h
 	${SOURCES_PREFIX}/i2s_spi_local.c
 	${SOURCES_PREFIX}/i2s_spi_local.h
 	${SOURCES_PREFIX}/i2s_spi_dev.c
