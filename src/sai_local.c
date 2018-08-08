@@ -36,7 +36,7 @@ int sai_local_unmute(const devfs_handle_t * handle, void * ctl){
     MCU_UNUSED_ARGUMENT(handle);
     MCU_UNUSED_ARGUMENT(ctl);
     //HAL_SAI_DisableRxMuteMode()
-    //HAL_SAI_EnableTxMuteMode()
+    //HAL_SAI_DisableTxMuteMode()
     return SYSFS_SET_RETURN(ENOTSUP);
 }
 

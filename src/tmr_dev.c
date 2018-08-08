@@ -239,20 +239,26 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
             //get the peripheral clock frequency
 
             u32 pclk;
-            if( (port == 1) || (port == 8) || (port == 9) || (port == 10) || (port == 11) ){
+            if( (((u32)m_tmr_local[port].hal_handle.Instance) & ~0xFFFF) == APB1PERIPH_BASE ){
                 pclk = HAL_RCC_GetPCLK1Freq(); //timer clocks are double pclks
-                if( pclk <= mcu_board_config.core_cpu_freq/2 ){
-                    pclk = pclk * 2;
-                }
+                mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use PCLK1 for %ld %ld", port);
             } else {
+                mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use PCLK2 for %ld", port);
                 pclk = HAL_RCC_GetPCLK2Freq();
-                if( pclk <= mcu_board_config.core_cpu_freq/2 ){
-                    pclk = pclk * 2;
-                }
             }
 
-            if ( freq < pclk ){
-                m_tmr_local[port].hal_handle.Init.Prescaler = ((pclk + freq/2) / freq);
+            if( pclk <= mcu_board_config.core_cpu_freq/2 ){
+                pclk = pclk * 2;
+            }
+
+            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Clock calc %ld %ld >> %d", mcu_board_config.core_cpu_freq, HAL_RCC_GetHCLKFreq(), APBPrescTable[(RCC->CFGR & RCC_CFGR_PPRE1)>> POSITION_VAL(RCC_CFGR_PPRE1)]);
+
+
+            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use pclk is %ld", pclk);
+
+            if ( freq < pclk*2 ){
+                m_tmr_local[port].hal_handle.Init.Prescaler = ((pclk + freq/2) / freq) - 1;
+                mcu_debug_log_info(MCU_DEBUG_DEVICE, "Prescaler:%ld", m_tmr_local[port].hal_handle.Init.Prescaler);
             } else {
                 m_tmr_local[port].hal_handle.Init.Prescaler = 0;
             }

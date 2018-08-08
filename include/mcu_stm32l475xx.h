@@ -59,7 +59,7 @@
 
 
 #define MCU_SAI_API 0
-#define MCU_SAI_PORTS 4
+#define MCU_SAI_PORTS 0
 #define MCU_SAI_REGS { SAI1_Block_A, SAI1_Block_B, SAI2_Block_A, SAI2_Block_B }
 #define MCU_SAI_IRQS { SAI1_IRQn, SAI1_IRQn, SAI2_IRQn, SAI2_IRQn }
 
@@ -81,6 +81,7 @@
 #define MCU_UART_REGS { USART1, USART2, USART3, UART4, UART5 }
 #define MCU_UART_IRQS { USART1_IRQn, USART2_IRQn, USART3_IRQn, UART4_IRQn, UART5_IRQn }
 
+#define MCU_USB_API 1
 #define MCU_USB_PORTS 1
 #define MCU_USB_REGS { USB_OTG_FS }
 #define MCU_USB_IRQS { OTG_FS_IRQn }

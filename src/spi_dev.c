@@ -72,7 +72,7 @@ int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
 
     DEVFS_DRIVER_IS_BUSY(spi_local[port].transfer_handler.write, async);
 
-    if( (spi_dma_local[port].spi.o_flags & SPI_LOCAL_IS_FULL_DUPLEX) &&
+    if( (spi_local[port].o_flags & SPI_LOCAL_IS_FULL_DUPLEX) &&
             spi_local[port].transfer_handler.read ){
 
         if( spi_local[port].transfer_handler.read->nbyte < async->nbyte ){

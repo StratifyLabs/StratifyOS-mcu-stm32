@@ -25,6 +25,7 @@
 #include <mcu/core.h>
 #include <mcu/debug.h>
 #include <mcu/boot_debug.h>
+#include <usbd/types.h>
 
 #include "stm32_local.h"
 
@@ -163,17 +164,13 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
         if( result < 0 ){ return result; }
 
 #if defined STM32L4
-        if(__HAL_RCC_PWR_IS_CLK_DISABLED())
-        {
+        if(__HAL_RCC_PWR_IS_CLK_DISABLED()){
           __HAL_RCC_PWR_CLK_ENABLE();
           HAL_PWREx_EnableVddUSB();
           __HAL_RCC_PWR_CLK_DISABLE();
-        }
-        else
-        {
+        } else {
           HAL_PWREx_EnableVddUSB();
         }
-
 #endif
 
         if( port == 0 ){
@@ -242,6 +239,23 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
                 HAL_PCDEx_SetTxFiFo(&usb_local[port].hal_handle, i, attr->tx_fifo_word_size[i]);
             }
         }
+#else
+
+#if 1
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle, 0x00 , PCD_SNG_BUF, 0x18);  //why do we start 24 bytes in?
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle, 0x80 , PCD_SNG_BUF, 0x18+64); //64 bytes for 00
+
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle, 0x81 , PCD_SNG_BUF, 0x18+64+64); //interrupt in
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle, 0x82 , PCD_SNG_BUF, 0x18+64+64+64); //bulk input -- sending data to computer
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle, 0x02 , PCD_SNG_BUF, 0x18+64+64+64+64); //bulk output -- receiving data from computer
+#else
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle , 0x00 , PCD_SNG_BUF, 0x18);
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle , 0x80 , PCD_SNG_BUF, 0x58);
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle , 0x81 , PCD_SNG_BUF, 0xC0);
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle , 0x01 , PCD_SNG_BUF, 0x110);
+        HAL_PCDEx_PMAConfig(&usb_local[port].hal_handle , 0x82 , PCD_SNG_BUF, 0x100);
+#endif
+
 #endif
     }
 
@@ -410,7 +424,6 @@ int mcu_usb_write(const devfs_handle_t * handle, devfs_async_t * wop){
     int loc = wop->loc;
     int bytes_written;
 
-
     ep = (loc & 0x7F);
 
     if ( ep > (DEV_USB_LOGICAL_ENDPOINT_COUNT-1) ){
@@ -424,7 +437,6 @@ int mcu_usb_write(const devfs_handle_t * handle, devfs_async_t * wop){
     if( cortexm_validate_callback(wop->handler.callback) < 0 ){
         return SYSFS_SET_RETURN(EPERM);
     }
-
 
     usb_local[port].write[ep] = wop->handler;
     usb_local[port].write_pending |= (1<<ep);
@@ -569,6 +581,7 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
     usb_event_t event;
     event.epnum = 0;
     void * dest_buffer;
+    usbd_setup_packet_t * setup = (usbd_setup_packet_t *)&hpcd->Setup;
 
     //Setup data is in hpcd->Setup buffer at this point
 
@@ -581,7 +594,10 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
     mcu_execute_event_handler(usb->read + 0, MCU_EVENT_FLAG_SETUP, &event);
 
     //prepare EP zero for receiving out data
-    HAL_PCD_EP_Receive(hpcd, 0, stm32_config->usb_rx_buffer, hpcd->OUT_ep[0].maxpacket);
+
+    if( (setup->bmRequestType.bitmap_t.dir == USBD_REQUEST_TYPE_DIRECTION_HOST_TO_DEVICE) && (setup->wLength > 0) ){
+        HAL_PCD_EP_Receive(hpcd, 0, stm32_config->usb_rx_buffer, setup->wLength);
+    }
 
 }
 
@@ -594,6 +610,8 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
     u16 count;
     void * src_buffer;
     void * dest_buffer;
+
+
 
     //set read ready flag
     usb->read_ready |= (1<<epnum);
@@ -608,7 +626,9 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
     mcu_execute_event_handler(usb->read + epnum, MCU_EVENT_FLAG_DATA_READY, &event);
 
     //prepare to receive the next packet in the local buffer
-    HAL_PCD_EP_Receive(hpcd, epnum, src_buffer, hpcd->OUT_ep[epnum].maxpacket);
+    if( epnum != 0 ){
+        HAL_PCD_EP_Receive(hpcd, epnum, src_buffer, hpcd->OUT_ep[epnum].maxpacket);
+    }
 
 }
 
@@ -622,11 +642,19 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 
     mcu_execute_event_handler(usb->write + logical_ep, MCU_EVENT_FLAG_WRITE_COMPLETE, &event);
 
-    if( (epnum & 0x7f) == 0 ){
+    if( logical_ep == 0 ){
+#if MCU_USB_API == 0
+        //only proceed it DataIn tx'd more than zero bytes
+        if( hpcd->IN_ep[0].xfer_count == 0 ){
+            return;
+        }
+#endif
         //ep 0 data in complete
         //prepare EP0 for next setup packet
         HAL_PCD_EP_Receive(hpcd, 0, 0, 0);
+
     }
+
 
 }
 
@@ -649,6 +677,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
+
 #if MCU_USB_API > 0
     __HAL_PCD_GATE_PHYCLOCK(hpcd);
 #endif
@@ -690,12 +719,14 @@ void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd){
     usb_local_t * usb = (usb_local_t *)hpcd;
     usb->connected = 1;
+
     //execute special event handler
 }
 
 void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd){
     usb_local_t * usb = (usb_local_t *)hpcd;
     usb->connected = 0;
+
 }
 
 void mcu_core_otg_fs_isr(){

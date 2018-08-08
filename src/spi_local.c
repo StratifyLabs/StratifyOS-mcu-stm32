@@ -349,7 +349,7 @@ void mcu_core_spi2_isr(){
     } else {
         HAL_SPI_IRQHandler(&spi_local_ptrs[1]->hal_handle);
     }
-#else
+#elif MCU_SPI_PORTS > 1
     HAL_SPI_IRQHandler(&spi_local_ptrs[1]->hal_handle);
 #endif
 }
@@ -362,7 +362,7 @@ void mcu_core_spi3_isr(){
     } else {
         HAL_SPI_IRQHandler(&spi_local_ptrs[2]->hal_handle);
     }
-#else
+#elif MCU_SPI_PORTS > 2
     HAL_SPI_IRQHandler(&spi_local_ptrs[2]->hal_handle);
 #endif
 }
@@ -374,7 +374,7 @@ void mcu_core_spi4_isr(){
     } else {
         HAL_SPI_IRQHandler(&spi_local_ptrs[3]->hal_handle);
     }
-#else
+#elif MCU_SPI_PORTS > 3
     HAL_SPI_IRQHandler(&spi_local_ptrs[3]->hal_handle);
 #endif
 }
