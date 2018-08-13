@@ -60,7 +60,7 @@
 #define MCU_I2S_ON_SPI6 0
 
 #define MCU_SAI_API 0
-#define MCU_SAI_PORTS 1
+#define MCU_SAI_PORTS 0
 #define MCU_SAI_REGS { SAI1 }
 #define MCU_SAI_IRQS { SAI1_IRQn }
 
@@ -89,6 +89,10 @@
 #define MCU_ETH_PORTS 1
 #define MCU_ETH_REGS { ETH }
 #define MCU_ETH_IRQS { ETH_IRQn }
+
+#define MCU_RTC_PORTS 1
+#define MCU_RTC_REGS { RTC }
+#define MCU_RTC_IRQS { RTC_Alarm_IRQn }
 
 #define DEV_USB_LOGICAL_ENDPOINT_COUNT 4
 

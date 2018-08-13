@@ -107,10 +107,10 @@ for pin in root.findall('default:GPIO_Pin', namespace):
             alt_func_name[1] = '1'
 
         if alt_func[1] != alt_func_name[1]:
-            print "-------"
-            print "mismatch found for pin : " + pin_name + ", signal : " + signal_number
-            print "\tsignal name : " + signal.attrib['Name']
-            print "\tpossible value : " + signal[0][0].text
+            print("-------")
+            print("mismatch found for pin : " + pin_name + ", signal : " + signal_number)
+            print("\tsignal name : " + signal.attrib['Name'])
+            print("\tpossible value : " + signal[0][0].text)
             alt_func[1] = alt_func_name[1]            
 
         if  alt_func[0] in translations.keys():
@@ -125,8 +125,8 @@ for pin in root.findall('default:GPIO_Pin', namespace):
         elif len_macro  == 8:
             macro ="E_" + func_name  + '_(' + alt_func[1]+')' 
         elif len_macro > 10:
-            print "------"
-            print "unknown function name : " + func_name
+            print("------")
+            print("unknown function name : " + func_name)
             
         pin_struct[pin_name][signal_number] = macro
 
@@ -160,7 +160,7 @@ copyfile("pre_file.txt", outfile)
 
 # ALL information extracted from the XML file now writing to C file.
 with open(outfile, "a") as fd:
-    fd.write("\n//#define MCU TOTAL_PINS (" + str(ord(port_end) - ord(port_start)) + "*16+" + str(pins_in_last_port) + ")\n\n")
+    fd.write("\n//#define MCU_TOTAL_PINS (" + str(ord(port_end) - ord(port_start)) + "*16+" + str(pins_in_last_port) + ")\n\n")
     fd.write("const alternate_function_entry_t alternate_function_table[MCU_TOTAL_PINS] = {\n")
 
     for i in range(ord(port_start),ord(port_end)):

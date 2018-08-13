@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>. */
 
-#ifndef MCU_STM32L475XX_H_
-#define MCU_STM32L475XX_H_
+#ifndef MCU_STM32L432XX_H_
+#define MCU_STM32L432XX_H_
 
 #include <mcu/types.h>
 #include "cmsis/stm32l4xx.h"
@@ -122,4 +122,4 @@ extern "C" {
 #endif
 
 
-#endif /* MCU_STM32L475XX_H_ */
+#endif /* MCU_STM32L432XX_H_ */

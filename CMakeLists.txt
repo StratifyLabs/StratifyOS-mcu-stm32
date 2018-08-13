@@ -16,8 +16,6 @@ set(CMAKE_TOOLCHAIN_FILE ${SOS_TOOLCHAIN_CMAKE_PATH}/sos-lib-toolchain.cmake)
 set(SOS_LIB_NAME sos)
 project(${SOS_LIB_NAME} C ASM)
 
-
-
 set(F401xC 0)
 set(F401xE 0)
 set(F411 0)
@@ -30,8 +28,8 @@ set(F723 0)
 set(F746 0)
 set(F767 0)
 
-set(L475 1)
-set(L432 0)
+set(L475 0)
+set(L432 1)
 
 if(F401xC)
 set(STM32_VARIANT stm32f401xc)
