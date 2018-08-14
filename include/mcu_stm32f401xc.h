@@ -74,6 +74,7 @@
 #define MCU_UART_REGS { USART1, USART2, 0, 0, 0, USART6 }
 #define MCU_UART_IRQS { USART1_IRQn, USART2_IRQn, -1, -1, -1, USART6_IRQn }
 
+#define MCU_USB_API 1
 #define MCU_USB_PORTS 1
 #define MCU_USB_REGS { USB_OTG_FS }
 #define MCU_USB_IRQS { OTG_FS_IRQn }

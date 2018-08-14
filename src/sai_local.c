@@ -17,11 +17,12 @@
  *
  */
 
-#include "sai_local.h"
 #include <mcu/i2s.h>
 #include <mcu/spi.h>
 
 #if MCU_SAI_PORTS > 0
+
+#include "sai_local.h"
 
 
 int sai_local_mute(const devfs_handle_t * handle, void * ctl){

@@ -34,8 +34,7 @@ int mcu_core_initclock(int div){
 
     __HAL_RCC_PWR_CLK_ENABLE();
     //use HAL_PWREx_ControlVoltageScaling?
-    //__HAL_PWR_VOLTAGESCALING_CONFIG(stm32_local_decode_voltage_scale(config->clock_voltage_scale-1));
-    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+    __HAL_PWR_VOLTAGESCALING_CONFIG(stm32_local_decode_voltage_scale(config->clock_voltage_scale-1));
 
     //if HSE flag is on
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
