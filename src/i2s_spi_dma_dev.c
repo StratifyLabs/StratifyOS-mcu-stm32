@@ -109,11 +109,11 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
         spi_dma_local[port].spi.o_flags = SPI_LOCAL_IS_DMA | SPI_LOCAL_IS_I2S;
 
-        u32 data_alignment = 4;
+        u32 dma_flags = STM32_DMA_LOCAL_FLAG_IS_MEMORY_WORD | STM32_DMA_LOCAL_FLAG_IS_PERIPH_WORD | STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC8;
         if( attr->o_flags & I2S_FLAG_IS_WIDTH_8 ){
-            data_alignment = 1;
+            dma_flags = STM32_DMA_LOCAL_FLAG_IS_MEMORY_BYTE | STM32_DMA_LOCAL_FLAG_IS_PERIPH_BYTE;
         } else if( attr->o_flags & (I2S_FLAG_IS_WIDTH_16 | I2S_FLAG_IS_WIDTH_16_EXTENDED) ){
-            data_alignment = 2;
+            dma_flags = STM32_DMA_LOCAL_FLAG_IS_MEMORY_HALFWORD | STM32_DMA_LOCAL_FLAG_IS_PERIPH_HALFWORD | STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC4;
         }
 
         if( attr->o_flags & I2S_FLAG_IS_RECEIVER ){
@@ -161,7 +161,14 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
             }
 #else
 
-            int dma_result = stm32_dma_setattr(&spi_dma_local[port].dma_rx_channel, &config->dma_config.rx, DMA_CIRCULAR, DMA_PERIPH_TO_MEMORY, data_alignment);
+            int dma_result = stm32_dma_setattr(&spi_dma_local[port].dma_rx_channel,
+                                               &config->dma_config.rx,
+                                               STM32_DMA_LOCAL_FLAG_IS_CIRCULAR |
+                                               STM32_DMA_LOCAL_FLAG_IS_FIFO |
+                                               STM32_DMA_LOCAL_FLAG_IS_PERIPH_TO_MEMORY |
+                                               STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC4 |
+                                               dma_flags
+                                               );
             if( dma_result < 0 ){ return dma_result; }
 #endif
 
@@ -213,7 +220,15 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
             }
 #else
 
-            int dma_result = stm32_dma_setattr(&spi_dma_local[port].dma_tx_channel, &config->dma_config.tx, DMA_CIRCULAR, DMA_MEMORY_TO_PERIPH, data_alignment);
+            int dma_result = stm32_dma_setattr(&spi_dma_local[port].dma_tx_channel,
+                                               &config->dma_config.tx,
+                                               STM32_DMA_LOCAL_FLAG_IS_CIRCULAR |
+                                               STM32_DMA_LOCAL_FLAG_IS_FIFO |
+                                               STM32_DMA_LOCAL_FLAG_IS_MEMORY_TO_PERIPH |
+                                               STM32_DMA_LOCAL_FLAG_IS_MEMORY_HALFWORD |
+                                               STM32_DMA_LOCAL_FLAG_IS_PERIPH_HALFWORD |
+                                               STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC4);
+
             if( dma_result < 0 ){ return dma_result; }
 
 #endif

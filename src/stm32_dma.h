@@ -34,11 +34,34 @@ DMA_Stream_TypeDef * stm32_dma_get_stream_instance(u32 dma_number, u32 stream_nu
 void stm32_dma_set_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number);
 void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number);
 
+enum {
+    STM32_DMA_LOCAL_FLAG_IS_CIRCULAR = (1<<0),
+    STM32_DMA_LOCAL_FLAG_IS_FIFO = (1<<1),
+    STM32_DMA_LOCAL_FLAG_IS_MEMORY_TO_PERIPH = (1<<2),
+    STM32_DMA_LOCAL_FLAG_IS_PERIPH_TO_MEMORY = (1<<3),
+    STM32_DMA_LOCAL_FLAG_IS_MEMORY_BYTE = (1<<4),
+    STM32_DMA_LOCAL_FLAG_IS_MEMORY_HALFWORD = (1<<5),
+    STM32_DMA_LOCAL_FLAG_IS_MEMORY_WORD = (1<<6),
+    STM32_DMA_LOCAL_FLAG_IS_PERIPH_BYTE = (1<<7),
+    STM32_DMA_LOCAL_FLAG_IS_PERIPH_HALFWORD = (1<<8),
+    STM32_DMA_LOCAL_FLAG_IS_PERIPH_WORD = (1<<9),
+    STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC4 = (1<<11),
+    STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC8 = (1<<12),
+    STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC16 = (1<<13),
+    STM32_DMA_LOCAL_FLAG_IS_PERIPH_INC4 = (1<<15),
+    STM32_DMA_LOCAL_FLAG_IS_PERIPH_INC8 = (1<<16),
+    STM32_DMA_LOCAL_FLAG_IS_PERIPH_INC16 = (1<<17),
+    STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC_DISABLE = (1<<18),
+    STM32_DMA_LOCAL_FLAG_IS_PERIPH_INC_ENABLE = (1<<19),
+    STM32_DMA_LOCAL_FLAG_IS_FIFO_THRESHOLD_QUARTER = (1<<20),
+    STM32_DMA_LOCAL_FLAG_IS_FIFO_THRESHOLD_THREE_QUARTER = (1<<21),
+    STM32_DMA_LOCAL_FLAG_IS_FIFO_THRESHOLD_FULL = (1<<22),
+
+
+};
 
 int stm32_dma_setattr(stm32_dma_channel_t * channel,
                       const stm32_dma_channel_config_t * config,
-                      u32 mode,
-                      u32 direction,
-                      u32 data_alignment);
+                      u32 o_flags);
 
 #endif /* STM32_DMA_H_ */
