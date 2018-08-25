@@ -56,7 +56,11 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
         return -1;
     }
 
-    if( mode != GPIO_MODE_ANALOG ){
+    if( (mode != GPIO_MODE_ANALOG)
+#if defined GPIO_MODE_ANALOG_ADC_CONTROL
+            && (mode != GPIO_MODE_ANALOG_ADC_CONTROL)
+#endif
+            ){
         alternate_function = hal_get_alternate_function(pin.port, pin.pin, function, periph_port);
         if( alternate_function < 0 ){
             return -1;

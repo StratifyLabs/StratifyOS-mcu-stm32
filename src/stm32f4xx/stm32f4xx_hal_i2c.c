@@ -1288,7 +1288,7 @@ HAL_StatusTypeDef HAL_I2C_Master_Receive_IT(I2C_HandleTypeDef *hi2c, uint16_t De
         /* Process Unlocked */
         __HAL_UNLOCK(hi2c);
 
-        return HAL_TIMEOUT; 
+        return HAL_TIMEOUT;
       }
     }
     while(__HAL_I2C_GET_FLAG(hi2c, I2C_FLAG_BUSY) != RESET);

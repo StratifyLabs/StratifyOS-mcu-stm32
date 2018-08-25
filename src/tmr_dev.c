@@ -241,18 +241,13 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
             u32 pclk;
             if( (((u32)m_tmr_local[port].hal_handle.Instance) & ~0xFFFF) == APB1PERIPH_BASE ){
                 pclk = HAL_RCC_GetPCLK1Freq(); //timer clocks are double pclks
-                mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use PCLK1 for %ld %ld", port);
             } else {
-                mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use PCLK2 for %ld", port);
                 pclk = HAL_RCC_GetPCLK2Freq();
             }
 
             if( pclk <= mcu_board_config.core_cpu_freq/2 ){
                 pclk = pclk * 2;
             }
-
-            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Clock calc %ld %ld >> %d", mcu_board_config.core_cpu_freq, HAL_RCC_GetHCLKFreq(), APBPrescTable[(RCC->CFGR & RCC_CFGR_PPRE1)>> POSITION_VAL(RCC_CFGR_PPRE1)]);
-
 
             mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use pclk is %ld", pclk);
 
@@ -630,25 +625,45 @@ void tmr_isr(int port){
     HAL_TIM_IRQHandler(&m_tmr_local[port].hal_handle);
 }
 
-void mcu_core_tim1_cc_isr(){
-    tmr_isr(0);
-}
+#if defined TIM1
+void mcu_core_tim1_cc_isr(){ tmr_isr(0); }
+#endif
 
-void mcu_core_tim2_isr(){
-    tmr_isr(1);
-}
+#if defined TIM2
+void mcu_core_tim2_isr(){ tmr_isr(1); }
+#endif
 
-void mcu_core_tim3_isr(){
-    tmr_isr(2);
-}
+#if defined TIM3
+void mcu_core_tim3_isr(){ tmr_isr(2); }
+#endif
 
-void mcu_core_tim4_isr(){
-    tmr_isr(3);
-}
+#if defined TIM4
+void mcu_core_tim4_isr(){ tmr_isr(3); }
+#endif
 
-void mcu_core_tim5_isr(){
-    tmr_isr(4);
+#if defined TIM5
+void mcu_core_tim5_isr(){ tmr_isr(4); }
+#endif
+
+void mcu_core_dac_isr() MCU_WEAK;
+void mcu_core_dac_isr(){}
+//TIM6 is shared with the DAC -- how is that handled?
+#if defined TIM6
+void mcu_core_tim6_dac_isr(){
+    mcu_core_dac_isr();
+    if( m_tmr_local[5].hal_handle.Instance != 0 ){
+        tmr_isr(5);
+    }
 }
+#endif
+
+#if defined TIM7
+void mcu_core_tim7_isr(){ tmr_isr(6); }
+#endif
+
+#if defined TIM8
+void mcu_core_tim8_cc_isr(){ tmr_isr(8); }
+#endif
 
 #endif
 

@@ -18,14 +18,75 @@
  */
 
 #include <mcu/i2s.h>
-#include <mcu/spi.h>
-
-#if MCU_SAI_PORTS > 0
-
 #include "sai_local.h"
 
 
-int sai_local_mute(const devfs_handle_t * handle, void * ctl){
+#if MCU_SAI_PORTS > 0
+
+
+sai_local_t * sai_local_ptrs[MCU_SAI_PORTS] MCU_SYS_MEM;
+
+SAI_Block_TypeDef * const sai_regs[MCU_SAI_PORTS] = MCU_SAI_REGS;
+u8 const sai_irqs[MCU_SAI_PORTS] = MCU_SAI_IRQS;
+
+int sai_local_open(sai_local_t * local, const devfs_handle_t * handle){
+    const u32 port = handle->port;
+    if( port < MCU_SAI_PORTS ){
+        if ( local->ref_count == 0 ){
+            //turn on RCC clock
+            switch(port){
+            case 0:
+                __HAL_RCC_SAI1_CLK_ENABLE();
+                break;
+#if defined SAI2
+            case 1:
+                __HAL_RCC_SAI2_CLK_ENABLE();
+                break;
+#endif
+            }
+            sai_local_ptrs[port] = local;
+            local->transfer_handler.read = NULL;
+            local->transfer_handler.write = NULL;
+            local->hal_handle.Instance = sai_regs[port];
+            cortexm_enable_irq( sai_irqs[port] );
+        }
+        local->ref_count++;
+        return 0;
+    }
+
+    return SYSFS_SET_RETURN(EINVAL);
+}
+
+int sai_local_close(sai_local_t * local, const devfs_handle_t * handle){
+    const u32 port = handle->port;
+    if ( local->ref_count > 0 ){
+        if ( local->ref_count == 1 ){
+
+            HAL_SAI_DeInit(&local->hal_handle);
+            cortexm_disable_irq(sai_irqs[port]);
+            devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EDEADLK), MCU_EVENT_FLAG_CANCELED);
+
+
+            //turn off RCC clock
+            switch(port){
+            case 0:
+                __HAL_RCC_SAI1_CLK_DISABLE();
+                break;
+#if defined SAI2
+            case 1:
+                __HAL_RCC_SAI2_CLK_DISABLE();
+                break;
+#endif
+            }
+        }
+        local->ref_count--;
+    }
+    return 0;
+}
+
+
+
+int sai_local_mute(sai_local_t * local, const devfs_handle_t * handle, void * ctl){
     MCU_UNUSED_ARGUMENT(handle);
     MCU_UNUSED_ARGUMENT(ctl);
     //HAL_SAI_EnableTxMuteMode()
@@ -33,7 +94,7 @@ int sai_local_mute(const devfs_handle_t * handle, void * ctl){
     return SYSFS_SET_RETURN(ENOTSUP);
 }
 
-int sai_local_unmute(const devfs_handle_t * handle, void * ctl){
+int sai_local_unmute(sai_local_t * local, const devfs_handle_t * handle, void * ctl){
     MCU_UNUSED_ARGUMENT(handle);
     MCU_UNUSED_ARGUMENT(ctl);
     //HAL_SAI_DisableRxMuteMode()
@@ -48,7 +109,6 @@ int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void *
         return SYSFS_SET_RETURN(EINVAL);
     }
 
-    int is_errata_required = 0;
     u32 o_flags = attr->o_flags;
 
     //set I2S Flags
@@ -100,11 +160,11 @@ int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void *
         //local->hal_handle.Init.Protocol = 0; //handled below
         //local->hal_handle.Init.DataSize = 0; //handled below
 
-        //could also be SAI_FIRSTBIT_LSB
-        local->hal_handle.Init.FirstBit = SAI_FIRSTBIT_MSB;
+        //could also be SAI_FIRSTBIT_LSB - set with protocol
+        //local->hal_handle.Init.FirstBit = SAI_FIRSTBIT_MSB;
 
-        //could also be SAI_CLOCKSTROBING_RISINGEDGE
-        local->hal_handle.Init.ClockStrobing = SAI_CLOCKSTROBING_FALLINGEDGE;
+        //could also be SAI_CLOCKSTROBING_RISINGEDGE - set with protocol
+        //local->hal_handle.Init.ClockStrobing = SAI_CLOCKSTROBING_FALLINGEDGE;
 
 
         if( o_flags & I2S_FLAG_SET_SLAVE ){
@@ -130,51 +190,47 @@ int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void *
             }
         }
 
+        u32 slot_count = 2;
+        u32 protocol = SAI_I2S_STANDARD;
         local->hal_handle.Init.Protocol = SAI_I2S_STANDARD;
         if( o_flags & I2S_FLAG_IS_FORMAT_MSB ){
-            local->hal_handle.Init.Protocol = SAI_I2S_MSBJUSTIFIED;
+            protocol = SAI_I2S_MSBJUSTIFIED;
         } else if( o_flags & I2S_FLAG_IS_FORMAT_LSB ){
-            local->hal_handle.Init.Protocol = SAI_I2S_LSBJUSTIFIED;
+            protocol = SAI_I2S_LSBJUSTIFIED;
         } else if( o_flags & I2S_FLAG_IS_FORMAT_PCM_SHORT ){
-            local->hal_handle.Init.Protocol = SAI_PCM_SHORT;
+            protocol = SAI_PCM_SHORT;
         } else if( o_flags & I2S_FLAG_IS_FORMAT_PCM_LONG ){
-            local->hal_handle.Init.Protocol = SAI_PCM_LONG;
+            protocol = SAI_PCM_LONG;
         }
 
-        local->hal_handle.Init.DataSize = SAI_PROTOCOL_DATASIZE_16BIT;
+        u32 data_size = SAI_PROTOCOL_DATASIZE_16BIT;
         local->size_mult = 2;
         if( o_flags & I2S_FLAG_IS_WIDTH_24 ){
-            local->hal_handle.Init.DataSize = SAI_PROTOCOL_DATASIZE_24BIT;
+            data_size = SAI_PROTOCOL_DATASIZE_24BIT;
             local->size_mult = 4;
         } else if( o_flags & I2S_FLAG_IS_WIDTH_32 ){
-            local->hal_handle.Init.DataSize = SAI_PROTOCOL_DATASIZE_32BIT;
+            data_size = SAI_PROTOCOL_DATASIZE_32BIT;
             local->size_mult = 4;
         } else if ( o_flags & I2S_FLAG_IS_WIDTH_16_EXTENDED ){
-            local->hal_handle.Init.DataSize = SAI_PROTOCOL_DATASIZE_16BITEXTENDED;
+            data_size = SAI_PROTOCOL_DATASIZE_16BITEXTENDED;
         }
 
-        local->hal_handle.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
-        if( o_flags & I2S_FLAG_IS_MCK_ENABLED ){
-            local->hal_handle.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
-        }
 
-        local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_8K;
+        u32 frequency = SAI_AUDIO_FREQUENCY_8K;
         switch(attr->freq){
-        case 11000: local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_11K; break;
-        case 16000: local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_16K; break;
-        case 22050: local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_22K; break;
-        case 32000: local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_32K; break;
-        case 44100: local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_44K; break;
-        case 48000: local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K; break;
-        case 96000: local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_96K; break;
-        case 192000: local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_192K; break;
+        case 11000: frequency = SAI_AUDIO_FREQUENCY_11K; break;
+        case 16000: frequency = SAI_AUDIO_FREQUENCY_16K; break;
+        case 22050: frequency = SAI_AUDIO_FREQUENCY_22K; break;
+        case 32000: frequency = SAI_AUDIO_FREQUENCY_32K; break;
+        case 44100: frequency = SAI_AUDIO_FREQUENCY_44K; break;
+        case 48000: frequency = SAI_AUDIO_FREQUENCY_48K; break;
+        case 96000: frequency = SAI_AUDIO_FREQUENCY_96K; break;
+        case 192000: frequency = SAI_AUDIO_FREQUENCY_192K; break;
         default:
             return SYSFS_SET_RETURN(EINVAL);
         }
 
-        local->hal_handle.Init.CPOL = I2S_CPOL_LOW;
-        local->hal_handle.Init.ClockSource = I2S_CLOCK_PLL;
-
+        local->hal_handle.Init.AudioFrequency = frequency;
 
 
         if( mcu_set_pin_assignment(
@@ -185,7 +241,8 @@ int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void *
             return SYSFS_SET_RETURN(EINVAL);
         }
 
-        if( HAL_SAI_InitProtocol(&local->hal_handle, 0, 0, 0) != HAL_OK ){
+
+        if( HAL_SAI_InitProtocol(&local->hal_handle, protocol, data_size, slot_count) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
         }
     }
@@ -209,22 +266,34 @@ void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai){
         local->transfer_handler.read = async;
     } else {
         //stop -- half transfer only happens on DMA
-        HAL_I2S_DMAStop(hsai);
+        HAL_SAI_DMAStop(hsai);
     }
 }
 
 void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai){
-    sai_local_t * spi = (sai_local_t *)hsai;
-    devfs_execute_write_handler(
+    sai_local_t * local = (sai_local_t *)hsai;
+
+    int result;
+    devfs_async_t * async;
+    async = local->transfer_handler.write;
+
+    result = devfs_execute_write_handler(
                 &local->transfer_handler,
                 0,
                 0, //zero means leave nbyte value alone
-                MCU_EVENT_FLAG_WRITE_COMPLETE);
+                MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_HIGH);
+
+    if( result ){
+        local->transfer_handler.write = async;
+    } else {
+        //stop -- half transfer only happens on DMA
+        HAL_SAI_DMAStop(hsai);
+    }
 }
 
 void HAL_SAI_RxHalfCpltCallback(SAI_HandleTypeDef *hsai){
     //no action when half complete -- could fire an event
-    sai_local_t * spi = (sai_local_t *)hsai;
+    sai_local_t * local = (sai_local_t *)hsai;
     int result;
     devfs_async_t * async;
 
@@ -239,12 +308,12 @@ void HAL_SAI_RxHalfCpltCallback(SAI_HandleTypeDef *hsai){
         local->transfer_handler.read = async;
     } else {
         //stop -- half transfer only happens on DMA
-        HAL_I2S_DMAStop(hsai);
+        HAL_SAI_DMAStop(hsai);
     }
 }
 
 
-void HAL_I2S_RxCpltCallback(SAI_HandleTypeDef *hsai){
+void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai){
     sai_local_t * local = (sai_local_t *)hsai;
     int result;
     devfs_async_t * async;
@@ -260,18 +329,34 @@ void HAL_I2S_RxCpltCallback(SAI_HandleTypeDef *hsai){
         //restore the callback if the callback requests it -- good for DMA only
         local->transfer_handler.read = async;
     } else if( local->o_flags & SAI_LOCAL_IS_DMA ){
-        HAL_I2S_DMAStop(hsai);
+        HAL_SAI_DMAStop(hsai);
     }
 }
 
 void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai){
     //called on overflow and underrun
-    sai_local_t * spi = (sai_local_t *)hsai;
+    sai_local_t * local = (sai_local_t *)hsai;
     volatile u32 status = hsai->Instance->SR;
     status = hsai->Instance->DR;
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, " I2S Error %d on %p", hsai->ErrorCode, hsai->Instance);
+    mcu_debug_log_error(MCU_DEBUG_DEVICE, "SAI Error %d on %p", hsai->ErrorCode, hsai->Instance);
     devfs_execute_cancel_handler(&local->transfer_handler, (void*)&status, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 }
+
+#if defined SAI1
+void mcu_core_sai1_isr(){
+    if( sai_local_ptrs[0] ){ HAL_SAI_IRQHandler(&sai_local_ptrs[0]->hal_handle); }
+    if( sai_local_ptrs[1] ){ HAL_SAI_IRQHandler(&sai_local_ptrs[1]->hal_handle); }
+
+}
+#endif
+
+#if defined SAI2
+void mcu_core_sai2_isr(){
+    if( sai_local_ptrs[2] ){ HAL_SAI_IRQHandler(&sai_local_ptrs[2]->hal_handle); }
+    if( sai_local_ptrs[3] ){ HAL_SAI_IRQHandler(&sai_local_ptrs[3]->hal_handle); }
+
+}
+#endif
 
 
 #endif

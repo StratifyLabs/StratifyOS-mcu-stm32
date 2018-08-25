@@ -170,6 +170,65 @@ void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 s
 
 }
 
+int stm32_dma_setattr(stm32_dma_channel_t * channel,
+                      const stm32_dma_channel_config_t * config,
+                      u32 mode,
+                      u32 direction,
+                      u32 data_alignment){
+
+    stm32_dma_set_handle(channel, config->dma_number, config->stream_number);
+
+   channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_number, config->stream_number);
+
+#if defined DMA_REQUEST_0
+    channel->handle.Init.Request = stm32_dma_decode_channel(config->channel_number);
+#else
+    channel->handle.Init.Channel = stm32_dma_decode_channel(config->channel_number);
+#endif
+
+   channel->handle.Init.Channel = stm32_dma_decode_channel(config->channel_number);
+   channel->handle.Init.Direction = direction; //read is always periph to memory
+   channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
+   channel->handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
+
+#if defined DMA_FIFOMODE_ENABLE
+   channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE; //?
+   channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
+#endif
+
+    if( data_alignment == 1 ){
+       channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+       channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+#if defined DMA_FIFOMODE_ENABLE
+       channel->handle.Init.MemBurst = DMA_MBURST_INC8;
+       channel->handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
+#endif
+    } else if( data_alignment == 2 ){
+       channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+       channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+#if defined DMA_FIFOMODE_ENABLE
+       channel->handle.Init.MemBurst = DMA_MBURST_SINGLE;
+       channel->handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
+#endif
+    } else { //data alignement is 4
+       channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+       channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+#if defined DMA_FIFOMODE_ENABLE
+       channel->handle.Init.MemBurst = DMA_MBURST_SINGLE;
+       channel->handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
+#endif
+    }
+
+   channel->handle.Init.Mode = mode;
+   channel->handle.Init.Priority = stm32_dma_decode_priority(config->priority);
+
+   if (HAL_DMA_Init(&channel->handle) != HAL_OK){
+       return SYSFS_SET_RETURN(EIO);
+   }
+
+   return 0;
+}
+
 
 static void mcu_core_dma_handler(int dma_number, int stream_number){
     stm32_dma_channel_t * channel = stm32_dma_handle[dma_number].stream[stream_number];

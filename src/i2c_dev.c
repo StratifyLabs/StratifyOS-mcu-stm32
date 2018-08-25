@@ -239,6 +239,7 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
         memcpy(&i2c->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
 
         if( (i2c->pin_assignment.scl.port != 0xff) && (i2c->pin_assignment.sda.port != 0xff) ){
+            mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
             i2c_clear_busy_flag_erratum(port, i2c);
         } else {
             return SYSFS_SET_RETURN(EINVAL);

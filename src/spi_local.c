@@ -28,7 +28,7 @@ u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
 
 spi_local_t * spi_local_ptrs[MCU_SPI_PORTS];
 
-int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle, int interrupt_number){
+int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle){
     int port = handle->port;
     if( port < MCU_SPI_PORTS ){
         if ( spi->ref_count == 0 ){
@@ -67,7 +67,7 @@ int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle, int interru
             spi->transfer_handler.read = NULL;
             spi->transfer_handler.write = NULL;
             spi->hal_handle.Instance = spi_regs[port];
-            cortexm_enable_irq(interrupt_number);
+            cortexm_enable_irq(spi_irqs[port]);
         }
         spi->ref_count++;
         return 0;
@@ -76,7 +76,7 @@ int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle, int interru
     return SYSFS_SET_RETURN(EINVAL);
 }
 
-int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle, int interrupt_number){
+int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle){
     int port = handle->port;
     if ( spi->ref_count > 0 ){
         if ( spi->ref_count == 1 ){
@@ -92,7 +92,7 @@ int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle, int interr
             HAL_SPI_DeInit(&spi->hal_handle);
 #endif
 
-            cortexm_disable_irq(interrupt_number);
+            cortexm_disable_irq(spi_irqs[port]);
             devfs_execute_cancel_handler(&spi->transfer_handler, 0, SYSFS_SET_RETURN(EDEADLK), MCU_EVENT_FLAG_CANCELED);
 
 

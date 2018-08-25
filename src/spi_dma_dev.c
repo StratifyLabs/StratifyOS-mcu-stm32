@@ -33,12 +33,12 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi_dma, SPI_VERSION, SPI_IOC_IDENT_CHAR, I_MCU_
 int mcu_spi_dma_open(const devfs_handle_t * handle){
 
     //send DMA interrupt number
-    return spi_local_open(&spi_dma_local[handle->port].spi, handle, spi_irqs[handle->port]);
+    return spi_local_open(&spi_dma_local[handle->port].spi, handle);
 
 }
 
 int mcu_spi_dma_close(const devfs_handle_t * handle){
-    return spi_local_close(&spi_dma_local[handle->port].spi, handle, spi_irqs[handle->port]);
+    return spi_local_close(&spi_dma_local[handle->port].spi, handle);
 }
 
 int mcu_spi_dma_getinfo(const devfs_handle_t * handle, void * ctl){

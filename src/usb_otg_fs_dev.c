@@ -550,11 +550,17 @@ int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num,
     int logical_endpoint = endpoint_num & 0x7f;
     int type = usb_local[handle->port].hal_handle.IN_ep[logical_endpoint].type;
     if( type == EP_TYPE_ISOC ){
+        static int count = 0;
+        count++;
+        if( count % 1000 == 0 ){
+            //mcu_debug_printf("iso %d\n", count);
+        }
         //check to see if the packet will fit in the FIFO
         //if the packet won't fit, return EBUSY
         USB_OTG_GlobalTypeDef * USBx = usb_local[handle->port].hal_handle.Instance;
         int available = (USBx_INEP(logical_endpoint)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV);
         if( (available * 4) < size ){
+            //mcu_debug_printf("busy\n");
             return SYSFS_SET_RETURN(EBUSY);
         }
     }
@@ -654,6 +660,7 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
         HAL_PCD_EP_Receive(hpcd, 0, 0, 0);
 
     }
+
 
 
 }

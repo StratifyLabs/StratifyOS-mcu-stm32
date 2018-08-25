@@ -29,10 +29,16 @@ typedef struct {
 } stm32_dma_channel_t;
 
 u32 stm32_dma_decode_priority(u8 priority);
-
 u32 stm32_dma_decode_channel(u32 channel_number);
 DMA_Stream_TypeDef * stm32_dma_get_stream_instance(u32 dma_number, u32 stream_number);
 void stm32_dma_set_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number);
 void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number);
+
+
+int stm32_dma_setattr(stm32_dma_channel_t * channel,
+                      const stm32_dma_channel_config_t * config,
+                      u32 mode,
+                      u32 direction,
+                      u32 data_alignment);
 
 #endif /* STM32_DMA_H_ */

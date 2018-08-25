@@ -59,7 +59,9 @@
 
 
 #define MCU_SAI_API 0
-#define MCU_SAI_PORTS 0
+#define MCU_SAI_PORTS 2
+#define MCU_SAI_REGS { SAI1_Block_A, SAI1_Block_B }
+#define MCU_SAI_IRQS { SAI1_IRQn, SAI1_IRQn }
 
 #define MCU_SDIO_API 0
 #define MCU_SDIO_PORTS 0

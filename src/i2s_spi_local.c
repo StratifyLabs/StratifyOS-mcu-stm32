@@ -142,6 +142,27 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
         }
 #endif
 
+#if defined RCC_PERIPHCLK_I2S_APB1 && defined RCC_PERIPHCLK_I2S_APB2
+        RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
+
+        PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S_APB1|RCC_PERIPHCLK_I2S_APB2|RCC_PERIPHCLK_CLK48;
+        PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
+        PeriphClkInitStruct.PLLI2S.PLLI2SP = RCC_PLLI2SP_DIV2;
+        PeriphClkInitStruct.PLLI2S.PLLI2SM = 4;
+        PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
+        PeriphClkInitStruct.PLLI2S.PLLI2SQ = 2;
+        PeriphClkInitStruct.PLLI2SDivQ = 1;
+        PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48CLKSOURCE_PLLQ;
+        PeriphClkInitStruct.I2sApb2ClockSelection = RCC_I2SAPB2CLKSOURCE_PLLI2S;
+        PeriphClkInitStruct.I2sApb1ClockSelection = RCC_I2SAPB1CLKSOURCE_PLLI2S;
+        int result;
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Start I2S Clock APB1/2");
+        if ( (result = HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct)) != HAL_OK){
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "PERIPH CLOCK SET FAILED %d", result);
+            return SYSFS_SET_RETURN(EIO);
+        }
+#endif
+
         //errata: http://www.st.com/content/ccc/resource/technical/document/errata_sheet/0a/98/58/84/86/b6/47/a2/DM00037591.pdf/files/DM00037591.pdf/jcr:content/translations/en.DM00037591.pdf
         if( is_errata_required & (1<<1) ){
             u32 pio_value;
@@ -197,7 +218,6 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * spi = (spi_local_t *)hi2s;
     int result;
     devfs_async_t * async;
-
     async = spi->transfer_handler.write;
     result = devfs_execute_write_handler(
                 &spi->transfer_handler,
@@ -205,20 +225,34 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
                 0,
                 MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW);
     if( result ){
-        spi->transfer_handler.read = async;
+        spi->transfer_handler.write = async;
     } else {
         //stop -- half transfer only happens on DMA
-        HAL_I2S_DMAStop(hi2s);
+        if( spi->o_flags & SPI_LOCAL_IS_DMA ){
+            HAL_I2S_DMAStop(hi2s);
+        }
     }
 }
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * spi = (spi_local_t *)hi2s;
-    devfs_execute_write_handler(
+    int result;
+    devfs_async_t * async;
+    async = spi->transfer_handler.write;
+    result = devfs_execute_write_handler(
                 &spi->transfer_handler,
                 0,
                 0, //zero means leave nbyte value alone
-                MCU_EVENT_FLAG_WRITE_COMPLETE);
+                MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
+
+    if( result ){
+        spi->transfer_handler.write = async;
+    } else {
+        //stop -- half transfer only happens on DMA
+        if( spi->o_flags & SPI_LOCAL_IS_DMA ){
+            HAL_I2S_DMAStop(hi2s);
+        }
+    }
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
@@ -259,7 +293,9 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
         //restore the callback if the callback requests it -- good for DMA only
         spi->transfer_handler.read = async;
     } else if( spi->o_flags & SPI_LOCAL_IS_DMA ){
-        HAL_I2S_DMAStop(hi2s);
+        if( spi->o_flags & SPI_LOCAL_IS_DMA ){
+            HAL_I2S_DMAStop(hi2s);
+        }
     }
 }
 

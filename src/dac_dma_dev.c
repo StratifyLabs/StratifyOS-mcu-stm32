@@ -97,9 +97,6 @@ int mcu_dac_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
     __HAL_LINKDMA((&dac_local[port].dac.hal_handle), DMA_Handle1, dma_channel->handle);
 
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Enable DMA Interrupt %d", dac_local[port].dma_tx_channel.interrupt_number);
-    cortexm_enable_irq( dac_local[port].dma_tx_channel.interrupt_number );
-
     dac_local[port].dac.o_flags = DAC_LOCAL_FLAG_IS_DMA;
 
     return dac_local_setattr(&dac_local[handle->port].dac, handle, ctl);
@@ -157,7 +154,7 @@ int mcu_dac_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
         return SYSFS_SET_RETURN(ENOSYS);
     }
 
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "DAC DMA write %d words", async->nbyte/2);
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "DAC DMA write %d words on channel 0x%X", async->nbyte/2, channel);
 
     if( HAL_DAC_Start_DMA(&dac->dac.hal_handle, channel, async->buf, async->nbyte/2, dac_local_get_alignment(&dac->dac)) == HAL_OK ){
         //mcu_debug_root_printf("wait DMA\n");
