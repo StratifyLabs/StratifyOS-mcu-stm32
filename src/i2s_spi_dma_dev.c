@@ -280,6 +280,8 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 #endif
 
     } else {
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Write I2S DMA 0x%lX %p %d %d", spi->spi.i2s_hal_handle.Init.Mode, async->buf, async->nbyte, spi->spi.size_mult);
+
         result = HAL_I2S_Transmit_DMA(&spi->spi.i2s_hal_handle, async->buf,  async->nbyte/spi->spi.size_mult);
     }
 
@@ -314,7 +316,7 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     }
 #endif
 
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read DMA 0x%lX %p %d %d", spi->spi.i2s_hal_handle.Init.Mode, async->buf, async->nbyte/spi->spi.size_mult, spi->spi.size_mult);
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read I2S DMA 0x%lX %p %d %d", spi->spi.i2s_hal_handle.Init.Mode, async->buf, async->nbyte, spi->spi.size_mult);
 
     ret = HAL_I2S_Receive_DMA(&spi->spi.i2s_hal_handle, async->buf,  (async->nbyte/spi->spi.size_mult));
 
