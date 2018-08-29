@@ -109,12 +109,14 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
         spi_dma_local[port].spi.o_flags = SPI_LOCAL_IS_DMA | SPI_LOCAL_IS_I2S;
 
-        u32 dma_flags = STM32_DMA_LOCAL_FLAG_IS_MEMORY_WORD | STM32_DMA_LOCAL_FLAG_IS_PERIPH_WORD | STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC8;
+#if 0
+        u32 dma_flags = STM32_DMA_FLAG_IS_MEMORY_WORD | STM32_DMA_FLAG_IS_PERIPH_WORD;
         if( attr->o_flags & I2S_FLAG_IS_WIDTH_8 ){
-            dma_flags = STM32_DMA_LOCAL_FLAG_IS_MEMORY_BYTE | STM32_DMA_LOCAL_FLAG_IS_PERIPH_BYTE;
+            dma_flags = STM32_DMA_FLAG_IS_MEMORY_BYTE | STM32_DMA_FLAG_IS_PERIPH_BYTE | STM32_DMA_FLAG_IS_MEMORY_INC8;
         } else if( attr->o_flags & (I2S_FLAG_IS_WIDTH_16 | I2S_FLAG_IS_WIDTH_16_EXTENDED) ){
-            dma_flags = STM32_DMA_LOCAL_FLAG_IS_MEMORY_HALFWORD | STM32_DMA_LOCAL_FLAG_IS_PERIPH_HALFWORD | STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC4;
+            dma_flags = STM32_DMA_FLAG_IS_MEMORY_HALFWORD | STM32_DMA_FLAG_IS_PERIPH_HALFWORD | STM32_DMA_FLAG_IS_MEMORY_INC4;
         }
+#endif
 
         if( attr->o_flags & I2S_FLAG_IS_RECEIVER ){
 
@@ -161,14 +163,19 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
             }
 #else
 
+#if 0
             int dma_result = stm32_dma_setattr(&spi_dma_local[port].dma_rx_channel,
                                                &config->dma_config.rx,
-                                               STM32_DMA_LOCAL_FLAG_IS_CIRCULAR |
-                                               STM32_DMA_LOCAL_FLAG_IS_FIFO |
-                                               STM32_DMA_LOCAL_FLAG_IS_PERIPH_TO_MEMORY |
-                                               STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC4 |
+                                               STM32_DMA_FLAG_IS_CIRCULAR |
+                                               STM32_DMA_FLAG_IS_FIFO |
+                                               STM32_DMA_FLAG_IS_PERIPH_TO_MEMORY |
                                                dma_flags
                                                );
+#else
+            int dma_result = stm32_dma_setattr(&spi_dma_local[port].dma_rx_channel,
+                                               &config->dma_config.rx);
+
+#endif
             if( dma_result < 0 ){ return dma_result; }
 #endif
 
@@ -192,7 +199,7 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
             spi_dma_local[port].dma_tx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
             spi_dma_local[port].dma_tx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
-            spi_dma_local[port].dma_tx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+            spi_dma_local[port].dma_tx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
             spi_dma_local[port].dma_tx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
 
             if( attr->o_flags & I2S_FLAG_IS_WIDTH_8 ){
@@ -220,14 +227,17 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
             }
 #else
 
+#if 0
             int dma_result = stm32_dma_setattr(&spi_dma_local[port].dma_tx_channel,
                                                &config->dma_config.tx,
-                                               STM32_DMA_LOCAL_FLAG_IS_CIRCULAR |
-                                               STM32_DMA_LOCAL_FLAG_IS_FIFO |
-                                               STM32_DMA_LOCAL_FLAG_IS_MEMORY_TO_PERIPH |
-                                               STM32_DMA_LOCAL_FLAG_IS_MEMORY_HALFWORD |
-                                               STM32_DMA_LOCAL_FLAG_IS_PERIPH_HALFWORD |
-                                               STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC4);
+                                               STM32_DMA_FLAG_IS_CIRCULAR |
+                                               STM32_DMA_FLAG_IS_FIFO |
+                                               STM32_DMA_FLAG_IS_MEMORY_TO_PERIPH |
+                                               dma_flags);
+#else
+            int dma_result = stm32_dma_setattr(&spi_dma_local[port].dma_tx_channel,
+                                               &config->dma_config.tx);
+#endif
 
             if( dma_result < 0 ){ return dma_result; }
 

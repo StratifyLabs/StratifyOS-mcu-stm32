@@ -87,6 +87,13 @@ DMA_Stream_TypeDef * stm32_dma_get_stream_instance(u32 dma_number, u32 stream_nu
     return stm32_dma0_regs[stream_number];
 }
 
+void stm32_dma_set_interrupt_priority(stm32_dma_channel_t * channel, const mcu_action_t * action){
+    if( channel->interrupt_number > 0 ){
+        cortexm_set_irq_priority(channel->interrupt_number, action->prio, action->o_events);
+    }
+}
+
+
 void stm32_dma_set_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number){
     if( dma_number < MCU_DMA_PORTS ){
         int interrupt_number;
@@ -151,7 +158,6 @@ void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 s
         if( channel == stm32_dma_handle[dma_number].stream[stream_number] ){
             stm32_dma_handle[dma_number].stream[stream_number] = channel->next;
             channel->next = 0;
-            mcu_debug_log_info(MCU_DEBUG_DEVICE, "Channel was first");
         } else {
             stm32_dma_channel_t * channel_list = stm32_dma_handle[dma_number].stream[stream_number];
             while( channel_list != 0 ){
@@ -159,7 +165,6 @@ void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 s
                     channel_list->next = channel->next;
                     channel_list = 0;
                     channel->next = 0;
-                    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Channel was not first");
                 } else {
                     channel_list = channel_list->next;
                 }
@@ -167,13 +172,12 @@ void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 s
 
         }
     }
-
 }
 
 int stm32_dma_setattr(stm32_dma_channel_t * channel,
-                      const stm32_dma_channel_config_t * config,
-                      u32 o_flags){
+                      const stm32_dma_channel_config_t * config){
 
+    u32 o_flags = config->o_flags;
     stm32_dma_set_handle(channel, config->dma_number, config->stream_number);
     channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_number, config->stream_number);
 
@@ -185,77 +189,57 @@ int stm32_dma_setattr(stm32_dma_channel_t * channel,
 
     channel->handle.Init.Channel = stm32_dma_decode_channel(config->channel_number);
     channel->handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_TO_PERIPH ){
+    if( o_flags & STM32_DMA_FLAG_IS_MEMORY_TO_PERIPH ){
         channel->handle.Init.Direction = DMA_MEMORY_TO_PERIPH; //read is always periph to memory
     }
 
     channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
     channel->handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
 
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC_DISABLE ){ channel->handle.Init.MemInc = DMA_MINC_DISABLE; }
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_PERIPH_INC_ENABLE ){ channel->handle.Init.PeriphInc = DMA_PINC_ENABLE; }
+    if( o_flags & STM32_DMA_FLAG_IS_MEMORY_INC_DISABLE ){ channel->handle.Init.MemInc = DMA_MINC_DISABLE; }
+    if( o_flags & STM32_DMA_FLAG_IS_PERIPH_INC_ENABLE ){ channel->handle.Init.PeriphInc = DMA_PINC_ENABLE; }
 
 
 #if defined DMA_FIFOMODE_ENABLE
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_FIFO ){
+    if( o_flags & STM32_DMA_FLAG_IS_FIFO ){
         channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE; //?
         channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
-        if( o_flags & STM32_DMA_LOCAL_FLAG_IS_FIFO_THRESHOLD_QUARTER ){ channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_1QUARTERFULL; }
-        if( o_flags & STM32_DMA_LOCAL_FLAG_IS_FIFO_THRESHOLD_THREE_QUARTER ){ channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_3QUARTERSFULL; }
-        if( o_flags & STM32_DMA_LOCAL_FLAG_IS_FIFO_THRESHOLD_FULL ){ channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL; }
+        if( o_flags & STM32_DMA_FLAG_IS_FIFO_THRESHOLD_QUARTER ){ channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_1QUARTERFULL; }
+        if( o_flags & STM32_DMA_FLAG_IS_FIFO_THRESHOLD_THREE_QUARTER ){ channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_3QUARTERSFULL; }
+        if( o_flags & STM32_DMA_FLAG_IS_FIFO_THRESHOLD_FULL ){ channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL; }
 
         channel->handle.Init.MemBurst = DMA_MBURST_SINGLE;
-        if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC4 ){ channel->handle.Init.MemBurst = DMA_MBURST_INC4; }
-        if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC8 ){ channel->handle.Init.MemBurst = DMA_MBURST_INC8; }
-        if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_INC16 ){ channel->handle.Init.MemBurst = DMA_MBURST_INC16; }
+        if( o_flags & STM32_DMA_FLAG_IS_MEMORY_INC4 ){ channel->handle.Init.MemBurst = DMA_MBURST_INC4; }
+        if( o_flags & STM32_DMA_FLAG_IS_MEMORY_INC8 ){ channel->handle.Init.MemBurst = DMA_MBURST_INC8; }
+        if( o_flags & STM32_DMA_FLAG_IS_MEMORY_INC16 ){ channel->handle.Init.MemBurst = DMA_MBURST_INC16; }
         channel->handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
-        if( o_flags & STM32_DMA_LOCAL_FLAG_IS_PERIPH_INC4 ){ channel->handle.Init.PeriphBurst = DMA_PBURST_INC4; }
-        if( o_flags & STM32_DMA_LOCAL_FLAG_IS_PERIPH_INC8 ){ channel->handle.Init.PeriphBurst = DMA_PBURST_INC8; }
-        if( o_flags & STM32_DMA_LOCAL_FLAG_IS_PERIPH_INC16 ){ channel->handle.Init.PeriphBurst = DMA_PBURST_INC16; }
+        if( o_flags & STM32_DMA_FLAG_IS_PERIPH_INC4 ){ channel->handle.Init.PeriphBurst = DMA_PBURST_INC4; }
+        if( o_flags & STM32_DMA_FLAG_IS_PERIPH_INC8 ){ channel->handle.Init.PeriphBurst = DMA_PBURST_INC8; }
+        if( o_flags & STM32_DMA_FLAG_IS_PERIPH_INC16 ){ channel->handle.Init.PeriphBurst = DMA_PBURST_INC16; }
 
     } else {
         channel->handle.Init.FIFOMode = DMA_FIFOMODE_DISABLE; //?
     }
 #endif
 
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_BYTE ){ channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE; }
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_HALFWORD ){ channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD; }
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_WORD ){ channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD; }
+    channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+    if( o_flags & STM32_DMA_FLAG_IS_MEMORY_BYTE ){ channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE; }
+    if( o_flags & STM32_DMA_FLAG_IS_MEMORY_HALFWORD ){ channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD; }
 
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_BYTE ){ channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE; }
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_HALFWORD ){ channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD; }
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_MEMORY_WORD ){ channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD; }
-
-#if 0
-    if( data_alignment == 1 ){
-        channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-        channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-#if defined DMA_FIFOMODE_ENABLE
-        channel->handle.Init.MemBurst = DMA_MBURST_INC8;
-        channel->handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
-#endif
-    } else if( data_alignment == 2 ){
-        channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-        channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-#if defined DMA_FIFOMODE_ENABLE
-        channel->handle.Init.MemBurst = DMA_MBURST_INC4;
-        channel->handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
-#endif
-    } else { //data alignement is 4
-        channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-        channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-#if defined DMA_FIFOMODE_ENABLE
-        channel->handle.Init.MemBurst = DMA_MBURST_SINGLE;
-        channel->handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
-#endif
-    }
-#endif
+    channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    if( o_flags & STM32_DMA_FLAG_IS_PERIPH_BYTE ){ channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE; }
+    if( o_flags & STM32_DMA_FLAG_IS_PERIPH_HALFWORD ){ channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD; }
 
     channel->handle.Init.Mode = DMA_NORMAL;
-    if( o_flags & STM32_DMA_LOCAL_FLAG_IS_CIRCULAR ){ channel->handle.Init.Mode = DMA_CIRCULAR; }
+    if( o_flags & STM32_DMA_FLAG_IS_CIRCULAR ){ channel->handle.Init.Mode = DMA_CIRCULAR; }
+#if defined DMA_PFCTRL
+    if( o_flags & STM32_DMA_FLAG_IS_PFCTRL ){ channel->handle.Init.Mode = DMA_PFCTRL; }
+#endif
     channel->handle.Init.Priority = stm32_dma_decode_priority(config->priority);
 
-    if (HAL_DMA_Init(&channel->handle) != HAL_OK){
+    int result = HAL_DMA_Init(&channel->handle);
+    if ( result != HAL_OK){
+        mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to init DMA %d", result);
         return SYSFS_SET_RETURN(EIO);
     }
 
@@ -265,9 +249,9 @@ int stm32_dma_setattr(stm32_dma_channel_t * channel,
 
 static void mcu_core_dma_handler(int dma_number, int stream_number){
     stm32_dma_channel_t * channel = stm32_dma_handle[dma_number].stream[stream_number];
-    //mcu_debug_log_info(MCU_DEBUG_DEVICE, "handle DMA %d %d 0x%lX", dma_number, stream_number, (u32)channel);
     while( channel != 0 ){
         HAL_DMA_IRQHandler(&channel->handle);
+        //mcu_debug_log_info(MCU_DEBUG_DEVICE, "handle DMA %d %d %p", dma_number, stream_number, channel);
         channel = channel->next;
     }
 }

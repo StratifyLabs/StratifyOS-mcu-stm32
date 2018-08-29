@@ -314,6 +314,8 @@ int mcu_usb_setaction(const devfs_handle_t * handle, void * ctl){
     //cortexm_set_irq_prio(USB_IRQn, action->prio);
     log_ep = action->channel & ~0x80;
 
+    cortexm_set_irq_priority(usb_irqs[port], action->prio, action->o_events);
+
     if( action->o_events &
             (MCU_EVENT_FLAG_POWER|MCU_EVENT_FLAG_SUSPEND|MCU_EVENT_FLAG_STALL|MCU_EVENT_FLAG_SOF|MCU_EVENT_FLAG_WAKEUP)
             ){

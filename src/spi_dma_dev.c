@@ -184,8 +184,11 @@ int mcu_spi_dma_swap(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_spi_dma_setaction(const devfs_handle_t * handle, void * ctl){
-    //need to pass the interrupt number
-    return spi_local_setaction(&spi_dma_local[handle->port].spi, handle, ctl, DMA_INTERRUPT_NUMBER);
+    //need to pass the interrupt number    
+    stm32_dma_set_interrupt_priority(&spi_dma_local[handle->port].dma_rx_channel, ctl);
+    stm32_dma_set_interrupt_priority(&spi_dma_local[handle->port].dma_tx_channel, ctl);
+
+    return spi_local_setaction(&spi_dma_local[handle->port].spi, handle, ctl);
 }
 
 int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){

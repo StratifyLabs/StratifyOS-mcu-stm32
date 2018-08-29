@@ -200,6 +200,7 @@ typedef struct {
     u8 stream_number;
     u8 channel_number;
     u8 priority;
+    u32 o_flags;
 } stm32_dma_channel_config_t;
 
 typedef struct {
@@ -258,6 +259,38 @@ typedef struct {
     void * tx_buffer;
     void * rx_buffer;
 } stm32_eth_dma_config_t;
+
+
+enum {
+    STM32_DMA_FLAG_IS_NORMAL = 0,
+    STM32_DMA_FLAG_IS_CIRCULAR = (1<<0),
+    STM32_DMA_FLAG_IS_FIFO = (1<<1),
+    STM32_DMA_FLAG_IS_MEMORY_TO_PERIPH = (1<<2), //
+    STM32_DMA_FLAG_IS_PERIPH_TO_MEMORY = 0, //default value
+    STM32_DMA_FLAG_IS_MEMORY_BYTE = (1<<4), //default size is word
+    STM32_DMA_FLAG_IS_MEMORY_HALFWORD = (1<<5),
+    STM32_DMA_FLAG_IS_MEMORY_WORD = 0,
+    STM32_DMA_FLAG_IS_PERIPH_BYTE = (1<<7), //default size is word
+    STM32_DMA_FLAG_IS_PERIPH_HALFWORD = (1<<8),
+    STM32_DMA_FLAG_IS_PERIPH_WORD = 0, //default
+    STM32_DMA_FLAG_IS_PERIPH_SINGLE = 0, //default inc is single
+    STM32_DMA_FLAG_IS_MEMORY_SINGLE = 0, //default inc is single
+    STM32_DMA_FLAG_IS_MEMORY_INC4 = (1<<11), //default inc is single
+    STM32_DMA_FLAG_IS_MEMORY_INC8 = (1<<12),
+    STM32_DMA_FLAG_IS_MEMORY_INC16 = (1<<13),
+    STM32_DMA_FLAG_IS_PERIPH_INC4 = (1<<15),
+    STM32_DMA_FLAG_IS_PERIPH_INC8 = (1<<16),
+    STM32_DMA_FLAG_IS_PERIPH_INC16 = (1<<17),
+    STM32_DMA_FLAG_IS_MEMORY_INC_ENABLE = 0, //default is increment memory
+    STM32_DMA_FLAG_IS_MEMORY_INC_DISABLE = (1<<18), //default is increment memory
+    STM32_DMA_FLAG_IS_PERIPH_INC_ENABLE = (1<<19), //default is don't increment peripheral
+    STM32_DMA_FLAG_IS_PERIPH_INC_DISABLE = 0, //default is don't increment peripheral
+    STM32_DMA_FLAG_IS_FIFO_THRESHOLD_QUARTER = (1<<20),
+    STM32_DMA_FLAG_IS_FIFO_THRESHOLD_THREE_QUARTER = (1<<21),
+    STM32_DMA_FLAG_IS_FIFO_THRESHOLD_HALF = 0, //default
+    STM32_DMA_FLAG_IS_FIFO_THRESHOLD_FULL = (1<<22),
+    STM32_DMA_FLAG_IS_PFCTRL = (1<<23)
+};
 
 
 #define STM32_NUCLEO144_DECLARE_MCU_BOARD_CONFIG(cpu_frequency, event_handler_value, arch_config_value, o_mcu_debug_value) \

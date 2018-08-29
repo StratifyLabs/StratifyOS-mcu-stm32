@@ -238,6 +238,7 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
     spi_local_t * spi = (spi_local_t *)hi2s;
     int result;
     devfs_async_t * async;
+
     async = spi->transfer_handler.write;
     result = devfs_execute_write_handler(
                 &spi->transfer_handler,

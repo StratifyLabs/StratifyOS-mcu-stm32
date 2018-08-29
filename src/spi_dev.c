@@ -62,8 +62,7 @@ int mcu_spi_swap(const devfs_handle_t * handle, void * ctl){
 
 
 int mcu_spi_setaction(const devfs_handle_t * handle, void * ctl){
-    int port = handle->port;
-    return spi_local_setaction(spi_local + handle->port, handle, ctl, spi_irqs[port]);
+    return spi_local_setaction(spi_local + handle->port, handle, ctl);
 }
 
 int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){

@@ -58,7 +58,7 @@ extern u8 const spi_irqs[MCU_SPI_PORTS];
 int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle);
 int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle);
 int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * ctl);
-int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void * ctl, int interrupt_number);
+int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void * ctl);
 int spi_local_swap(spi_local_t * spi, const devfs_handle_t * handle, void * ctl);
 int spi_local_execute_handler(devfs_async_t ** async, u32 o_events, u32 value, int ret);
 

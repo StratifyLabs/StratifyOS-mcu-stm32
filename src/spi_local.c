@@ -260,7 +260,7 @@ int spi_local_swap(spi_local_t * spi, const devfs_handle_t * handle, void * ctl)
     return rx_data;
 }
 
-int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void * ctl, int interrupt_number){
+int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void * ctl){
     mcu_action_t * action = (mcu_action_t*)ctl;
 
     //callback = 0 with flags set will cancel an ongoing operation
@@ -280,7 +280,7 @@ int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void *
         }
     }
 
-    cortexm_set_irq_priority(interrupt_number, action->prio, action->o_events);
+    cortexm_set_irq_priority(spi_irqs[handle->port], action->prio, action->o_events);
     return 0;
 }
 
