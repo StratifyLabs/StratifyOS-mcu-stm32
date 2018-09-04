@@ -187,7 +187,6 @@ int stm32_dma_setattr(stm32_dma_channel_t * channel,
     channel->handle.Init.Channel = stm32_dma_decode_channel(config->channel_number);
 #endif
 
-    channel->handle.Init.Channel = stm32_dma_decode_channel(config->channel_number);
     channel->handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
     if( o_flags & STM32_DMA_FLAG_IS_MEMORY_TO_PERIPH ){
         channel->handle.Init.Direction = DMA_MEMORY_TO_PERIPH; //read is always periph to memory
@@ -263,7 +262,9 @@ void mcu_core_dma1_stream3_isr(){ mcu_core_dma_handler(0, 3); }
 void mcu_core_dma1_stream4_isr(){ mcu_core_dma_handler(0, 4); }
 void mcu_core_dma1_stream5_isr(){ mcu_core_dma_handler(0, 5); }
 void mcu_core_dma1_stream6_isr(){ mcu_core_dma_handler(0, 6); }
+#if !defined STM32L4
 void mcu_core_dma1_stream7_isr(){ mcu_core_dma_handler(0, 7); }
+#endif
 
 
 #if MCU_DMA_PORTS > 1
@@ -275,8 +276,9 @@ void mcu_core_dma2_stream3_isr(){ mcu_core_dma_handler(1, 3); }
 void mcu_core_dma2_stream4_isr(){ mcu_core_dma_handler(1, 4); }
 void mcu_core_dma2_stream5_isr(){ mcu_core_dma_handler(1, 5); }
 void mcu_core_dma2_stream6_isr(){ mcu_core_dma_handler(1, 6); }
+#if !defined STM32L4
 void mcu_core_dma2_stream7_isr(){ mcu_core_dma_handler(1, 7); }
-
+#endif
 #endif
 
 #endif

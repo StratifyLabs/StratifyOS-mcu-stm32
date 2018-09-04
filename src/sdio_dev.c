@@ -17,12 +17,10 @@
  *
  */
 
-
-#if MCU_SDIO_PORTS > 0
-
 #include <mcu/sdio.h>
 #include "sdio_local.h"
 
+#if MCU_SDIO_PORTS > 0
 
 static sdio_local_t sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 
@@ -210,14 +208,10 @@ int mcu_sdio_read(const devfs_handle_t * handle, devfs_async_t * async){
     int hal_result;
     DEVFS_DRIVER_IS_BUSY(sdio_local[port].transfer_handler.read, async);
 
-    sdio_local[port].start_time = TIM2->CNT;
-
     if( (hal_result = HAL_SD_ReadBlocks_IT(&sdio_local[port].hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
-        return 0;
+        return SYSFS_RETURN_SUCCESS;
     }
 
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "R:HAL Not OK %d %d %d 0x%lX\n", async->loc, async->nbyte, hal_result, sdio_local[port].hal_handle.ErrorCode);
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "State: %d\n", HAL_SD_GetCardState(&sdio_local[port].hal_handle));
     sdio_local[port].transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EIO);
 }

@@ -20,34 +20,34 @@
 #ifndef SPI_LOCAL_H_
 #define SPI_LOCAL_H_
 
-#include <mcu/sdio.h>
+#include <mcu/mmc.h>
 
 #include "stm32_dma.h"
 
-#if MCU_SDIO_PORTS > 0
+#if MCU_SDIO_PORTS > 0 && defined MMC_TypeDef
 
 typedef struct {
-    SD_HandleTypeDef hal_handle; //must be the first member of the struct
+    MMC_HandleTypeDef hal_handle; //must be the first member of the struct
     devfs_transfer_handler_t transfer_handler;
     u8 ref_count;
-} sdio_local_t;
+} mmc_local_t;
 
 typedef struct {
-    sdio_local_t sdio;
+    mmc_local_t mmc;
     stm32_dma_channel_t dma_rx_channel;
     stm32_dma_channel_t dma_tx_channel;
-} sdio_dma_local_t;
+} mmc_dma_local_t;
 
-extern SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS];
-extern const int sdio_irqs[MCU_SDIO_PORTS];
+extern SDIO_TypeDef * const mmc_regs[MCU_SDIO_PORTS];
+extern const int mmc_irqs[MCU_SDIO_PORTS];
 
-int sdio_local_open(sdio_local_t * sdio, const devfs_handle_t * handle);
-int sdio_local_close(sdio_local_t * sdio, const devfs_handle_t * handle);
-int sdio_local_setattr(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
-int sdio_local_getinfo(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
-int sdio_local_getcid(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
-int sdio_local_getcsd(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
-int sdio_local_getstatus(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
+int mmc_local_open(mmc_local_t * local, const devfs_handle_t * handle);
+int mmc_local_close(mmc_local_t * local, const devfs_handle_t * handle);
+int mmc_local_setattr(mmc_local_t * local, const devfs_handle_t * handle, void * ctl);
+int mmc_local_getinfo(mmc_local_t * local, const devfs_handle_t * handle, void * ctl);
+int mmc_local_getcid(mmc_local_t * local, const devfs_handle_t * handle, void * ctl);
+int mmc_local_getcsd(mmc_local_t * local, const devfs_handle_t * handle, void * ctl);
+int mmc_local_getstatus(mmc_local_t * local, const devfs_handle_t * handle, void * ctl);
 
 #endif
 

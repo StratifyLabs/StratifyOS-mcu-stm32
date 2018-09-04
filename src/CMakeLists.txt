@@ -42,6 +42,10 @@ set(SOURCES
 	${SOURCES_PREFIX}/sdio_local.c
 	${SOURCES_PREFIX}/sdio_local.h
 	${SOURCES_PREFIX}/sdio_dma_dev.c
+	${SOURCES_PREFIX}/mmc_dev.c
+	${SOURCES_PREFIX}/mmc_dma_dev.c
+	${SOURCES_PREFIX}/mmc_local.c
+	${SOURCES_PREFIX}/mmc_local.h
 	${SOURCES_PREFIX}/spi_dev.c
 	${SOURCES_PREFIX}/spi_dma_dev.c
 	${SOURCES_PREFIX}/qspi_dev.c

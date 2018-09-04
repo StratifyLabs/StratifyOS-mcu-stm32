@@ -147,11 +147,13 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
 
         PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S_APB1|RCC_PERIPHCLK_I2S_APB2|RCC_PERIPHCLK_CLK48;
         PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
-        PeriphClkInitStruct.PLLI2S.PLLI2SP = RCC_PLLI2SP_DIV2;
+#if defined RCC_PLLI2SP_DIV2
+        //PeriphClkInitStruct.PLLI2S.PLLI2SP = RCC_PLLI2SP_DIV2;
+#endif
         PeriphClkInitStruct.PLLI2S.PLLI2SM = 4;
         PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
         PeriphClkInitStruct.PLLI2S.PLLI2SQ = 2;
-        PeriphClkInitStruct.PLLI2SDivQ = 1;
+        //PeriphClkInitStruct.PLLI2SDivQ = 1;
         PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48CLKSOURCE_PLLQ;
         PeriphClkInitStruct.I2sApb2ClockSelection = RCC_I2SAPB2CLKSOURCE_PLLI2S;
         PeriphClkInitStruct.I2sApb1ClockSelection = RCC_I2SAPB1CLKSOURCE_PLLI2S;

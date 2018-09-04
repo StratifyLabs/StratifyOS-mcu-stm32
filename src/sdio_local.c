@@ -17,11 +17,9 @@
  *
  */
 
+#include "sdio_local.h"
 
 #if MCU_SDIO_PORTS > 0
-
-#include <mcu/sdio.h>
-#include "sdio_local.h"
 
 SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS] = MCU_SDIO_REGS;
 const int sdio_irqs[MCU_SDIO_PORTS] = MCU_SDIO_IRQS;
@@ -130,6 +128,17 @@ int sdio_local_setattr(sdio_local_t * sdio, const devfs_handle_t * handle, void 
                     MCU_PIN_ASSIGNMENT_COUNT(sdio_pin_assignment_t),
                     CORE_PERIPH_SDIO, handle->port, 0, 0, 0) < 0 ){
             return SYSFS_SET_RETURN(EINVAL);
+        }
+
+        if( HAL_SD_Init(&sdio->hal_handle) != HAL_OK ){
+            return SYSFS_SET_RETURN(EIO);
+        }
+
+        //SDIO_BUS_WIDE_1B -- set as default for initialziation
+        //SDIO_BUS_WIDE_4B
+        //SDIO_BUS_WIDE_8B -- not compatible with SDIO
+        if( o_flags & SDIO_FLAG_IS_BUS_WIDTH_4 ){
+            HAL_SD_ConfigWideBusOperation(&sdio->hal_handle, SDIO_BUS_WIDE_4B);
         }
 
     }

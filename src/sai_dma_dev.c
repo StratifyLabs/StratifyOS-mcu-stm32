@@ -44,12 +44,12 @@ int mcu_sai_dma_close(const devfs_handle_t * handle){
         config = handle->config;
         HAL_SAI_DMAStop(&sai_dma_local[handle->port].sai.hal_handle);
 
-        if( sai_dma_local[port].dma_rx_channel.interrupt_number > 0 ){
+        if( sai_dma_local[port].dma_channel.interrupt_number > 0 ){
             HAL_DMA_DeInit(&sai_dma_local[port].dma_channel.handle);
         }
 
         if( config ){
-            stm32_dma_clear_handle(&sai_dma_local[port].dma_channel, config->dma_config.dma_number, config->dma_config.rx.stream_number);
+            stm32_dma_clear_handle(&sai_dma_local[port].dma_channel, config->dma_config.dma_number, config->dma_config.stream_number);
         }
 
     }
@@ -104,139 +104,30 @@ int mcu_sai_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
         sai_dma_local[port].sai.o_flags = SAI_LOCAL_IS_DMA;
 
-        stm32_dma_set_handle(dma_channel, config->dma_config.dma_number, config->dma_config.rx.stream_number);
-        dma_channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number); //DMA1 stream 0
 
+        int dma_result = stm32_dma_setattr(&sai_dma_local[port].dma_channel, &config->dma_config);
+        if( dma_result < 0 ){ return dma_result; }
 
         if( attr->o_flags & I2S_FLAG_IS_RECEIVER ){
-
             mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set I2S DMA as receiver %d.%d.%d",
                                config->dma_config.dma_number,
                                config->dma_config.stream_number,
                                config->dma_config.channel_number
                                );
-            //setup the DMA for receiving
-            stm32_dma_channel_t * dma_channel = &sai_dma_local[port].dma_rx_channel;
-
-            dma_channel->handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
-
-            dma_channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
-            dma_channel->handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
-
-#if defined DMA_REQUEST_0
-    dma_channel->handle.Init.Request = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
-#else
-    dma_channel->handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
-#endif
-
-#if defined DMA_FIFOMODE_ENABLE
-            dma_channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE; //?
-            dma_channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
-
-            if( attr->o_flags & I2S_FLAG_IS_WIDTH_8 ){
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-                dma_channel->handle.Init.MemBurst = DMA_MBURST_INC8;
-                dma_channel->handle.Init.PeriphBurst = DMA_PBURST_INC8;
-            } else if( attr->o_flags & (I2S_FLAG_IS_WIDTH_16 | I2S_FLAG_IS_WIDTH_16_EXTENDED) ){
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-                dma_channel->handle.Init.MemBurst = DMA_MBURST_INC4;
-                dma_channel->handle.Init.PeriphBurst = DMA_PBURST_INC4;
-            } else { //I2S_FLAG_IS_WIDTH_24 | I2S_FLAG_IS_WIDTH_32
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-                dma_channel->handle.Init.MemBurst = DMA_MBURST_SINGLE;
-                dma_channel->handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
-            }
-#else
-            if( attr->o_flags & I2S_FLAG_IS_WIDTH_8 ){
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-            } else if( attr->o_flags & (I2S_FLAG_IS_WIDTH_16 | I2S_FLAG_IS_WIDTH_16_EXTENDED) ){
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-            } else { //I2S_FLAG_IS_WIDTH_24 | I2S_FLAG_IS_WIDTH_32
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-            }
-#endif
-
-            dma_channel->handle.Init.Mode = DMA_CIRCULAR;
-            dma_channel->handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.rx.priority);
-
-            if (HAL_DMA_Init(&dma_channel->handle) != HAL_OK){
-                return SYSFS_SET_RETURN(EIO);
-            }
-
-            __HAL_LINKDMA((&sai_dma_local[port].sai.hal_handle), hdmarx, dma_channel->handle);
 
 
+            __HAL_LINKDMA((&sai_dma_local[port].sai.hal_handle), hdmarx, sai_dma_local[port].dma_channel.handle);
         }
+
         if( attr->o_flags & I2S_FLAG_IS_TRANSMITTER ){
 
             mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set I2S DMA as transmitter %d.%d.%d",
-                               config->dma_config.tx.dma_number,
-                               config->dma_config.tx.stream_number,
-                               config->dma_config.tx.channel_number
+                               config->dma_config.dma_number,
+                               config->dma_config.stream_number,
+                               config->dma_config.channel_number
                                );
             //setup the DMA for transmitting
-            stm32_dma_channel_t * dma_channel = &sai_dma_local[port].dma_tx_channel;
-
-            stm32_dma_set_handle(dma_channel, config->dma_config.tx.dma_number, config->dma_config.tx.stream_number); //need to get the DMA# and stream# from a table -- or from config
-            dma_channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_config.tx.dma_number, config->dma_config.tx.stream_number); //DMA1 stream 0
-            dma_channel->handle.Init.Direction = DMA_MEMORY_TO_PERIPH; //write is always memory to periph
-            dma_channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
-            dma_channel->handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
-
-#if defined DMA_REQUEST_0
-    dma_channel->handle.Init.Request = stm32_dma_decode_channel(config->dma_config.tx.channel_number);
-#else
-    dma_channel->handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.tx.channel_number);
-#endif
-
-#if defined DMA_FIFOMODE_ENABLE
-            dma_channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-            dma_channel->handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
-
-            if( attr->o_flags & I2S_FLAG_IS_WIDTH_8 ){
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-                dma_channel->handle.Init.MemBurst = DMA_MBURST_INC8;
-                dma_channel->handle.Init.PeriphBurst = DMA_PBURST_INC8;
-            } else if( attr->o_flags & (I2S_FLAG_IS_WIDTH_16 | I2S_FLAG_IS_WIDTH_16_EXTENDED) ){
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-                dma_channel->handle.Init.MemBurst = DMA_MBURST_INC4;
-                dma_channel->handle.Init.PeriphBurst = DMA_PBURST_INC4;
-            } else { //I2S_FLAG_IS_WIDTH_24 | I2S_FLAG_IS_WIDTH_32
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-                dma_channel->handle.Init.MemBurst = DMA_MBURST_SINGLE;
-                dma_channel->handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
-            }
-#else
-            if( attr->o_flags & I2S_FLAG_IS_WIDTH_8 ){
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-            } else if( attr->o_flags & (I2S_FLAG_IS_WIDTH_16 | I2S_FLAG_IS_WIDTH_16_EXTENDED) ){
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-            } else { //I2S_FLAG_IS_WIDTH_24 | I2S_FLAG_IS_WIDTH_32
-                dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-                dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-            }
-#endif
-
-            dma_channel->handle.Init.Mode = DMA_CIRCULAR;
-            dma_channel->handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.tx.priority);
-
-            if (HAL_DMA_Init(&dma_channel->handle) != HAL_OK){
-                return SYSFS_SET_RETURN(EIO);
-            }
-
-            __HAL_LINKDMA((&sai_dma_local[port].sai.hal_handle), hdmatx, dma_channel->handle);
-
+            __HAL_LINKDMA((&sai_dma_local[port].sai.hal_handle), hdmatx, sai_dma_local[port].dma_channel.handle);
         }
     }
 
@@ -280,6 +171,7 @@ int mcu_sai_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 
     DEVFS_DRIVER_IS_BUSY(local->sai.transfer_handler.read, async);
 
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SAI DMA RX: %p %ld %d", async->buf, async->nbyte, local->sai.size_mult);
     ret = HAL_SAI_Receive_DMA(&local->sai.hal_handle, async->buf,  async->nbyte/local->sai.size_mult);
 
     if( ret != HAL_OK ){

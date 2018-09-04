@@ -55,10 +55,10 @@ const alternate_function_entry_t alternate_function_table[MCU_TOTAL_PINS] = {
         {{ RESERVED_, E_IR(1), E_TMR_(4), RESERVED_, E_I2C_(1), E_SPI_(2), E_DFSD(1), RESERVED_, RESERVED_, E_CAN_(1), RESERVED_, E_LCD_(1), ESDMMC(1), E_I2S_(1), E_TMR(17), E_SYS_(1)}}, //PB9
         {{ RESERVED_, E_TMR_(2), RESERVED_, RESERVED_, E_I2C_(2), E_SPI_(2), E_DFSD(1), E_USRT(3), ELUART(1), RESERVED_, E_QSPI(1), E_LCD_(1), E_TMR_(1), E_I2S_(1), RESERVED_, E_SYS_(1)}}, //PB10
         {{ RESERVED_, E_TMR_(2), RESERVED_, RESERVED_, E_I2C_(2), RESERVED_, E_DFSD(1), E_USRT(3), ELUART(1), RESERVED_, E_QSPI(1), E_LCD_(1), E_TMR_(2), RESERVED_, RESERVED_, E_SYS_(1)}}, //PB11
-        {{ RESERVED_, E_TMR_(1), RESERVED_, E_TMR_(1), E_I2C_(2), E_SPI_(2), E_DFSD(1), E_USRT(3), ELUART(1), E_TSC_(1), RESERVED_, E_LCD_(1), ESWPMI(1), E_I2S_(2), E_TMR(15), E_SYS_(1)}}, //PB12
-        {{ RESERVED_, E_TMR_(1), RESERVED_, RESERVED_, E_I2C_(2), E_SPI_(2), E_DFSD(1), E_USRT(3), ELUART(1), E_TSC_(1), RESERVED_, E_LCD_(1), ESWPMI(1), E_I2S_(2), E_TMR(15), E_SYS_(1)}}, //PB13
-        {{ RESERVED_, E_TMR_(1), RESERVED_, E_TMR_(8), E_I2C_(2), E_SPI_(2), E_DFSD(1), E_USRT(3), RESERVED_, E_TSC_(1), RESERVED_, E_LCD_(1), ESWPMI(1), E_I2S_(2), E_TMR(15), E_SYS_(1)}}, //PB14
-        {{ E_RTC_(1), E_TMR_(1), RESERVED_, E_TMR_(8), RESERVED_, E_SPI_(2), E_DFSD(1), RESERVED_, RESERVED_, E_TSC_(1), RESERVED_, E_LCD_(1), ESWPMI(1), E_I2S_(2), E_TMR(15), E_SYS_(1)}}, //PB15
+        {{ RESERVED_, E_TMR_(1), RESERVED_, E_TMR_(1), E_I2C_(2), E_SPI_(2), E_DFSD(1), E_USRT(3), ELUART(1), E_TSC_(1), RESERVED_, E_LCD_(1), ESWPMI(1), E_I2S_(3), E_TMR(15), E_SYS_(1)}}, //PB12
+        {{ RESERVED_, E_TMR_(1), RESERVED_, RESERVED_, E_I2C_(2), E_SPI_(2), E_DFSD(1), E_USRT(3), ELUART(1), E_TSC_(1), RESERVED_, E_LCD_(1), ESWPMI(1), E_I2S_(3), E_TMR(15), E_SYS_(1)}}, //PB13
+        {{ RESERVED_, E_TMR_(1), RESERVED_, E_TMR_(8), E_I2C_(2), E_SPI_(2), E_DFSD(1), E_USRT(3), RESERVED_, E_TSC_(1), RESERVED_, E_LCD_(1), ESWPMI(1), E_I2S_(3), E_TMR(15), E_SYS_(1)}}, //PB14
+        {{ E_RTC_(1), E_TMR_(1), RESERVED_, E_TMR_(8), RESERVED_, E_SPI_(2), E_DFSD(1), RESERVED_, RESERVED_, E_TSC_(1), RESERVED_, E_LCD_(1), ESWPMI(1), E_I2S_(3), E_TMR(15), E_SYS_(1)}}, //PB15
 		    //   0           1          2          3          4         5           6         7          8           9          10        11         12          13        14          15
         {{ RESERVED_, E_LPTM(1), RESERVED_, RESERVED_, E_I2C_(3), RESERVED_, E_DFSD(1), RESERVED_, ELUART(1), RESERVED_, RESERVED_, E_LCD_(1), RESERVED_, RESERVED_, E_LPTM(2), E_SYS_(1)}}, //PC0
         {{ RESERVED_, E_LPTM(1), RESERVED_, RESERVED_, E_I2C_(3), RESERVED_, E_DFSD(1), RESERVED_, ELUART(1), RESERVED_, RESERVED_, E_LCD_(1), RESERVED_, RESERVED_, RESERVED_, E_SYS_(1)}}, //PC1

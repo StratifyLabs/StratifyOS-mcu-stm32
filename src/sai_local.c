@@ -36,10 +36,13 @@ int sai_local_open(sai_local_t * local, const devfs_handle_t * handle){
             //turn on RCC clock
             switch(port){
             case 0:
+            case 1:
                 __HAL_RCC_SAI1_CLK_ENABLE();
                 break;
 #if defined SAI2
-            case 1:
+            case 2:
+            case 3:
+                mcu_debug_log_info(MCU_DEBUG_DEVICE, "Turn on SAI2 clock");
                 __HAL_RCC_SAI2_CLK_ENABLE();
                 break;
 #endif
@@ -70,10 +73,12 @@ int sai_local_close(sai_local_t * local, const devfs_handle_t * handle){
             //turn off RCC clock
             switch(port){
             case 0:
+            case 1:
                 __HAL_RCC_SAI1_CLK_DISABLE();
                 break;
 #if defined SAI2
-            case 1:
+            case 2:
+            case 3:
                 __HAL_RCC_SAI2_CLK_DISABLE();
                 break;
 #endif
@@ -116,16 +121,38 @@ int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void *
     if( o_flags & (I2S_FLAG_SET_MASTER|I2S_FLAG_SET_SLAVE) ){
         local->o_flags = SAI_LOCAL_IS_I2S;
 
-
         //local->hal_handle.Init.AudioMode = 0; //handled below
-        local->hal_handle.Init.Synchro = SAI_SYNCHRONOUS;
-        local->hal_handle.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+        if( o_flags & I2S_FLAG_SET_SLAVE ){
+            local->hal_handle.Init.AudioMode = SAI_MODESLAVE_TX;
+            if ( o_flags & I2S_FLAG_IS_RECEIVER ){
+                local->hal_handle.Init.AudioMode = SAI_MODESLAVE_RX;
+            }
+        } else {
+            local->hal_handle.Init.AudioMode = SAI_MODEMASTER_TX;
+            if ( o_flags & I2S_FLAG_IS_RECEIVER ){
+                local->hal_handle.Init.AudioMode = SAI_MODEMASTER_RX;
+            }
+        }
+
+
+        /*
+         * Slave mode synchronous -- receives signals from another SAI block
+         *   asynchronous -- receives signals from external pins
+         *
+         * For master mode, this value doesn't seem to matter
+         *
+         */
+        local->hal_handle.Init.Synchro = SAI_ASYNCHRONOUS; //synchronous means it should receive signals from another SAI unit or sub block
+
+        //SAI_SYNCEXT_OUTBLOCKA_ENABLE -- sync with block A of other SAI unit
+        //SAI_SYNCEXT_OUTBLOCKB_ENABLE
+        local->hal_handle.Init.SynchroExt = SAI_SYNCEXT_DISABLE; //this means synchronize with another SAI unit (not a sub block in teh same unit)
 
         //this will probably be SAI_OUTPUTDRIVE_ENABLE to drive pins
-        local->hal_handle.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
+        local->hal_handle.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
 
         //SAI_MASTERDIVIDER_ENABLE
-        local->hal_handle.Init.NoDivider = SAI_MASTERDIVIDER_DISABLE;
+        local->hal_handle.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
 
         //pick a value here that covers most cases
         //SAI_FIFOTHRESHOLD_EMPTY
@@ -135,8 +162,25 @@ int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void *
         //SAI_FIFOTHRESHOLD_FULL
         local->hal_handle.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_HF;
 
+        u32 frequency = SAI_AUDIO_FREQUENCY_8K;
+        switch(attr->freq){
+        case 11000: frequency = SAI_AUDIO_FREQUENCY_11K; break;
+        case 16000: frequency = SAI_AUDIO_FREQUENCY_16K; break;
+        case 22050: frequency = SAI_AUDIO_FREQUENCY_22K; break;
+        case 32000: frequency = SAI_AUDIO_FREQUENCY_32K; break;
+        case 44100: frequency = SAI_AUDIO_FREQUENCY_44K; break;
+        case 48000: frequency = SAI_AUDIO_FREQUENCY_48K; break;
+        case 96000: frequency = SAI_AUDIO_FREQUENCY_96K; break;
+        case 192000: frequency = SAI_AUDIO_FREQUENCY_192K; break;
+        default:
+            return SYSFS_SET_RETURN(EINVAL);
+        }
+
+        local->hal_handle.Init.AudioFrequency = frequency;
+
         //local->hal_handle.Init.AudioFrequency = 0; //handled below
         //0 to 63 or 0 to 15 depending on the device
+        //this value is set based on the call to the HAL libraries and the audio frequency
         local->hal_handle.Init.Mckdiv = 0;
 
 #if defined(STM32L4R5xx) || defined(STM32L4R7xx) || defined(STM32L4R9xx) || defined(STM32L4S5xx) || defined(STM32L4S7xx) || defined(STM32L4S9xx)
@@ -157,42 +201,10 @@ int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void *
 
         //OR SAI_OUTPUT_RELEASED
         local->hal_handle.Init.TriState = SAI_OUTPUT_NOTRELEASED;
-        //local->hal_handle.Init.Protocol = 0; //handled below
-        //local->hal_handle.Init.DataSize = 0; //handled below
 
-        //could also be SAI_FIRSTBIT_LSB - set with protocol
-        //local->hal_handle.Init.FirstBit = SAI_FIRSTBIT_MSB;
-
-        //could also be SAI_CLOCKSTROBING_RISINGEDGE - set with protocol
-        //local->hal_handle.Init.ClockStrobing = SAI_CLOCKSTROBING_FALLINGEDGE;
-
-
-        if( o_flags & I2S_FLAG_SET_SLAVE ){
-            if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
-                local->hal_handle.Init.AudioMode = SAI_MODESLAVE_TX;
-                if( o_flags & I2S_FLAG_IS_RECEIVER ){
-
-                }
-            } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
-                local->hal_handle.Init.AudioMode = SAI_MODESLAVE_RX;
-            }
-        } else {
-            if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
-                local->hal_handle.Init.AudioMode = SAI_MODEMASTER_TX;
-                if( o_flags & I2S_FLAG_IS_RECEIVER ){
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT
-                    local->hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
-                    local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
-#endif
-                }
-            } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
-                local->hal_handle.Init.AudioMode = SAI_MODEMASTER_RX;
-            }
-        }
-
+        //slot
         u32 slot_count = 2;
         u32 protocol = SAI_I2S_STANDARD;
-        local->hal_handle.Init.Protocol = SAI_I2S_STANDARD;
         if( o_flags & I2S_FLAG_IS_FORMAT_MSB ){
             protocol = SAI_I2S_MSBJUSTIFIED;
         } else if( o_flags & I2S_FLAG_IS_FORMAT_LSB ){
@@ -215,24 +227,6 @@ int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void *
             data_size = SAI_PROTOCOL_DATASIZE_16BITEXTENDED;
         }
 
-
-        u32 frequency = SAI_AUDIO_FREQUENCY_8K;
-        switch(attr->freq){
-        case 11000: frequency = SAI_AUDIO_FREQUENCY_11K; break;
-        case 16000: frequency = SAI_AUDIO_FREQUENCY_16K; break;
-        case 22050: frequency = SAI_AUDIO_FREQUENCY_22K; break;
-        case 32000: frequency = SAI_AUDIO_FREQUENCY_32K; break;
-        case 44100: frequency = SAI_AUDIO_FREQUENCY_44K; break;
-        case 48000: frequency = SAI_AUDIO_FREQUENCY_48K; break;
-        case 96000: frequency = SAI_AUDIO_FREQUENCY_96K; break;
-        case 192000: frequency = SAI_AUDIO_FREQUENCY_192K; break;
-        default:
-            return SYSFS_SET_RETURN(EINVAL);
-        }
-
-        local->hal_handle.Init.AudioFrequency = frequency;
-
-
         if( mcu_set_pin_assignment(
                     &(attr->pin_assignment),
                     MCU_CONFIG_PIN_ASSIGNMENT(i2s_config_t, handle),
@@ -242,16 +236,49 @@ int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void *
         }
 
 
-        if( HAL_SAI_InitProtocol(&local->hal_handle, protocol, data_size, slot_count) != HAL_OK ){
+#if 0
+        //local->hal_handle.Instance = SAI2_Block_A;
+         local->hal_handle.Init.Protocol = SAI_FREE_PROTOCOL;
+         local->hal_handle.Init.AudioMode = SAI_MODEMASTER_RX;
+         local->hal_handle.Init.DataSize = SAI_DATASIZE_16;
+         local->hal_handle.Init.FirstBit = SAI_FIRSTBIT_MSB;
+         local->hal_handle.Init.ClockStrobing = SAI_CLOCKSTROBING_FALLINGEDGE;
+         local->hal_handle.Init.Synchro = SAI_ASYNCHRONOUS;
+         local->hal_handle.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
+         local->hal_handle.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
+         local->hal_handle.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+         local->hal_handle.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_16K;
+         local->hal_handle.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+         local->hal_handle.Init.MonoStereoMode = SAI_STEREOMODE;
+         local->hal_handle.Init.CompandingMode = SAI_NOCOMPANDING;
+         local->hal_handle.FrameInit.FrameLength = 16;
+         local->hal_handle.FrameInit.ActiveFrameLength = 1;
+         local->hal_handle.FrameInit.FSDefinition = SAI_FS_STARTFRAME;
+         local->hal_handle.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
+         local->hal_handle.FrameInit.FSOffset = SAI_FS_FIRSTBIT;
+         local->hal_handle.SlotInit.FirstBitOffset = 0;
+         local->hal_handle.SlotInit.SlotSize = SAI_SLOTSIZE_16B;
+         local->hal_handle.SlotInit.SlotNumber = 1;
+         local->hal_handle.SlotInit.SlotActive = 0x00000001;
+         int sai_result;
+         if ( (sai_result = HAL_SAI_Init(&local->hal_handle)) != HAL_OK){
+             mcu_debug_log_error(MCU_DEBUG_DEVICE, "Failed to init SAI %d", sai_result);
+             return SYSFS_SET_RETURN(EIO);
+         }
+#else
+        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SAI: %d %d %d", protocol, data_size, slot_count);
+        int sai_result;
+        if( (sai_result = HAL_SAI_InitProtocol(&local->hal_handle, protocol, data_size, slot_count)) != HAL_OK ){
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "Failed to init SAI %d", sai_result);
             return SYSFS_SET_RETURN(EIO);
         }
+#endif
     }
 
-    return 0;
+    return SYSFS_RETURN_SUCCESS;
 }
 
 void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai){
-    //no action when half complete -- could fire an event
     sai_local_t * local = (sai_local_t *)hsai;
     int result;
     devfs_async_t * async;
@@ -287,7 +314,9 @@ void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai){
         local->transfer_handler.write = async;
     } else {
         //stop -- half transfer only happens on DMA
-        HAL_SAI_DMAStop(hsai);
+        if( local->o_flags & SAI_LOCAL_IS_DMA ){
+            HAL_SAI_DMAStop(hsai);
+        }
     }
 }
 
@@ -329,7 +358,9 @@ void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai){
         //restore the callback if the callback requests it -- good for DMA only
         local->transfer_handler.read = async;
     } else if( local->o_flags & SAI_LOCAL_IS_DMA ){
-        HAL_SAI_DMAStop(hsai);
+        if( local->o_flags & SAI_LOCAL_IS_DMA ){
+            HAL_SAI_DMAStop(hsai);
+        }
     }
 }
 
@@ -344,6 +375,7 @@ void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai){
 
 #if defined SAI1
 void mcu_core_sai1_isr(){
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SAI 1 interrupt");
     if( sai_local_ptrs[0] ){ HAL_SAI_IRQHandler(&sai_local_ptrs[0]->hal_handle); }
     if( sai_local_ptrs[1] ){ HAL_SAI_IRQHandler(&sai_local_ptrs[1]->hal_handle); }
 
@@ -352,9 +384,9 @@ void mcu_core_sai1_isr(){
 
 #if defined SAI2
 void mcu_core_sai2_isr(){
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SAI 2 interrupt");
     if( sai_local_ptrs[2] ){ HAL_SAI_IRQHandler(&sai_local_ptrs[2]->hal_handle); }
     if( sai_local_ptrs[3] ){ HAL_SAI_IRQHandler(&sai_local_ptrs[3]->hal_handle); }
-
 }
 #endif
 
