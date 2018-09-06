@@ -33,24 +33,21 @@ typedef struct {
     int words_written;
     u32 o_flags;
     u8 ref_count;
-} dac_local_t;
-
-typedef struct {
-    dac_local_t dac;
     stm32_dma_channel_t dma_tx_channel;
-} dac_dma_local_t;
+} dac_local_t;
 
 extern DAC_TypeDef * const dac_regs_table[MCU_DAC_PORTS];
 extern u8 const dac_irqs[MCU_DAC_PORTS];
 extern const u32 dac_channels[MCU_DAC_PORTS];
+static dac_local_t dac_local[MCU_DAC_PORTS] MCU_SYS_MEM;
 
-int dac_local_open(dac_local_t * dac, const devfs_handle_t * handle);
-int dac_local_close(dac_local_t * dac, const devfs_handle_t * handle);
-int dac_local_setattr(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
-int dac_local_getinfo(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
+int dac_local_open(const devfs_handle_t * handle);
+int dac_local_close(const devfs_handle_t * handle);
+int dac_local_setattr(const devfs_handle_t * handle, void * ctl);
+int dac_local_getinfo(const devfs_handle_t * handle, void * ctl);
 
-int dac_local_set(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
-int dac_local_get(dac_local_t * dac, const devfs_handle_t * handle, void * ctl);
+int dac_local_set(const devfs_handle_t * handle, void * ctl);
+int dac_local_get(const devfs_handle_t * handle, void * ctl);
 
 u32 dac_local_get_alignment(dac_local_t * dac);
 

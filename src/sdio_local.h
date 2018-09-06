@@ -29,25 +29,23 @@
 typedef struct {
     SD_HandleTypeDef hal_handle; //must be the first member of the struct
     devfs_transfer_handler_t transfer_handler;
+    stm32_dma_channel_t dma_rx_channel;
+    stm32_dma_channel_t dma_tx_channel;
+    u32 o_flags;
     u8 ref_count;
 } sdio_local_t;
 
-typedef struct {
-    sdio_local_t sdio;
-    stm32_dma_channel_t dma_rx_channel;
-    stm32_dma_channel_t dma_tx_channel;
-} sdio_dma_local_t;
-
 extern SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS];
 extern const int sdio_irqs[MCU_SDIO_PORTS];
+static sdio_local_t sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 
-int sdio_local_open(sdio_local_t * sdio, const devfs_handle_t * handle);
-int sdio_local_close(sdio_local_t * sdio, const devfs_handle_t * handle);
-int sdio_local_setattr(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
-int sdio_local_getinfo(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
-int sdio_local_getcid(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
-int sdio_local_getcsd(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
-int sdio_local_getstatus(sdio_local_t * sdio, const devfs_handle_t * handle, void * ctl);
+int sdio_local_open(const devfs_handle_t * handle);
+int sdio_local_close(const devfs_handle_t * handle);
+int sdio_local_setattr(const devfs_handle_t * handle, void * ctl);
+int sdio_local_getinfo(const devfs_handle_t * handle, void * ctl);
+int sdio_local_getcid(const devfs_handle_t * handle, void * ctl);
+int sdio_local_getcsd(const devfs_handle_t * handle, void * ctl);
+int sdio_local_getstatus(const devfs_handle_t * handle, void * ctl);
 
 #endif
 

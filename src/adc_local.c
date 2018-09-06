@@ -41,11 +41,12 @@ const u32 adc_channels[MCU_ADC_CHANNELS] = {
     ADC_CHANNEL_VBAT
 };
 
-int adc_local_open(adc_local_t * adc, const devfs_handle_t * handle){
-    int port = handle->port;
-    if ( adc->ref_count == 0 ){
+int adc_local_open(const devfs_handle_t * handle){
+    const u32 port = handle->port;
+    adc_local_t * local = adc_local + port;
+    if ( local->ref_count == 0 ){
 
-        adc->hal_handle.Instance = adc_regs_table[port];
+        local->hal_handle.Instance = adc_regs_table[port];
 
         switch(port){
         case 0:
@@ -75,16 +76,17 @@ int adc_local_open(adc_local_t * adc, const devfs_handle_t * handle){
         }
         cortexm_enable_irq(adc_irqs[port]);
     }
-    adc->ref_count++;
+    local->ref_count++;
 
     return 0;
 }
 
-int adc_local_close(adc_local_t * adc, const devfs_handle_t * handle){
-    int port = handle->port;
+int adc_local_close(const devfs_handle_t * handle){
+    const u32 port = handle->port;
+    adc_local_t * local = adc_local + port;
 
-    if ( adc->ref_count > 0 ){
-        if ( adc->ref_count == 1 ){
+    if ( local->ref_count > 0 ){
+        if ( local->ref_count == 1 ){
             cortexm_disable_irq(adc_irqs[port]);
             switch(port){
             case 0:
@@ -112,18 +114,18 @@ int adc_local_close(adc_local_t * adc, const devfs_handle_t * handle){
                 break;
 #endif
             }
-            adc->hal_handle.Instance = 0;
+            local->hal_handle.Instance = 0;
         }
-        adc->ref_count--;
+        local->ref_count--;
     }
     return 0;
 }
 
 
-int adc_local_getinfo(adc_local_t * adc, const devfs_handle_t * handle, void * ctl){
-
+int adc_local_getinfo(const devfs_handle_t * handle, void * ctl){
     adc_info_t * info = ctl;
     const adc_config_t * config = handle->config;
+    adc_local_t * local = adc_local + handle->port;
 
     info->o_flags = ADC_FLAG_IS_LEFT_JUSTIFIED |
             ADC_FLAG_IS_RIGHT_JUSTIFIED |
@@ -133,6 +135,11 @@ int adc_local_getinfo(adc_local_t * adc, const devfs_handle_t * handle, void * c
             ADC_FLAG_IS_TRIGGER_EINT_EDGE_RISING |
             ADC_FLAG_SET_CONVERTER |
             ADC_FLAG_SET_CHANNELS;
+
+    if( local->o_flags & ADC_LOCAL_IS_DMA ){
+        info->o_flags |= ADC_FLAG_IS_GROUP | ADC_FLAG_IS_SCAN_MODE;
+    }
+
     info->o_events = MCU_EVENT_FLAG_DATA_READY;
     info->maximum = 0xffff; //max value
     info->freq = 1000000; //max frequency
@@ -148,9 +155,10 @@ int adc_local_getinfo(adc_local_t * adc, const devfs_handle_t * handle, void * c
     return SYSFS_RETURN_SUCCESS;
 }
 
-int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * ctl){
+int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
     u32 o_flags;
     int port = handle->port;
+    adc_local_t * local = adc_local + port;
     const adc_attr_t * attr;
 
     attr = mcu_select_attr(handle, ctl);
@@ -162,51 +170,71 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
 
     if( o_flags & ADC_FLAG_SET_CONVERTER ){
 
-        adc->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4; //set based on the frequency
+        local->hal_handle.Init.DMAContinuousRequests = DISABLE;
+        local->hal_handle.Init.ContinuousConvMode = DISABLE;
+        local->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+        //scan mode only works with DMA (see adc_dma_dev.c for options)
+        local->hal_handle.Init.ScanConvMode = DISABLE;
+        //don't support discontinuous conversions
+        //ENABLE or DISABLE
+        local->hal_handle.Init.DiscontinuousConvMode = DISABLE;
+        local->hal_handle.Init.NbrOfDiscConversion = 0;
+
+        if(local->o_flags & ADC_LOCAL_IS_DMA ){
+            const stm32_adc_dma_config_t * config;
+            config = handle->config;
+            if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
+
+
+            //ENABLE or DISABLE (if ENABLE DMA must be in circular buffer mode)
+            if( config->dma_config.o_flags & STM32_DMA_FLAG_IS_CIRCULAR ){
+                local->hal_handle.Init.DMAContinuousRequests = ENABLE;
+            }
+
+            //use continous mode -- DMA is triggered as soon as previous conversion completes
+            //ENABLE or DISABLE
+            if( o_flags & ADC_FLAG_IS_CONTINOUS_CONVERSION ){
+                local->hal_handle.Init.ContinuousConvMode = ENABLE;
+            }
+
+            //ADC_EOC_SEQ_CONV
+            //ADC_EOC_SINGLE_CONV
+            //ADC_EOC_SINGLE_SEQ_CONV
+            local->hal_handle.Init.EOCSelection = ADC_EOC_SEQ_CONV; //DMA needs to use end of sequence
+            local->hal_handle.Init.ScanConvMode = ENABLE; //always do scan mode with DMA
+            //adc->hal_handle.Init.NbrOfConversion = 1;
+        }
+
+        local->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4; //set based on the frequency
 
         //ADC_RESOLUTION_12B
         //ADC_RESOLUTION_10B
         //ADC_RESOLUTION_8B
         //ADC_RESOLUTION_6B
-        adc->hal_handle.Init.Resolution = ADC_RESOLUTION_12B; //default is max resolution
+        local->hal_handle.Init.Resolution = ADC_RESOLUTION_12B; //default is max resolution
         if( attr->width == 6 ){
-            adc->hal_handle.Init.Resolution = ADC_RESOLUTION_6B;
+            local->hal_handle.Init.Resolution = ADC_RESOLUTION_6B;
         } else if( attr->width == 8 ){
-            adc->hal_handle.Init.Resolution = ADC_RESOLUTION_8B;
+            local->hal_handle.Init.Resolution = ADC_RESOLUTION_8B;
         } else if( attr->width == 10 ){
-            adc->hal_handle.Init.Resolution = ADC_RESOLUTION_10B;
+            local->hal_handle.Init.Resolution = ADC_RESOLUTION_10B;
         }
 
         //ADC_DATAALIGN_RIGHT
         //ADC_DATAALIGN_LEFT
-        adc->hal_handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+        local->hal_handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
         if( o_flags & ADC_FLAG_IS_LEFT_JUSTIFIED ){
-            adc->hal_handle.Init.DataAlign = ADC_DATAALIGN_LEFT;
+            local->hal_handle.Init.DataAlign = ADC_DATAALIGN_LEFT;
         }
-
-
-        //Continuous mode can only be used with DMA
-        //ENABLE or DISABLE
-        adc->hal_handle.Init.ContinuousConvMode = DISABLE;
-
-        adc->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-
-        //scan mode only works with DMA (see adc_dma_dev.c for options)
-        adc->hal_handle.Init.ScanConvMode = DISABLE;
 
         if( o_flags & ADC_FLAG_IS_SCAN_MODE ){
             //up to 16 conversions
             if( attr->channel_count <= 16 ){
-                adc->hal_handle.Init.NbrOfConversion = attr->channel_count;
+                local->hal_handle.Init.NbrOfConversion = attr->channel_count;
             } else {
-                adc->hal_handle.Init.NbrOfConversion = 16;
+                local->hal_handle.Init.NbrOfConversion = 16;
             }
         }
-
-        //don't support discontinuous conversions
-        //ENABLE or DISABLE
-        adc->hal_handle.Init.DiscontinuousConvMode = DISABLE;
-        adc->hal_handle.Init.NbrOfDiscConversion = 0;
 
         //ADC_SOFTWARE_START
         //ADC_EXTERNALTRIGCONV_T1_CC1 0.0
@@ -225,55 +253,55 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
         //ADC_EXTERNALTRIGCONV_T8_CC1
         //ADC_EXTERNALTRIGCONV_T8_TRGO
         //ADC_EXTERNALTRIGCONV_Ext_IT11
-        adc->hal_handle.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+        local->hal_handle.Init.ExternalTrigConv = ADC_SOFTWARE_START;
 #if !defined STM32L4
         if( o_flags & ADC_FLAG_IS_TRIGGER_TMR ){
             if( attr->trigger.port == 0 ){
                 switch(attr->trigger.pin){
-                case 1: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC1; break;
-                case 2: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC2; break;
-                case 3: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC3; break;
+                case 1: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC1; break;
+                case 2: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC2; break;
+                case 3: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC3; break;
                 default: return SYSFS_SET_RETURN(EINVAL);
                 }
 #if defined ADC_EXTERNALTRIGCONV_T3_TRGO
             } else if( attr->trigger.port == 1 ){
                 switch(attr->trigger.pin){
-                case 0: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO; break;
-                case 2: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_CC1; break;
-                case 3: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC3; break;
-                case 4: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC4; break;
+                case 0: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO; break;
+                case 2: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_CC1; break;
+                case 3: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC3; break;
+                case 4: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC4; break;
                 default: return SYSFS_SET_RETURN(EINVAL);
                 }
 #endif
             } else if( attr->trigger.port == 2 ){
                 switch(attr->trigger.pin){
-                case 0: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_TRGO; break;
-                case 2: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC2; break;
+                case 0: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_TRGO; break;
+                case 2: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC2; break;
 #if defined ADC_EXTERNALTRIGCONV_T2_CC3
-                case 3: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC3; break;
-                case 4: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC4; break;
+                case 3: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC3; break;
+                case 4: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T2_CC4; break;
 #endif
                 default: return SYSFS_SET_RETURN(EINVAL);
                 }
             } else if( attr->trigger.port == 3 ){
                 switch(attr->trigger.pin){
-                case 4: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T4_CC4; break;
+                case 4: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T4_CC4; break;
                 default: return SYSFS_SET_RETURN(EINVAL);
                 }
 #if defined ADC_EXTERNALTRIGCONV_T5_CC1
             } else if( attr->trigger.port == 4 ){
                 switch(attr->trigger.pin){
-                case 1: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T5_CC1; break;
-                case 2: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T5_CC2; break;
-                case 3: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T5_CC3; break;
+                case 1: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T5_CC1; break;
+                case 2: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T5_CC2; break;
+                case 3: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T5_CC3; break;
                 default: return SYSFS_SET_RETURN(EINVAL);
                 }
 #endif
             } else if( attr->trigger.port == 7 ){
                 switch(attr->trigger.pin){
-                case 0: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T8_TRGO; break;
+                case 0: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T8_TRGO; break;
 #if defined ADC_EXTERNALTRIGCONV_T8_CC1
-                case 1: adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T8_CC1; break;
+                case 1: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T8_CC1; break;
 #endif
                 default: return SYSFS_SET_RETURN(EINVAL);
                 }
@@ -284,30 +312,34 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
 #endif
             if( o_flags & ADC_FLAG_IS_TRIGGER_EINT ){
 #if defined ADC_EXTERNALTRIGCONV_Ext_IT11
-            adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_Ext_IT11;
+                local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_Ext_IT11;
 #elif defined ADC_EXTERNALTRIGCONV_EXT_IT11
-            adc->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_EXT_IT11;
+                local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_EXT_IT11;
 #endif
 
-            //ADC_EXTERNALTRIGCONVEDGE_NONE
-            //ADC_EXTERNALTRIGCONVEDGE_RISING
-            //ADC_EXTERNALTRIGCONVEDGE_FALLING
-            //ADC_EXTERNALTRIGCONVEDGE_RISINGFALLING
-            adc->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-            if( attr->o_flags & ADC_FLAG_IS_TRIGGER_EINT_EDGE_RISING ){
-                if( attr->o_flags & ADC_FLAG_IS_TRIGGER_EINT_EDGE_FALLING ){
-                    adc->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISINGFALLING;
-                } else {
-                    adc->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+                //ADC_EXTERNALTRIGCONVEDGE_NONE
+                //ADC_EXTERNALTRIGCONVEDGE_RISING
+                //ADC_EXTERNALTRIGCONVEDGE_FALLING
+                //ADC_EXTERNALTRIGCONVEDGE_RISINGFALLING
+                local->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+                if( attr->o_flags & ADC_FLAG_IS_TRIGGER_EINT_EDGE_RISING ){
+                    if( attr->o_flags & ADC_FLAG_IS_TRIGGER_EINT_EDGE_FALLING ){
+                        local->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISINGFALLING;
+                    } else {
+                        local->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+                    }
+                } else if( attr->o_flags & ADC_FLAG_IS_TRIGGER_EINT_EDGE_FALLING ){
+                    local->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_FALLING;
                 }
-            } else if( attr->o_flags & ADC_FLAG_IS_TRIGGER_EINT_EDGE_FALLING ){
-                adc->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_FALLING;
             }
-        }
 
         //ENABLE or DISABLE (if ENABLE DMA must be in circular buffer mode)
         //this driver does not support DMA
-        adc->hal_handle.Init.DMAContinuousRequests = DISABLE;
+        local->hal_handle.Init.DMAContinuousRequests = DISABLE;
+
+        if( HAL_ADC_Init(&local->hal_handle) < 0 ){
+            return SYSFS_SET_RETURN(EIO);
+        }
     }
 
     if( o_flags & ADC_FLAG_SET_CHANNELS ){
@@ -356,7 +388,7 @@ int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * c
         }
 #endif
 
-        if( HAL_ADC_ConfigChannel(&adc->hal_handle, &channel_config) != HAL_OK ){
+        if( HAL_ADC_ConfigChannel(&local->hal_handle, &channel_config) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
         }
     }
@@ -376,7 +408,7 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
     hadc->Instance->SR &= ~ADC_SR_OVR;
 #endif
     devfs_execute_read_handler(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
-    if( (adc->o_flags & ADC_LOCAL_FLAG_IS_DMA) == 0 ){
+    if( (adc->o_flags & ADC_LOCAL_IS_DMA) == 0 ){
         HAL_ADC_Stop_IT(hadc);
     } else {
         HAL_ADC_Stop_DMA(hadc);
@@ -384,31 +416,75 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef * hadc){
+    //this is DMA only
 
+    adc_local_t * local = (adc_local_t *)hadc;
+    int result;
+    devfs_async_t * async;
+
+    async = local->transfer_handler.read;
+    result = devfs_execute_read_handler(
+                &local->transfer_handler,
+                0,
+                0,
+                MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_LOW);
+
+    if( result ){
+        local->transfer_handler.read = async;
+    } else {
+        //stop -- half transfer only happens on DMA
+        HAL_ADC_Stop_DMA(hadc);
+    }
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef * hadc){
-    adc_local_t * adc = (adc_local_t*)hadc;
-    devfs_async_t * read_async = adc->transfer_handler.read;
-    if( read_async ){
-        //write to buffer
-        if( adc->o_flags & ADC_LOCAL_FLAG_IS_DMA ){
-            //HAL_ADC_Stop_IT(hadc);
-            mcu_debug_root_printf("w\n");
-            devfs_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte, MCU_EVENT_FLAG_DATA_READY);
+    adc_local_t * local = (adc_local_t*)hadc;
+
+    if( local->o_flags & ADC_LOCAL_IS_DMA ){
+        adc_local_t * local = (adc_local_t *)hadc;
+        int result;
+        devfs_async_t * async;
+
+        async = local->transfer_handler.read;
+        result = devfs_execute_read_handler(
+                    &local->transfer_handler,
+                    0,
+                    0,
+                    MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_HIGH);
+        if( result ){
+            local->transfer_handler.read = async;
         } else {
+            //stop -- half transfer only happens on DMA
+            HAL_ADC_Stop_DMA(hadc);
+        }
+
+    } else {
+        devfs_async_t * read_async = local->transfer_handler.read;
+        if( read_async ){
+            //write to buffer
+
             u16 * dest = read_async->buf;
-            dest[adc->words_read] = HAL_ADC_GetValue(hadc);
-            adc->words_read++;
-            if( adc->words_read * 2 == read_async->nbyte ){
+            dest[local->words_read] = HAL_ADC_GetValue(hadc);
+            local->words_read++;
+            if( local->words_read * 2 == read_async->nbyte ){
                 HAL_ADC_Stop_IT(hadc); //only needed for non software triggers
-                devfs_execute_read_handler(&adc->transfer_handler, 0, read_async->nbyte, MCU_EVENT_FLAG_DATA_READY);
+                devfs_execute_read_handler(&local->transfer_handler, 0, read_async->nbyte, MCU_EVENT_FLAG_DATA_READY);
             } else {
                 HAL_ADC_Start_IT(hadc);
                 return;
             }
         }
     }
+}
+
+void mcu_core_adc_isr(){
+    HAL_ADC_IRQHandler(&adc_local[0].hal_handle);
+#if MCU_ADC_PORTS > 1
+    HAL_ADC_IRQHandler(&adc_local[1].hal_handle);
+#endif
+#if MCU_ADC_PORTS > 2
+    HAL_ADC_IRQHandler(&adc_local[2].hal_handle);
+#endif
 }
 
 

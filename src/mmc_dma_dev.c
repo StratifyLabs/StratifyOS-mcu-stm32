@@ -22,15 +22,11 @@
 
 #if MCU_SDIO_PORTS > 0 && defined MMC_TypeDef
 
-
-
-static mmc_dma_local_t mmc_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
-
-
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(mmc_dma, MMC_VERSION, MMC_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SDIO_TOTAL, mcu_mmc_dma_getcid, mcu_mmc_dma_getcsd, mcu_mmc_dma_getstatus)
 
 int mcu_mmc_dma_open(const devfs_handle_t * handle){
-    return mmc_local_open(&mmc_local[handle->port].mmc, handle);
+    //mmc_local[handle->port].o_flags = MMC_LOCAL_IS_DMA;
+    return mmc_local_open(handle);
 }
 
 int mcu_mmc_dma_close(const devfs_handle_t * handle){
@@ -40,7 +36,7 @@ int mcu_mmc_dma_close(const devfs_handle_t * handle){
 }
 
 int mcu_mmc_dma_getinfo(const devfs_handle_t * handle, void * ctl){
-    return mmc_local_getinfo(&mmc_local[handle->port].mmc, handle, ctl);
+    return mmc_local_getinfo(handle, ctl);
 }
 
 int mcu_mmc_dma_setattr(const devfs_handle_t * handle, void * ctl){
@@ -48,7 +44,7 @@ int mcu_mmc_dma_setattr(const devfs_handle_t * handle, void * ctl){
     if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
     u32 o_flags = attr->o_flags;
-    mmc_dma_local_t * local = mmc_local + handle->port;
+    mmc_local_t * local = mmc_local + handle->port;
 
     if( o_flags & MMC_FLAG_SET_INTERFACE ){
 
@@ -65,27 +61,28 @@ int mcu_mmc_dma_setattr(const devfs_handle_t * handle, void * ctl){
             return SYSFS_SET_RETURN(EIO);
         }
 
-        __HAL_LINKDMA((&local->mmc.hal_handle), hdmatx, local->dma_tx_channel.handle);
-        __HAL_LINKDMA((&local->mmc.hal_handle), hdmarx, local->dma_rx_channel.handle);
+        __HAL_LINKDMA((&local->hal_handle), hdmatx, local->dma_tx_channel.handle);
+        __HAL_LINKDMA((&local->hal_handle), hdmarx, local->dma_rx_channel.handle);
     }
 
-    return mmc_local_setattr(&local->mmc, handle, ctl);
+    return mmc_local_setattr(handle, ctl);
 }
 
 
 int mcu_mmc_dma_setaction(const devfs_handle_t * handle, void * ctl){
     mcu_action_t * action = ctl;
     u32 port = handle->port;
+    mmc_local_t * local = mmc_local + handle->port;
 
     if( action->handler.callback == 0 ){
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
-            HAL_MMC_Abort(&mmc_local[port].mmc.hal_handle);
-            devfs_execute_read_handler(&mmc_local[port].mmc.transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
+            HAL_MMC_Abort(&local->hal_handle);
+            devfs_execute_read_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
         }
 
         if( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
-            HAL_MMC_Abort(&mmc_local[port].mmc.hal_handle);
-            devfs_execute_write_handler(&mmc_local[port].mmc.transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
+            HAL_MMC_Abort(&local->hal_handle);
+            devfs_execute_write_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
         }
     }
 
@@ -94,47 +91,47 @@ int mcu_mmc_dma_setaction(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_mmc_dma_getcid(const devfs_handle_t * handle, void * ctl){
-    return mmc_local_getcid(&mmc_local[handle->port].mmc, handle, ctl);
+    return mmc_local_getcid(handle, ctl);
 }
 
 int mcu_mmc_dma_getcsd(const devfs_handle_t * handle, void * ctl){
-    return mmc_local_getcsd(&mmc_local[handle->port].mmc, handle, ctl);
+    return mmc_local_getcsd(handle, ctl);
 }
 
 int mcu_mmc_dma_getstatus(const devfs_handle_t * handle, void * ctl){
-    return mmc_local_getstatus(&mmc_local[handle->port].mmc, handle, ctl);
+    return mmc_local_getstatus(handle, ctl);
 }
 
 int mcu_mmc_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
-    int port = handle->port;
-    DEVFS_DRIVER_IS_BUSY(mmc_local[port].mmc.transfer_handler.write, async);
+    mmc_local_t * local = mmc_local + handle->port;
+    DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
-    mmc_local[port].mmc.hal_handle.TxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_WriteBlocks_DMA
-    if( (HAL_MMC_WriteBlocks_DMA(&mmc_local[port].mmc.hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
+    local->hal_handle.TxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_WriteBlocks_DMA
+    if( (HAL_MMC_WriteBlocks_DMA(&local->hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
         return 0;
     }
 
-    mmc_local[port].mmc.transfer_handler.write = 0;
+    local->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EIO);
 }
 
 int mcu_mmc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
-    int port = handle->port;
+    mmc_local_t * local = mmc_local + handle->port;
     int hal_result;
-    DEVFS_DRIVER_IS_BUSY(mmc_local[port].mmc.transfer_handler.read, async);
+    DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
 #if 0
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "RState:%d", HAL_SD_GetCardState(&mmc_local[port].mmc.hal_handle));
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "RState:%d", HAL_SD_GetCardState(&local->hal_handle));
 #endif
 
-    mmc_local[port].mmc.hal_handle.RxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_ReadBlocks_DMA
-    if( (hal_result = HAL_MMC_ReadBlocks_DMA(&mmc_local[port].mmc.hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
+    local->hal_handle.RxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_ReadBlocks_DMA
+    if( (hal_result = HAL_MMC_ReadBlocks_DMA(&local->hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
         return 0;
     }
 
     //mcu_debug_root_printf("R:HAL Not OK %d %d %d 0x%lX\n", async->loc, async->nbyte, hal_result, mmc_local[port].hal_handle.ErrorCode);
     //mcu_debug_root_printf("State: %d\n", HAL_SD_GetCardState(&mmc_local[port].hal_handle));
-    mmc_local[port].mmc.transfer_handler.read = 0;
+    local->transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EIO);
 }
 

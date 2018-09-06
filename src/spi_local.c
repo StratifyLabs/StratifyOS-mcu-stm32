@@ -26,12 +26,11 @@
 SPI_TypeDef * const spi_regs[MCU_SPI_PORTS] = MCU_SPI_REGS;
 u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
 
-spi_local_t * spi_local_ptrs[MCU_SPI_PORTS];
-
-int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle){
-    int port = handle->port;
+int spi_local_open(const devfs_handle_t * handle){
+    const u32 port = handle->port;
+    spi_local_t * local = spi_local + port;
     if( port < MCU_SPI_PORTS ){
-        if ( spi->ref_count == 0 ){
+        if ( local->ref_count == 0 ){
             //turn on RCC clock
             switch(port){
             case 0:
@@ -63,37 +62,37 @@ int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle){
                 break;
 #endif
             }
-            spi_local_ptrs[port] = spi;
-            spi->transfer_handler.read = NULL;
-            spi->transfer_handler.write = NULL;
-            spi->hal_handle.Instance = spi_regs[port];
+            local->transfer_handler.read = NULL;
+            local->transfer_handler.write = NULL;
+            local->hal_handle.Instance = spi_regs[port];
             cortexm_enable_irq(spi_irqs[port]);
         }
-        spi->ref_count++;
+        local->ref_count++;
         return 0;
     }
 
     return SYSFS_SET_RETURN(EINVAL);
 }
 
-int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle){
-    int port = handle->port;
-    if ( spi->ref_count > 0 ){
-        if ( spi->ref_count == 1 ){
+int spi_local_close(const devfs_handle_t * handle){
+    const u32 port = handle->port;
+    spi_local_t * local = spi_local + port;
+    if ( local->ref_count > 0 ){
+        if ( local->ref_count == 1 ){
 
 #if MCU_I2S_SPI_PORTS > 0
-            if( spi->o_flags & SPI_LOCAL_IS_I2S ){
-                HAL_I2S_DeInit(&spi->i2s_hal_handle);
+            if( local->o_flags & SPI_LOCAL_IS_I2S ){
+                HAL_I2S_DeInit(&local->i2s_hal_handle);
                 mcu_debug_log_info(MCU_DEBUG_DEVICE, "Done I2S DeInit");
             } else {
-                HAL_SPI_DeInit(&spi->hal_handle);
+                HAL_SPI_DeInit(&local->hal_handle);
             }
 #else
-            HAL_SPI_DeInit(&spi->hal_handle);
+            HAL_SPI_DeInit(&local->hal_handle);
 #endif
 
             cortexm_disable_irq(spi_irqs[port]);
-            devfs_execute_cancel_handler(&spi->transfer_handler, 0, SYSFS_SET_RETURN(EDEADLK), MCU_EVENT_FLAG_CANCELED);
+            devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EDEADLK), MCU_EVENT_FLAG_CANCELED);
 
 
             //turn off RCC clock
@@ -128,12 +127,15 @@ int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle){
 #endif
             }
         }
-        spi->ref_count--;
+        local->ref_count--;
     }
     return 0;
 }
 
-int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * ctl){
+int spi_local_setattr(const devfs_handle_t * handle, void * ctl){
+    const u32 port = handle->port;
+    spi_local_t * local = spi_local + port;
+
     u32 pclk;
     u32 prescalar;
 
@@ -144,13 +146,13 @@ int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * c
 
     u32 o_flags = attr->o_flags;
 
-    spi->o_flags = 0;
+    local->o_flags = 0;
 
     if( o_flags & SPI_FLAG_SET_MASTER ){
-        spi->hal_handle.Init.Mode = SPI_MODE_MASTER;
+        local->hal_handle.Init.Mode = SPI_MODE_MASTER;
 
         if( attr->freq == 0 ){
-            spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+            local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
         } else {
 
             //#if defined __stm32f401xc
@@ -164,63 +166,63 @@ int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * c
             //get as close to the target freq as possible without going over
             prescalar = pclk / attr->freq;
             if( prescalar < 2 ){
-                spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+                local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
             } else if( prescalar < 4 ){
-                spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+                local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
             } else if( prescalar < 8 ){
-                spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+                local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
             } else if( prescalar < 16 ){
-                spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+                local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
             } else if( prescalar < 32 ){
-                spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+                local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
             }else if( prescalar < 64 ){
-                spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
+                local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
             }else if( prescalar < 128 ){
-                spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
+                local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
             }else {
-                spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+                local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
             }
         }
 
     } else if( o_flags & SPI_FLAG_SET_SLAVE ){
-        spi->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-        spi->hal_handle.Init.Mode = SPI_MODE_SLAVE;
+        local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+        local->hal_handle.Init.Mode = SPI_MODE_SLAVE;
     }
 
 
     if( o_flags & (SPI_FLAG_SET_SLAVE | SPI_FLAG_SET_MASTER) ){
-        spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_LOW;
-        spi->hal_handle.Init.CLKPhase = SPI_PHASE_1EDGE;
+        local->hal_handle.Init.CLKPolarity = SPI_POLARITY_LOW;
+        local->hal_handle.Init.CLKPhase = SPI_PHASE_1EDGE;
         if( o_flags & SPI_FLAG_IS_MODE1 ){
-            spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_LOW;
-            spi->hal_handle.Init.CLKPhase = SPI_PHASE_2EDGE;
+            local->hal_handle.Init.CLKPolarity = SPI_POLARITY_LOW;
+            local->hal_handle.Init.CLKPhase = SPI_PHASE_2EDGE;
         } else if( o_flags & SPI_FLAG_IS_MODE2 ){
-            spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_HIGH;
-            spi->hal_handle.Init.CLKPhase = SPI_PHASE_1EDGE;
+            local->hal_handle.Init.CLKPolarity = SPI_POLARITY_HIGH;
+            local->hal_handle.Init.CLKPhase = SPI_PHASE_1EDGE;
         } else if( o_flags & SPI_FLAG_IS_MODE3 ){
-            spi->hal_handle.Init.CLKPolarity = SPI_POLARITY_HIGH;
-            spi->hal_handle.Init.CLKPhase = SPI_PHASE_2EDGE;
+            local->hal_handle.Init.CLKPolarity = SPI_POLARITY_HIGH;
+            local->hal_handle.Init.CLKPhase = SPI_PHASE_2EDGE;
         }
 
         if( attr->width == 8 ){
-            spi->hal_handle.Init.DataSize = SPI_DATASIZE_8BIT;
+            local->hal_handle.Init.DataSize = SPI_DATASIZE_8BIT;
         } else if( attr->width == 16 ){
-            spi->hal_handle.Init.DataSize = SPI_DATASIZE_16BIT;
+            local->hal_handle.Init.DataSize = SPI_DATASIZE_16BIT;
         } else {
             return SYSFS_SET_RETURN(EINVAL);
         }
 
-        spi->hal_handle.Init.Direction = SPI_DIRECTION_2LINES;
+        local->hal_handle.Init.Direction = SPI_DIRECTION_2LINES;
 
-        spi->hal_handle.Init.NSS = SPI_NSS_SOFT;
-        spi->hal_handle.Init.FirstBit = SPI_FIRSTBIT_MSB;
+        local->hal_handle.Init.NSS = SPI_NSS_SOFT;
+        local->hal_handle.Init.FirstBit = SPI_FIRSTBIT_MSB;
         if( o_flags & SPI_FLAG_IS_FORMAT_TI ){
-            spi->hal_handle.Init.TIMode = SPI_TIMODE_ENABLE;
+            local->hal_handle.Init.TIMode = SPI_TIMODE_ENABLE;
         } else {
-            spi->hal_handle.Init.TIMode = SPI_TIMODE_DISABLE;
+            local->hal_handle.Init.TIMode = SPI_TIMODE_DISABLE;
         }
-        spi->hal_handle.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-        spi->hal_handle.Init.CRCPolynomial = 10;
+        local->hal_handle.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+        local->hal_handle.Init.CRCPolynomial = 10;
 
         if( mcu_set_pin_assignment(
                     &(attr->pin_assignment),
@@ -230,15 +232,15 @@ int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * c
             return SYSFS_SET_RETURN(EINVAL);
         }
 
-        if( HAL_SPI_Init(&spi->hal_handle) != HAL_OK ){
+        if( HAL_SPI_Init(&local->hal_handle) != HAL_OK ){
             return SYSFS_SET_RETURN(EINVAL);
         }
     }
 
     if( o_flags & SPI_FLAG_IS_FULL_DUPLEX ){
-        spi->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
+        local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
     } else {
-        spi->o_flags &= ~SPI_LOCAL_IS_FULL_DUPLEX;
+        local->o_flags &= ~SPI_LOCAL_IS_FULL_DUPLEX;
     }
 
 
@@ -247,12 +249,15 @@ int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * c
     return 0;
 }
 
-int spi_local_swap(spi_local_t * spi, const devfs_handle_t * handle, void * ctl){
+int spi_local_swap(const devfs_handle_t * handle, void * ctl){
+    const u32 port = handle->port;
+    spi_local_t * local = spi_local + port;
+
     u8 tx_data;
     u8 rx_data;
     int ret;
     tx_data = (u32)ctl;
-    ret = HAL_SPI_TransmitReceive(&spi->hal_handle, &tx_data, &rx_data, 1, HAL_MAX_DELAY);
+    ret = HAL_SPI_TransmitReceive(&local->hal_handle, &tx_data, &rx_data, 1, HAL_MAX_DELAY);
     if( ret != HAL_OK ){
         return SYSFS_SET_RETURN(EIO);
     }
@@ -260,21 +265,23 @@ int spi_local_swap(spi_local_t * spi, const devfs_handle_t * handle, void * ctl)
     return rx_data;
 }
 
-int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void * ctl){
+int spi_local_setaction(const devfs_handle_t * handle, void * ctl){
     mcu_action_t * action = (mcu_action_t*)ctl;
+    const u32 port = handle->port;
+    spi_local_t * local = spi_local + port;
 
     //callback = 0 with flags set will cancel an ongoing operation
     if(action->handler.callback == 0){
         if (action->o_events & MCU_EVENT_FLAG_DATA_READY){
             devfs_execute_read_handler(
-                        &spi->transfer_handler, 0,
+                        &local->transfer_handler, 0,
                         SYSFS_SET_RETURN(EINTR),
                         MCU_EVENT_FLAG_CANCELED);
         }
 
         if (action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE){
             devfs_execute_write_handler(
-                        &spi->transfer_handler, 0,
+                        &local->transfer_handler, 0,
                         SYSFS_SET_RETURN(EINTR),
                         MCU_EVENT_FLAG_CANCELED);
         }
@@ -332,62 +339,61 @@ void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
 void mcu_core_spi1_isr(){
     //No I2S on SPI 1
 #if MCU_I2S_ON_SPI1 != 0
-    if( spi_local_ptrs[0]->o_flags & SPI_LOCAL_IS_I2S ){
-        HAL_I2S_IRQHandler(&spi_local_ptrs[0]->i2s_hal_handle);
+    if( spi_local[0].o_flags & SPI_LOCAL_IS_I2S ){
+        HAL_I2S_IRQHandler(&spi_local[0].i2s_hal_handle);
     } else {
-        HAL_SPI_IRQHandler(&spi_local_ptrs[0]->hal_handle);
+        HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
     }
 #else
-    HAL_SPI_IRQHandler(&spi_local_ptrs[0]->hal_handle);
+    HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
 #endif
 }
 
 void mcu_core_spi2_isr(){
 #if MCU_I2S_ON_SPI2 != 0
-    if( spi_local_ptrs[1]->o_flags & SPI_LOCAL_IS_I2S ){
-        HAL_I2S_IRQHandler(&spi_local_ptrs[1]->i2s_hal_handle);
+    if( spi_local[1].o_flags & SPI_LOCAL_IS_I2S ){
+        HAL_I2S_IRQHandler(&spi_local[1].i2s_hal_handle);
     } else {
-        HAL_SPI_IRQHandler(&spi_local_ptrs[1]->hal_handle);
+        HAL_SPI_IRQHandler(&spi_local[1].hal_handle);
     }
 #elif MCU_SPI_PORTS > 1
-    HAL_SPI_IRQHandler(&spi_local_ptrs[1]->hal_handle);
+    HAL_SPI_IRQHandler(&spi_local[1].hal_handle);
 #endif
 }
 
 void mcu_core_spi3_isr(){
 #if MCU_I2S_ON_SPI3 != 0
-    mcu_debug_printf("SPI3 IRQ\n");
-    if( spi_local_ptrs[2]->o_flags & SPI_LOCAL_IS_I2S ){
-        HAL_I2S_IRQHandler(&spi_local_ptrs[2]->i2s_hal_handle);
+    if( spi_local[2].o_flags & SPI_LOCAL_IS_I2S ){
+        HAL_I2S_IRQHandler(&spi_local[2].i2s_hal_handle);
     } else {
-        HAL_SPI_IRQHandler(&spi_local_ptrs[2]->hal_handle);
+        HAL_SPI_IRQHandler(&spi_local[2].hal_handle);
     }
 #elif MCU_SPI_PORTS > 2
-    HAL_SPI_IRQHandler(&spi_local_ptrs[2]->hal_handle);
+    HAL_SPI_IRQHandler(&spi_local[2].hal_handle);
 #endif
 }
 
 void mcu_core_spi4_isr(){
 #if MCU_I2S_ON_SPI4 != 0
-    if( spi_local_ptrs[3]->o_flags & SPI_LOCAL_IS_I2S ){
-        HAL_I2S_IRQHandler(&spi_local_ptrs[3]->i2s_hal_handle);
+    if( spi_local[3].o_flags & SPI_LOCAL_IS_I2S ){
+        HAL_I2S_IRQHandler(&spi_local[3].i2s_hal_handle);
     } else {
-        HAL_SPI_IRQHandler(&spi_local_ptrs[3]->hal_handle);
+        HAL_SPI_IRQHandler(&spi_local[3].hal_handle);
     }
 #elif MCU_SPI_PORTS > 3
-    HAL_SPI_IRQHandler(&spi_local_ptrs[3]->hal_handle);
+    HAL_SPI_IRQHandler(&spi_local[3].hal_handle);
 #endif
 }
 
 #if MCU_SPI_PORTS > 4
 void mcu_core_spi5_isr(){
-    HAL_SPI_IRQHandler(&spi_local_ptrs[4]->hal_handle);
+    HAL_SPI_IRQHandler(&spi_local[4].hal_handle);
 }
 #endif
 
 #if MCU_SPI_PORTS > 5
 void mcu_core_spi6_isr(){
-    HAL_SPI_IRQHandler(&spi_local_ptrs[5]->hal_handle);
+    HAL_SPI_IRQHandler(&spi_local[5].hal_handle);
 }
 #endif
 

@@ -26,19 +26,17 @@
 
 #define DMA_INTERRUPT_NUMBER 0
 
-spi_dma_local_t spi_dma_local[MCU_SPI_PORTS] MCU_SYS_MEM;
-
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi_dma, SPI_VERSION, SPI_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SPI_TOTAL, mcu_spi_dma_swap)
 
 int mcu_spi_dma_open(const devfs_handle_t * handle){
 
     //send DMA interrupt number
-    return spi_local_open(&spi_dma_local[handle->port].spi, handle);
+    return spi_local_open(handle);
 
 }
 
 int mcu_spi_dma_close(const devfs_handle_t * handle){
-    return spi_local_close(&spi_dma_local[handle->port].spi, handle);
+    return spi_local_close(handle);
 }
 
 int mcu_spi_dma_getinfo(const devfs_handle_t * handle, void * ctl){
@@ -64,168 +62,67 @@ int mcu_spi_dma_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
-    int port = handle->port;
-
+    spi_local_t * local = spi_local + handle->port;
     const stm32_spi_dma_config_t * config;
-
-    const spi_attr_t * attr = ctl;
 
     //BSP *MUST* provide DMA configuration information
     config = handle->config;
-    if( config == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
+    if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
 
     //setup the DMA for receiving
-    stm32_dma_set_handle(&spi_dma_local[port].dma_rx_channel, config->dma_config.rx.dma_number, config->dma_config.rx.stream_number); //need to get the DMA# and stream# from a table -- or from config
-    spi_dma_local[port].dma_rx_channel.handle.Instance = stm32_dma_get_stream_instance(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number); //DMA1 stream 0
+    int dma_result = stm32_dma_setattr(&local->dma_rx_channel, &config->dma_config.rx);
+    if( dma_result < 0 ){ return SYSFS_SET_RETURN(EIO); }
 
-#if defined DMA_REQUEST_0
-    spi_dma_local[port].dma_rx_channel.handle.Init.Request = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
-#else
-    spi_dma_local[port].dma_rx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.rx.channel_number);
-#endif
-    spi_dma_local[port].dma_rx_channel.handle.Init.Mode = DMA_NORMAL;
-    spi_dma_local[port].dma_rx_channel.handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
-    spi_dma_local[port].dma_rx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
-    spi_dma_local[port].dma_rx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
+    __HAL_LINKDMA((&local->hal_handle), hdmarx, local->dma_rx_channel.handle);
 
-#if defined DMA_FIFOMODE_ENABLE
-    spi_dma_local[port].dma_rx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    spi_dma_local[port].dma_rx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
-#endif
 
-    if( attr->width == 8 ){
-        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-        spi_dma_local[port].dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-#if defined DMA_FIFOMODE_ENABLE
-        spi_dma_local[port].dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_INC8;
-        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC8;
-#endif
-    } else if( attr->width == 16 ){
-        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-        spi_dma_local[port].dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-#if defined DMA_FIFOMODE_ENABLE
-        spi_dma_local[port].dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
-        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
-#endif
-    } else if( attr->width == 32 ){
-        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-        spi_dma_local[port].dma_rx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-#if defined DMA_FIFOMODE_ENABLE
-        spi_dma_local[port].dma_rx_channel.handle.Init.MemBurst = DMA_MBURST_SINGLE;
-        spi_dma_local[port].dma_rx_channel.handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
-#endif
-    }
+    dma_result = stm32_dma_setattr(&local->dma_tx_channel, &config->dma_config.tx);
+    if( dma_result < 0 ){ return SYSFS_SET_RETURN(EIO); }
 
-    spi_dma_local[port].dma_rx_channel.handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.rx.priority);
+    __HAL_LINKDMA((&local->hal_handle), hdmatx, local->dma_tx_channel.handle);
 
-    if (HAL_DMA_Init(&spi_dma_local[port].dma_rx_channel.handle) != HAL_OK){
-      return SYSFS_SET_RETURN(EIO);
-    }
-
-    __HAL_LINKDMA((&spi_dma_local[port].spi.hal_handle), hdmarx, spi_dma_local[port].dma_rx_channel.handle);
-
-    //setup the DMA for transmitting
-    stm32_dma_set_handle(&spi_dma_local[port].dma_tx_channel, config->dma_config.tx.dma_number, config->dma_config.tx.stream_number); //need to get the DMA# and stream# from a table -- or from config
-    spi_dma_local[port].dma_tx_channel.handle.Instance = stm32_dma_get_stream_instance(config->dma_config.tx.dma_number, config->dma_config.tx.stream_number); //DMA1 stream 0
-
-#if defined DMA_REQUEST_0
-    spi_dma_local[port].dma_tx_channel.handle.Init.Request = stm32_dma_decode_channel(config->dma_config.tx.channel_number);
-#else
-    spi_dma_local[port].dma_tx_channel.handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.tx.channel_number);
-#endif
-
-    spi_dma_local[port].dma_tx_channel.handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
-    spi_dma_local[port].dma_tx_channel.handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
-    spi_dma_local[port].dma_tx_channel.handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
-
-#if defined DMA_FIFOMODE_ENABLE
-    spi_dma_local[port].dma_tx_channel.handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    spi_dma_local[port].dma_tx_channel.handle.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
-#endif
-
-    if( attr->width == 8 ){
-        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-        spi_dma_local[port].dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-#if defined DMA_FIFOMODE_ENABLE
-        spi_dma_local[port].dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_INC8;
-        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC8;
-#endif
-    } else if( attr->width == 16 ){
-        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-        spi_dma_local[port].dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-#if defined DMA_FIFOMODE_ENABLE
-        spi_dma_local[port].dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_INC4;
-        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_INC4;
-#endif
-    } else if( attr->width == 32 ){
-        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-        spi_dma_local[port].dma_tx_channel.handle.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-#if defined DMA_FIFOMODE_ENABLE
-        spi_dma_local[port].dma_tx_channel.handle.Init.MemBurst = DMA_MBURST_SINGLE;
-        spi_dma_local[port].dma_tx_channel.handle.Init.PeriphBurst = DMA_PBURST_SINGLE;
-#endif
-    }
-
-    spi_dma_local[port].dma_tx_channel.handle.Init.Mode = DMA_NORMAL;
-    spi_dma_local[port].dma_tx_channel.handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.tx.priority);
-
-    if (HAL_DMA_Init(&spi_dma_local[port].dma_tx_channel.handle) != HAL_OK){
-      return SYSFS_SET_RETURN(EIO);
-    }
-
-    __HAL_LINKDMA((&spi_dma_local[port].spi.hal_handle), hdmatx, spi_dma_local[port].dma_tx_channel.handle);
-
-    return spi_local_setattr(&spi_dma_local[handle->port].spi, handle, ctl);
+    return spi_local_setattr(handle, ctl);
 }
 
 int mcu_spi_dma_swap(const devfs_handle_t * handle, void * ctl){
-    return spi_local_swap(&spi_dma_local[handle->port].spi, handle, ctl);
+    return spi_local_swap(handle, ctl);
 }
 
 int mcu_spi_dma_setaction(const devfs_handle_t * handle, void * ctl){
-    //need to pass the interrupt number    
-    stm32_dma_set_interrupt_priority(&spi_dma_local[handle->port].dma_rx_channel, ctl);
-    stm32_dma_set_interrupt_priority(&spi_dma_local[handle->port].dma_tx_channel, ctl);
+    spi_local_t * local = spi_local + handle->port;
+    //need to pass the interrupt number
+    stm32_dma_set_interrupt_priority(&local->dma_rx_channel, ctl);
+    stm32_dma_set_interrupt_priority(&local->dma_tx_channel, ctl);
 
-    return spi_local_setaction(&spi_dma_local[handle->port].spi, handle, ctl);
+    return spi_local_setaction(handle, ctl);
 }
 
 int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
     int ret;
-    int port = handle->port;
+    spi_local_t * local = spi_local + handle->port;
 
-    //check to see if SPI bus is busy -- check to see if the interrupt is enabled?
-    if( spi_dma_local[port].spi.transfer_handler.write ){
-        return SYSFS_SET_RETURN(EBUSY);
-    }
+    DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
-    //this can be used to see if the write is busy
-    if( async->nbyte == 0 ){
-        return 0;
-    }
+    if( (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) &&
+            local->transfer_handler.read ){
 
-    spi_dma_local[port].spi.transfer_handler.write = async;
-
-    if( (spi_dma_local[port].spi.o_flags & SPI_LOCAL_IS_FULL_DUPLEX) &&
-            spi_dma_local[port].spi.transfer_handler.read ){
-
-        if( spi_dma_local[port].spi.transfer_handler.read->nbyte < async->nbyte ){
+        if( local->transfer_handler.read->nbyte < async->nbyte ){
             return SYSFS_SET_RETURN(EINVAL);
         }
 
         ret = HAL_SPI_TransmitReceive_DMA(
-                    &spi_dma_local[port].spi.hal_handle,
+                    &local->hal_handle,
                     async->buf,
-                    spi_dma_local[port].spi.transfer_handler.read->buf,
+                    local->transfer_handler.read->buf,
                     async->nbyte);
 
     } else {
-        ret = HAL_SPI_Transmit_DMA(&spi_dma_local[port].spi.hal_handle, async->buf, async->nbyte);
+        ret = HAL_SPI_Transmit_DMA(&local->hal_handle, async->buf, async->nbyte);
     }
 
     if( ret != HAL_OK ){
-        spi_dma_local[port].spi.transfer_handler.write = 0;
+        local->transfer_handler.write = 0;
         return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }
 
@@ -234,27 +131,19 @@ int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 int mcu_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     int ret;
-    int port = handle->port;
+    spi_local_t * local = spi_local + handle->port;
 
-    if( spi_dma_local[port].spi.transfer_handler.read ){
-        return SYSFS_SET_RETURN(EBUSY);
-    }
+    DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
-    if( async->nbyte == 0 ){
-        return 0;
-    }
-
-    spi_dma_local[port].spi.transfer_handler.read = async;
-
-    if( spi_dma_local[port].spi.o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
+    if( local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
         //just set up the buffer
         ret = HAL_OK;
     } else {
-        ret = HAL_SPI_Receive_DMA(&spi_dma_local[port].spi.hal_handle, async->buf, async->nbyte);
+        ret = HAL_SPI_Receive_DMA(&local->hal_handle, async->buf, async->nbyte);
     }
 
     if( ret != HAL_OK ){
-        spi_dma_local[port].spi.transfer_handler.read = 0;
+        local->transfer_handler.read = 0;
         return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
     }
 

@@ -24,29 +24,32 @@
 
 #include "stm32_dma.h"
 
-#define ADC_LOCAL_FLAG_IS_DMA (1<<0)
-
 typedef struct {
     ADC_HandleTypeDef hal_handle;
     devfs_transfer_handler_t transfer_handler;
     int words_read;
     u32 o_flags;
     u8 ref_count;
+    stm32_dma_channel_t dma_rx_channel;
 } adc_local_t;
 
-typedef struct {
-    adc_local_t adc;
-    stm32_dma_channel_t dma_rx_channel;
-} adc_dma_local_t;
+enum {
+    ADC_LOCAL_IS_DMA = (1<<0),
+    ADC_LOCAL_IS_I2S = (1<<1),
+    ADC_LOCAL_IS_FULL_DUPLEX = (1<<2)
+};
 
 extern ADC_TypeDef * const adc_regs_table[MCU_ADC_PORTS];
 extern u8 const adc_irqs[MCU_ADC_PORTS];
 extern const u32 adc_channels[MCU_ADC_CHANNELS];
 
-int adc_local_open(adc_local_t * adc, const devfs_handle_t * handle);
-int adc_local_close(adc_local_t * adc, const devfs_handle_t * handle);
-int adc_local_setattr(adc_local_t * adc, const devfs_handle_t * handle, void * ctl);
-int adc_local_getinfo(adc_local_t * adc, const devfs_handle_t * handle, void * ctl);
+extern adc_local_t adc_local[MCU_ADC_PORTS] MCU_SYS_MEM;
+
+
+int adc_local_open(const devfs_handle_t * handle);
+int adc_local_close(const devfs_handle_t * handle);
+int adc_local_setattr(const devfs_handle_t * handle, void * ctl);
+int adc_local_getinfo(const devfs_handle_t * handle, void * ctl);
 
 
 

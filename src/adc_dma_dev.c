@@ -28,37 +28,29 @@
 
 #if MCU_ADC_PORTS > 0
 
-static adc_dma_local_t adc_local[MCU_ADC_PORTS] MCU_SYS_MEM;
-
-
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(adc_dma, ADC_VERSION, ADC_IOC_IDENT_CHAR)
 
 int mcu_adc_dma_open(const devfs_handle_t * handle){
-    adc_local[handle->port].adc.o_flags = ADC_LOCAL_FLAG_IS_DMA;
-
-    return adc_local_open(&adc_local[handle->port].adc, handle);
+    adc_local[handle->port].o_flags = ADC_LOCAL_IS_DMA;
+    return adc_local_open(handle);
 }
 
 int mcu_adc_dma_close(const devfs_handle_t * handle){
-    return adc_local_close(&adc_local[handle->port].adc, handle);
+    return adc_local_close(handle);
 }
 
 
 int mcu_adc_dma_getinfo(const devfs_handle_t * handle, void * ctl){
-    adc_info_t * info = ctl;
-    adc_local_getinfo(&adc_local[handle->port].adc, handle, ctl);
-    info->o_flags |= ADC_FLAG_IS_GROUP | ADC_FLAG_IS_SCAN_MODE;
-    return SYSFS_RETURN_SUCCESS;
+    return adc_local_getinfo(handle, ctl);
 }
 
 int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
     u32 o_flags;
-    int port = handle->port;
     int result;
     const adc_attr_t * attr;
 
 
-    adc_local_t * adc = &adc_local[handle->port].adc;
+    adc_local_t * local = &adc_local[handle->port];
 
     attr = mcu_select_attr(handle, ctl);
     if( attr == 0 ){
@@ -67,32 +59,13 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
     o_flags = attr->o_flags;
 
-    if( (result = adc_local_setattr(adc, handle, ctl)) < 0 ){
-        return result;
-    }
-
     if( o_flags & ADC_FLAG_SET_CONVERTER ){
-
-        //ENABLE or DISABLE (if ENABLE DMA must be in circular buffer mode)
-        adc->hal_handle.Init.DMAContinuousRequests = DISABLE; //DMA is not in circular mode
-
-        //use continous mode -- DMA is triggered as soon as previous conversion completes
-        //ENABLE or DISABLE
-        adc->hal_handle.Init.ContinuousConvMode = ENABLE;
-
-        //ADC_EOC_SEQ_CONV
-        //ADC_EOC_SINGLE_CONV
-        //ADC_EOC_SINGLE_SEQ_CONV
-        adc->hal_handle.Init.EOCSelection = ADC_EOC_SEQ_CONV; //DMA needs to use end of sequence
-        adc->hal_handle.Init.ScanConvMode = ENABLE; //always do scan mode with DMA
-        //adc->hal_handle.Init.NbrOfConversion = 1;
 
         //configure DMA
         //setup the DMA for receiving
-        const stm32_adc_dma_config_t * config;
-        config = handle->config;
-        if( config == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
 
+
+#if 0
         mcu_debug_log_info(MCU_DEBUG_DEVICE, "Configure DMA %d %d %d", config->dma_config.dma_number, config->dma_config.stream_number, config->dma_config.channel_number);
         stm32_dma_channel_t * dma_channel = &adc_local[port].dma_rx_channel;
         stm32_dma_set_handle(dma_channel, config->dma_config.dma_number, config->dma_config.stream_number); //need to get the DMA# and stream# from a table -- or from config
@@ -124,12 +97,22 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
         if (HAL_DMA_Init(&dma_channel->handle) != HAL_OK){
             return SYSFS_SET_RETURN(EIO);
         }
-
-        __HAL_LINKDMA((&adc_local[port].adc.hal_handle), DMA_Handle, dma_channel->handle);
-
-        if( HAL_ADC_Init(&adc->hal_handle) != HAL_OK ){
-            return SYSFS_SET_RETURN(EIO);
+#else
+        const stm32_adc_dma_config_t * config = handle->config;
+        if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
+        int dma_result = stm32_dma_setattr(&local->dma_rx_channel, &config->dma_config);
+        if( dma_result < 0 ){
+            mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to set adc DMA attr");
+            return dma_result;
         }
+#endif
+
+        __HAL_LINKDMA((&local->hal_handle), DMA_Handle, local->dma_rx_channel.handle);
+
+    }
+
+    if( (result = adc_local_setattr(handle, ctl)) < 0 ){
+        return result;
     }
 
     return SYSFS_RETURN_SUCCESS;
@@ -139,31 +122,31 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
 int mcu_adc_dma_setaction(const devfs_handle_t * handle, void * ctl){
     mcu_action_t * action = (mcu_action_t*)ctl;
     int port = handle->port;
-    adc_dma_local_t * adc = adc_local + port;
+    adc_local_t * local = adc_local + port;
 
     if( action->handler.callback == 0 ){
         //if there is an ongoing operation -- cancel it
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
             //execute the read callback if not null
-            devfs_execute_read_handler(&adc->adc.transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
+            devfs_execute_read_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
         }
     }
 
     //get interrupt from STM32 DMA
-    if( adc->dma_rx_channel.interrupt_number >= 0 ){
-        cortexm_set_irq_priority(adc->dma_rx_channel.interrupt_number, action->prio, action->o_events);
+    if( local->dma_rx_channel.interrupt_number >= 0 ){
+        cortexm_set_irq_priority(local->dma_rx_channel.interrupt_number, action->prio, action->o_events);
     }
     return 0;
 }
 
 int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     int port = handle->port;
-    adc_dma_local_t * adc = adc_local + port;
+    adc_local_t * local = adc_local + port;
 
-    DEVFS_DRIVER_IS_BUSY(adc->adc.transfer_handler.read, async);
+    DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
     if( async->nbyte < 2 ){
-        adc->adc.transfer_handler.read = 0;
+        local->transfer_handler.read = 0;
         return SYSFS_SET_RETURN(EINVAL);
     }
 
@@ -182,24 +165,24 @@ int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
         channel_config.SamplingTime = ADC_SAMPLETIME_12CYCLES_5;
 #endif
         mcu_debug_log_info(MCU_DEBUG_DEVICE, "Configure %d", channel_config.Channel);
-        if( HAL_ADC_ConfigChannel(&adc->adc.hal_handle, &channel_config) != HAL_OK ){
+        if( HAL_ADC_ConfigChannel(&local->hal_handle, &channel_config) != HAL_OK ){
             mcu_debug_log_error(MCU_DEBUG_DEVICE, "%s, %d", __FUNCTION__, __LINE__);
             return SYSFS_SET_RETURN(EIO);
         }
     }
 
-    adc->adc.words_read = 0;
+    local->words_read = 0;
     async->nbyte &= ~0x01; //align to 2 byte boundary
 
     mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read %d", async->nbyte/2);
 
-    if( HAL_ADC_Start_DMA(&adc->adc.hal_handle, async->buf, async->nbyte/2) == HAL_OK ){
+    if( HAL_ADC_Start_DMA(&local->hal_handle, async->buf, async->nbyte/2) == HAL_OK ){
         //mcu_debug_root_printf("wait DMA\n");
         return 0;
     }
 
     //this needs to read 1 byte at a time
-    adc->adc.transfer_handler.read = 0;
+    local->transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EIO);
 }
 

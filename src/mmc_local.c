@@ -24,10 +24,9 @@
 SDIO_TypeDef * const mmc_regs[MCU_SDIO_PORTS] = MCU_SDIO_REGS;
 const int mmc_irqs[MCU_SDIO_PORTS] = MCU_SDIO_IRQS;
 
-static MMC_HandleTypeDef * mmc_handle[MCU_SDIO_PORTS];
-
-int mmc_local_open(mmc_local_t * local, const devfs_handle_t * handle){
+int mmc_local_open(const devfs_handle_t * handle){
     int port = handle->port;
+    mmc_local_t * local = mmc_local + handle->port;
     if( port < MCU_SDIO_PORTS ){
         if ( local->ref_count == 0 ){
             //turn on RCC clock
@@ -39,7 +38,6 @@ int mmc_local_open(mmc_local_t * local, const devfs_handle_t * handle){
             local->transfer_handler.read = NULL;
             local->transfer_handler.write = NULL;
             local->hal_handle.Instance = mmc_regs[port];
-            mmc_handle[port] = &local->hal_handle;
             cortexm_enable_irq(mmc_irqs[port]);
         }
         local->ref_count++;
@@ -47,14 +45,15 @@ int mmc_local_open(mmc_local_t * local, const devfs_handle_t * handle){
     return 0;
 }
 
-int mmc_local_close(mmc_local_t * local, const devfs_handle_t * handle){
+int mmc_local_close(const devfs_handle_t * handle){
 
     //do the opposite of mmc_local_open() -- ref_count is zero -- turn off interrupt
     return 0;
 }
 
-int mmc_local_getinfo(mmc_local_t * local, const devfs_handle_t * handle, void * ctl){
+int mmc_local_getinfo(const devfs_handle_t * handle, void * ctl){
     mmc_info_t * info = ctl;
+    mmc_local_t * local = mmc_local + handle->port;
     //const u32 port = handle->port;
 
     //set flags that are supported by this driver
@@ -74,10 +73,11 @@ int mmc_local_getinfo(mmc_local_t * local, const devfs_handle_t * handle, void *
     return SYSFS_RETURN_SUCCESS;
 }
 
-int mmc_local_setattr(mmc_local_t * local, const devfs_handle_t * handle, void * ctl){
+int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 
     const mmc_attr_t * attr = mcu_select_attr(handle, ctl);
     if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
+    mmc_local_t * local = mmc_local + handle->port;
 
     u32 o_flags = attr->o_flags;
 
@@ -164,9 +164,10 @@ int mmc_local_setattr(mmc_local_t * local, const devfs_handle_t * handle, void *
 }
 
 
-int mmc_local_setaction(mmc_local_t * local, const devfs_handle_t * handle, void * ctl){
+int mmc_local_setaction(const devfs_handle_t * handle, void * ctl){
     mcu_action_t * action = ctl;
-    u32 port = handle->port;
+    const u32 port = handle->port;
+    mmc_local_t * local = mmc_local + handle->port;
 
     if( action->handler.callback == 0 ){
         if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
@@ -184,7 +185,8 @@ int mmc_local_setaction(mmc_local_t * local, const devfs_handle_t * handle, void
     return 0;
 }
 
-int mmc_local_getcid(mmc_local_t * local, const devfs_handle_t * handle, void * ctl){
+int mmc_local_getcid(const devfs_handle_t * handle, void * ctl){
+    mmc_local_t * local = mmc_local + handle->port;
     if( HAL_MMC_GetCardCID(&local->hal_handle, ctl) == HAL_OK ){
         return SYSFS_RETURN_SUCCESS;
     }
@@ -192,7 +194,8 @@ int mmc_local_getcid(mmc_local_t * local, const devfs_handle_t * handle, void * 
     return SYSFS_SET_RETURN(EIO);
 }
 
-int mmc_local_getcsd(mmc_local_t * local, const devfs_handle_t * handle, void * ctl){
+int mmc_local_getcsd(const devfs_handle_t * handle, void * ctl){
+    mmc_local_t * local = mmc_local + handle->port;
     if( HAL_MMC_GetCardCSD(&local->hal_handle, ctl) == HAL_OK ){
         return SYSFS_RETURN_SUCCESS;
     }
@@ -200,7 +203,9 @@ int mmc_local_getcsd(mmc_local_t * local, const devfs_handle_t * handle, void * 
     return SYSFS_SET_RETURN(EIO);
 }
 
-int mmc_local_getstatus(mmc_local_t * local, const devfs_handle_t * handle, void * ctl){
+int mmc_local_getstatus(const devfs_handle_t * handle, void * ctl){
+    MCU_UNUSED_ARGUMENT(handle);
+    MCU_UNUSED_ARGUMENT(handle);
     return SYSFS_SET_RETURN(ENOTSUP);
 }
 
@@ -233,9 +238,7 @@ void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc){
 
 void mcu_core_mmc_isr(){
     //mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX", sd_handle[0]->Instance->STA);
-    if( mmc_handle[0] != 0 ){
-        HAL_MMC_IRQHandler(mmc_handle[0]);
-    }
+    HAL_MMC_IRQHandler(&mmc_local[0].hal_handle);
 }
 
 

@@ -32,6 +32,8 @@ typedef struct {
 #endif
     };
     devfs_transfer_handler_t transfer_handler;
+    stm32_dma_channel_t dma_rx_channel;
+    stm32_dma_channel_t dma_tx_channel;
     u16 o_flags;
     u8 ref_count;
     u8 size_mult;
@@ -43,24 +45,16 @@ enum {
     SPI_LOCAL_IS_FULL_DUPLEX = (1<<2)
 };
 
-typedef struct {
-    spi_local_t spi;
-    u32 burst_size;
-    stm32_dma_channel_t dma_rx_channel;
-    stm32_dma_channel_t dma_tx_channel;
-} spi_dma_local_t;
 
 extern spi_local_t spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
-extern spi_dma_local_t spi_dma_local[MCU_SPI_PORTS] MCU_SYS_MEM;
 extern SPI_TypeDef * const spi_regs[MCU_SPI_PORTS];
 extern u8 const spi_irqs[MCU_SPI_PORTS];
 
-int spi_local_open(spi_local_t * spi, const devfs_handle_t * handle);
-int spi_local_close(spi_local_t * spi, const devfs_handle_t * handle);
-int spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * ctl);
-int spi_local_setaction(spi_local_t * spi, const devfs_handle_t * handle, void * ctl);
-int spi_local_swap(spi_local_t * spi, const devfs_handle_t * handle, void * ctl);
-int spi_local_execute_handler(devfs_async_t ** async, u32 o_events, u32 value, int ret);
+int spi_local_open(const devfs_handle_t * handle);
+int spi_local_close(const devfs_handle_t * handle);
+int spi_local_setattr(const devfs_handle_t * handle, void * ctl);
+int spi_local_setaction(const devfs_handle_t * handle, void * ctl);
+int spi_local_swap(const devfs_handle_t * handle, void * ctl);
 
 
 

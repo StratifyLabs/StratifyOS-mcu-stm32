@@ -31,7 +31,7 @@ int mcu_dac_open(const devfs_handle_t * handle){
     dac_local[handle->port].o_flags = 0;
 
 
-    result = dac_local_open(&dac_local[handle->port], handle);
+    result = dac_local_open(handle);
     if( result < 0 ){ return result; }
 
     cortexm_enable_irq(dac_irqs[handle->port]);
@@ -42,7 +42,7 @@ int mcu_dac_open(const devfs_handle_t * handle){
 int mcu_dac_close(const devfs_handle_t * handle){
     int result;
 
-    result = dac_local_close(&dac_local[handle->port], handle);
+    result = dac_local_close(handle);
     if( result < 0 ){ return result; }
 
     if( dac_local[handle->port].ref_count == 0 ){
@@ -54,11 +54,11 @@ int mcu_dac_close(const devfs_handle_t * handle){
 
 
 int mcu_dac_getinfo(const devfs_handle_t * handle, void * ctl){
-    return dac_local_getinfo(&dac_local[handle->port], handle, ctl);
+    return dac_local_getinfo(handle, ctl);
 }
 
 int mcu_dac_setattr(const devfs_handle_t * handle, void * ctl){
-    return dac_local_setattr(&dac_local[handle->port], handle, ctl);
+    return dac_local_setattr(handle, ctl);
 }
 
 
@@ -80,11 +80,11 @@ int mcu_dac_setaction(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_dac_get(const devfs_handle_t * handle, void * ctl){
-    return dac_local_get(&dac_local[handle->port], handle, ctl);
+    return dac_local_get(handle, ctl);
 }
 
 int mcu_dac_set(const devfs_handle_t * handle, void * ctl){
-    return dac_local_set(&dac_local[handle->port], handle, ctl);
+    return dac_local_set(handle, ctl);
 }
 
 int mcu_dac_read(const devfs_handle_t * handle, devfs_async_t * async){
@@ -99,7 +99,7 @@ int mcu_dac_write(const devfs_handle_t * handle, devfs_async_t * async){
     mcu_channel_t mcu_channel;
     mcu_channel.loc = handle->port;
     mcu_channel.value = ((u16*)async->buf_const)[0];
-    result = dac_local_set(&dac_local[handle->port], handle, &mcu_channel);
+    result = dac_local_set(handle, &mcu_channel);
     if( result < 0 ){
         return result;
     }

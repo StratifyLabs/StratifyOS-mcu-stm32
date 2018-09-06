@@ -23,6 +23,15 @@
 
 #if MCU_I2S_SPI_PORTS > 0
 
+int i2s_spi_local_open(const devfs_handle_t * handle){
+    spi_local_t * local = spi_local + handle->port;
+    local->o_flags |= SPI_LOCAL_IS_I2S;
+    return spi_local_open(handle);
+}
+
+int i2s_spi_local_close(const devfs_handle_t * handle){
+    return spi_local_close(handle);
+}
 
 int i2s_spi_local_mute(const devfs_handle_t * handle, void * ctl){
     MCU_UNUSED_ARGUMENT(handle);
@@ -36,9 +45,10 @@ int i2s_spi_local_unmute(const devfs_handle_t * handle, void * ctl){
     return SYSFS_SET_RETURN(ENOTSUP);
 }
 
-int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void * ctl){
-    int port = handle->port;
+int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
+    const u32 port = handle->port;
     const i2s_attr_t * attr = mcu_select_attr(handle, ctl);
+    spi_local_t * local = spi_local + handle->port;
     if( attr == 0 ){
         return SYSFS_SET_RETURN(EINVAL);
     }
@@ -49,7 +59,6 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
     //set I2S Flags
 
     if( o_flags & (I2S_FLAG_SET_MASTER|I2S_FLAG_SET_SLAVE) ){
-        spi->o_flags = SPI_LOCAL_IS_I2S;
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
         spi->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
 #endif
@@ -57,7 +66,7 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
         if( o_flags & I2S_FLAG_SET_SLAVE ){
             is_errata_required |= (1<<1);
             if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
-                spi->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_TX;
+                local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_TX;
                 if( o_flags & I2S_FLAG_IS_RECEIVER ){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
                     spi->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
@@ -65,11 +74,11 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
 #endif
                 }
             } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
-                spi->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_RX;
+                local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_RX;
             }
         } else {
             if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
-                spi->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_TX;
+                local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_TX;
                 if( o_flags & I2S_FLAG_IS_RECEIVER ){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
                     spi->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
@@ -77,56 +86,56 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
 #endif
                 }
             } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
-                spi->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_RX;
+                local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_RX;
             }
         }
 
-        spi->i2s_hal_handle.Init.Standard = I2S_STANDARD_PHILIPS;
+        local->i2s_hal_handle.Init.Standard = I2S_STANDARD_PHILIPS;
         if( o_flags & I2S_FLAG_IS_FORMAT_MSB ){
-            spi->i2s_hal_handle.Init.Standard = I2S_STANDARD_MSB;
+            local->i2s_hal_handle.Init.Standard = I2S_STANDARD_MSB;
         } else if( o_flags & I2S_FLAG_IS_FORMAT_LSB ){
-            spi->i2s_hal_handle.Init.Standard = I2S_STANDARD_LSB;
+            local->i2s_hal_handle.Init.Standard = I2S_STANDARD_LSB;
         } else if( o_flags & I2S_FLAG_IS_FORMAT_PCM_SHORT ){
-            spi->i2s_hal_handle.Init.Standard = I2S_STANDARD_PCM_SHORT;
+            local->i2s_hal_handle.Init.Standard = I2S_STANDARD_PCM_SHORT;
         } else if( o_flags & I2S_FLAG_IS_FORMAT_PCM_LONG ){
-            spi->i2s_hal_handle.Init.Standard = I2S_STANDARD_PCM_LONG;
+            local->i2s_hal_handle.Init.Standard = I2S_STANDARD_PCM_LONG;
         } else {
             is_errata_required |= (1<<0);
         }
 
-        spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_16B;
-        spi->size_mult = 2;
+        local->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_16B;
+        local->size_mult = 2;
         if( o_flags & I2S_FLAG_IS_WIDTH_24 ){
-            spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_24B;
-            spi->size_mult = 4;
+            local->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_24B;
+            local->size_mult = 4;
         } else if( o_flags & I2S_FLAG_IS_WIDTH_32 ){
-            spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_32B;
-            spi->size_mult = 4;
+            local->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_32B;
+            local->size_mult = 4;
         } else if ( o_flags & I2S_FLAG_IS_WIDTH_16_EXTENDED ){
-            spi->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_16B_EXTENDED;
+            local->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_16B_EXTENDED;
         }
 
-        spi->i2s_hal_handle.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
+        local->i2s_hal_handle.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
         if( o_flags & I2S_FLAG_IS_MCK_ENABLED ){
-            spi->i2s_hal_handle.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
+            local->i2s_hal_handle.Init.MCLKOutput = I2S_MCLKOUTPUT_ENABLE;
         }
 
-        spi->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_8K;
+        local->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_8K;
         switch(attr->freq){
-        case 11000: spi->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_11K; break;
-        case 16000: spi->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_16K; break;
-        case 22050: spi->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_22K; break;
-        case 32000: spi->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_32K; break;
-        case 44100: spi->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_44K; break;
-        case 48000: spi->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_48K; break;
-        case 96000: spi->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_96K; break;
-        case 192000: spi->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_192K; break;
+        case 11000: local->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_11K; break;
+        case 16000: local->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_16K; break;
+        case 22050: local->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_22K; break;
+        case 32000: local->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_32K; break;
+        case 44100: local->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_44K; break;
+        case 48000: local->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_48K; break;
+        case 96000: local->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_96K; break;
+        case 192000: local->i2s_hal_handle.Init.AudioFreq = I2S_AUDIOFREQ_192K; break;
         default:
             return SYSFS_SET_RETURN(EINVAL);
         }
 
-        spi->i2s_hal_handle.Init.CPOL = I2S_CPOL_LOW;
-        spi->i2s_hal_handle.Init.ClockSource = I2S_CLOCK_PLL;
+        local->i2s_hal_handle.Init.CPOL = I2S_CPOL_LOW;
+        local->i2s_hal_handle.Init.ClockSource = I2S_CLOCK_PLL;
 
         //this might be better implemented in the "core" driver for controlling the clocks
 #if defined RCC_PERIPHCLK_I2S
@@ -200,7 +209,7 @@ int i2s_spi_local_setattr(spi_local_t * spi, const devfs_handle_t * handle, void
             return SYSFS_SET_RETURN(EINVAL);
         }
 
-        if( HAL_I2S_Init(&spi->i2s_hal_handle) != HAL_OK ){
+        if( HAL_I2S_Init(&local->i2s_hal_handle) != HAL_OK ){
             return SYSFS_SET_RETURN(EIO);
         }
     }
