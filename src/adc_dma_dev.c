@@ -140,7 +140,7 @@ int mcu_adc_dma_setaction(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
-    int port = handle->port;
+    const u32 port = handle->port;
     adc_local_t * local = adc_local + port;
 
     DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
@@ -174,14 +174,13 @@ int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     local->words_read = 0;
     async->nbyte &= ~0x01; //align to 2 byte boundary
 
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read %d", async->nbyte/2);
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "%d ADC DMA Read %d on 0x%lX", port, async->nbyte/2, async->loc);
 
     if( HAL_ADC_Start_DMA(&local->hal_handle, async->buf, async->nbyte/2) == HAL_OK ){
         //mcu_debug_root_printf("wait DMA\n");
         return 0;
     }
 
-    //this needs to read 1 byte at a time
     local->transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EIO);
 }

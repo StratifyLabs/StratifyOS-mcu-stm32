@@ -32,6 +32,7 @@
 DAC_TypeDef * const dac_regs_table[MCU_DAC_PORTS] = MCU_DAC_REGS;
 u8 const dac_irqs[MCU_DAC_PORTS] = MCU_DAC_IRQS;
 u32 const dac_channels[MCU_DAC_PORTS] = { DAC_CHANNEL_1, DAC_CHANNEL_2 };
+dac_local_t dac_local[MCU_DAC_PORTS] MCU_SYS_MEM;
 
 #if 0
 const u32 dac_channels[MCU_DAC_PORTS] = {

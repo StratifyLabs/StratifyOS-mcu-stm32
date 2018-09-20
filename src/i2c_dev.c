@@ -239,9 +239,12 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
         memcpy(&i2c->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
 
         if( (i2c->pin_assignment.scl.port != 0xff) && (i2c->pin_assignment.sda.port != 0xff) ){
-            mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
-            i2c_clear_busy_flag_erratum(port, i2c);
-        } else {
+			if( __HAL_I2C_GET_FLAG((&i2c->hal_handle), I2C_FLAG_BUSY) ){
+				mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
+				i2c_clear_busy_flag_erratum(port, i2c);
+				mcu_debug_log_info(MCU_DEBUG_DEVICE, "done");
+			}
+		} else {
             return SYSFS_SET_RETURN(EINVAL);
         }
 
@@ -497,6 +500,8 @@ void mcu_core_i2c3_ev_isr(){ mcu_i2c_ev_isr(2); }
 void mcu_core_i2c3_er_isr(){ mcu_i2c_er_isr(2); }
 #endif
 
+#define I2C_CLEAR_BUSY_DEBUG_MESSAGES 1
+
 void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 
     devfs_handle_t sda_pio_handle;
@@ -504,6 +509,7 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
     pio_attr_t scl_pio_attr;
     pio_attr_t sda_pio_attr;
     u32 value;
+	const u32 delay_us = 1;
 
     // 1. Clear PE bit.
     i2c->hal_handle.Instance->CR1 &= ~(0x0001);
@@ -521,41 +527,64 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
     sda_pio_attr.o_pinmask = (1 << i2c->pin_assignment.sda.pin);
     mcu_pio_setattr(&sda_pio_handle, &sda_pio_attr);
 
-
     mcu_pio_setmask(&scl_pio_handle, (void*)scl_pio_attr.o_pinmask);
     mcu_pio_setmask(&sda_pio_handle, (void*)sda_pio_attr.o_pinmask);
 
     // 3. Check SCL and SDA High level in GPIOx_IDR.
-    do {
+	cortexm_delay_us(delay_us);
+#if I2C_CLEAR_BUSY_DEBUG_MESSAGES
+	mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+#endif
+	do {
         mcu_pio_get(&scl_pio_handle, &value);
     } while( (value & scl_pio_attr.o_pinmask) == 0);
 
-    do {
+	cortexm_delay_us(delay_us);
+#if I2C_CLEAR_BUSY_DEBUG_MESSAGES
+	mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+#endif
+	do {
         mcu_pio_get(&sda_pio_handle, &value);
     } while( (value & sda_pio_attr.o_pinmask) == 0);
 
     // 4. Configure the SDA I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
     mcu_pio_clrmask(&sda_pio_handle, (void*)sda_pio_attr.o_pinmask);
     //  5. Check SDA Low level in GPIOx_IDR.
-    do {
+	cortexm_delay_us(delay_us);
+#if I2C_CLEAR_BUSY_DEBUG_MESSAGES
+	mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+#endif
+	do {
         mcu_pio_get(&sda_pio_handle, &value);
     } while( (value & sda_pio_attr.o_pinmask) != 0);
     // 6. Configure the SCL I/O as General Purpose Output Open-Drain, Low level (Write 0 to GPIOx_ODR).
     mcu_pio_clrmask(&scl_pio_handle, (void*)scl_pio_attr.o_pinmask);
     //  7. Check SCL Low level in GPIOx_IDR.
-    do {
+	cortexm_delay_us(delay_us);
+#if I2C_CLEAR_BUSY_DEBUG_MESSAGES
+	mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+#endif
+	do {
         mcu_pio_get(&scl_pio_handle, &value);
     } while( (value & scl_pio_attr.o_pinmask) != 0);
     // 8. Configure the SCL I/O as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
     mcu_pio_setmask(&scl_pio_handle, (void*)scl_pio_attr.o_pinmask);
     // 9. Check SCL High level in GPIOx_IDR.
-    do {
+	cortexm_delay_us(delay_us);
+#if I2C_CLEAR_BUSY_DEBUG_MESSAGES
+	mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+#endif
+	do {
         mcu_pio_get(&scl_pio_handle, &value);
     } while( (value & scl_pio_attr.o_pinmask) == 0);
     // 10. Configure the SDA I/O as General Purpose Output Open-Drain , High level (Write 1 to GPIOx_ODR).
     mcu_pio_setmask(&sda_pio_handle, (void*)sda_pio_attr.o_pinmask);
     // 11. Check SDA High level in GPIOx_IDR.
-    do {
+	cortexm_delay_us(delay_us);
+#if I2C_CLEAR_BUSY_DEBUG_MESSAGES
+	mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+#endif
+	do {
         mcu_pio_get(&sda_pio_handle, &value);
     } while( (value & sda_pio_attr.o_pinmask) == 0);
 
@@ -580,12 +609,12 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
     // 13. Set SWRST bit in I2Cx_CR1 register.
     i2c->hal_handle.Instance->CR1 |= 0x8000;
 
-    asm("nop");
+	cortexm_delay_us(100);
 
     // 14. Clear SWRST bit in I2Cx_CR1 register.
     i2c->hal_handle.Instance->CR1 &= ~0x8000;
 
-    asm("nop");
+	cortexm_delay_us(100);
 
     // 15. Enable the I2C peripheral by setting the PE bit in I2Cx_CR1 register
     i2c->hal_handle.Instance->CR1 |= 0x0001;

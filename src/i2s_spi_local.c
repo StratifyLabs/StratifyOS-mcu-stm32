@@ -60,7 +60,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 
     if( o_flags & (I2S_FLAG_SET_MASTER|I2S_FLAG_SET_SLAVE) ){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
-        spi->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
+		local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
 #endif
 
         if( o_flags & I2S_FLAG_SET_SLAVE ){
@@ -69,8 +69,8 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
                 local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_TX;
                 if( o_flags & I2S_FLAG_IS_RECEIVER ){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
-                    spi->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
-                    spi->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
+					local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
+					local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
 #endif
                 }
             } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
@@ -81,8 +81,8 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
                 local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_TX;
                 if( o_flags & I2S_FLAG_IS_RECEIVER ){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
-                    spi->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
-                    spi->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
+					local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
+					local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
 #endif
                 }
             } else if ( o_flags & I2S_FLAG_IS_RECEIVER ){

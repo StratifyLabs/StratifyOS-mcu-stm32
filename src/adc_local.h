@@ -27,10 +27,10 @@
 typedef struct {
     ADC_HandleTypeDef hal_handle;
     devfs_transfer_handler_t transfer_handler;
+    stm32_dma_channel_t dma_rx_channel;
     int words_read;
     u32 o_flags;
     u8 ref_count;
-    stm32_dma_channel_t dma_rx_channel;
 } adc_local_t;
 
 enum {

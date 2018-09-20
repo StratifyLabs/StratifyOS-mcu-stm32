@@ -106,6 +106,10 @@ int mcu_mmc_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
     mmc_local_t * local = mmc_local + handle->port;
     DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
+#if 0
+	 mcu_debug_log_info(MCU_DEBUG_DEVICE, "WState:%d", HAL_MMC_GetCardState(&local->hal_handle));
+#endif
+
     local->hal_handle.TxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_WriteBlocks_DMA
     if( (HAL_MMC_WriteBlocks_DMA(&local->hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
         return 0;
@@ -121,7 +125,7 @@ int mcu_mmc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
     DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
 #if 0
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "RState:%d", HAL_SD_GetCardState(&local->hal_handle));
+	 mcu_debug_log_info(MCU_DEBUG_DEVICE, "RState:%d", HAL_MMC_GetCardState(&local->hal_handle));
 #endif
 
     local->hal_handle.RxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_ReadBlocks_DMA

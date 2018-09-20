@@ -174,7 +174,7 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
         _ISR(can1_tx),
         _ISR(can1_rx0), //20
         _ISR(can1_rx1),
-        _ISR(can1_sce),
+		_ISR(can1_sce),
 		_ISR(exti9_5), //23
 		_ISR(tim1_brk_tim9),
 		_ISR(tim1_up_tim10),
