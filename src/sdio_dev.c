@@ -25,7 +25,6 @@
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(sdio, SDIO_VERSION, SDIO_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SDIO_TOTAL, mcu_sdio_getcid, mcu_sdio_getcsd, mcu_sdio_getstatus)
 
 int mcu_sdio_open(const devfs_handle_t * handle){
-    const u32 port = handle->port;
     return sdio_local_open(handle);
 }
 

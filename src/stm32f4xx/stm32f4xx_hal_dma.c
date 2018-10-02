@@ -773,7 +773,7 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
     if(__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_TE) != RESET)
     {
       /* Disable the transfer error interrupt */
-      hdma->Instance->CR  &= ~(DMA_IT_TE);
+		hdma->Instance->CR  &= ~(DMA_IT_TE);
       
       /* Clear the transfer error flag */
       regs->IFCR = DMA_FLAG_TEIF0_4 << hdma->StreamIndex;
@@ -785,10 +785,10 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
   /* FIFO Error Interrupt management ******************************************/
   if ((tmpisr & (DMA_FLAG_FEIF0_4 << hdma->StreamIndex)) != RESET)
   {
-    if(__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_FE) != RESET)
+	 if(__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_FE) != RESET)
     {
       /* Clear the FIFO error flag */
-      regs->IFCR = DMA_FLAG_FEIF0_4 << hdma->StreamIndex;
+		regs->IFCR = DMA_FLAG_FEIF0_4 << hdma->StreamIndex;
 
       /* Update error code */
       hdma->ErrorCode |= HAL_DMA_ERROR_FE;
@@ -797,10 +797,10 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
   /* Direct Mode Error Interrupt management ***********************************/
   if ((tmpisr & (DMA_FLAG_DMEIF0_4 << hdma->StreamIndex)) != RESET)
   {
-    if(__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_DME) != RESET)
+	 if(__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_DME) != RESET)
     {
       /* Clear the direct mode error flag */
-      regs->IFCR = DMA_FLAG_DMEIF0_4 << hdma->StreamIndex;
+		regs->IFCR = DMA_FLAG_DMEIF0_4 << hdma->StreamIndex;
 
       /* Update error code */
       hdma->ErrorCode |= HAL_DMA_ERROR_DME;
@@ -809,46 +809,46 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
   /* Half Transfer Complete Interrupt management ******************************/
   if ((tmpisr & (DMA_FLAG_HTIF0_4 << hdma->StreamIndex)) != RESET)
   {
-    if(__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_HT) != RESET)
+	 if(__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_HT) != RESET)
     {
       /* Clear the half transfer complete flag */
-      regs->IFCR = DMA_FLAG_HTIF0_4 << hdma->StreamIndex;
+		regs->IFCR = DMA_FLAG_HTIF0_4 << hdma->StreamIndex;
       
       /* Multi_Buffering mode enabled */
       if(((hdma->Instance->CR) & (uint32_t)(DMA_SxCR_DBM)) != RESET)
       {
-        /* Current memory buffer used is Memory 0 */
+		  /* Current memory buffer used is Memory 0 */
         if((hdma->Instance->CR & DMA_SxCR_CT) == RESET)
         {
-          if(hdma->XferHalfCpltCallback != NULL)
+			 if(hdma->XferHalfCpltCallback != NULL)
           {
             /* Half transfer callback */
-            hdma->XferHalfCpltCallback(hdma);
+				hdma->XferHalfCpltCallback(hdma);
           }
         }
         /* Current memory buffer used is Memory 1 */
         else
         {
-          if(hdma->XferM1HalfCpltCallback != NULL)
+			 if(hdma->XferM1HalfCpltCallback != NULL)
           {
             /* Half transfer callback */
-            hdma->XferM1HalfCpltCallback(hdma);
+				hdma->XferM1HalfCpltCallback(hdma);
           }
         }
       }
       else
       {
         /* Disable the half transfer interrupt if the DMA mode is not CIRCULAR */
-        if((hdma->Instance->CR & DMA_SxCR_CIRC) == RESET)
+		  if((hdma->Instance->CR & DMA_SxCR_CIRC) == RESET)
         {
           /* Disable the half transfer interrupt */
-          hdma->Instance->CR  &= ~(DMA_IT_HT);
+			 hdma->Instance->CR  &= ~(DMA_IT_HT);
         }
         
-        if(hdma->XferHalfCpltCallback != NULL)
+		  if(hdma->XferHalfCpltCallback != NULL)
         {
           /* Half transfer callback */
-          hdma->XferHalfCpltCallback(hdma);
+			 hdma->XferHalfCpltCallback(hdma);
         }
       }
     }
@@ -856,20 +856,20 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
   /* Transfer Complete Interrupt management ***********************************/
   if ((tmpisr & (DMA_FLAG_TCIF0_4 << hdma->StreamIndex)) != RESET)
   {
-    if(__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_TC) != RESET)
+	 if(__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_TC) != RESET)
     {
       /* Clear the transfer complete flag */
       regs->IFCR = DMA_FLAG_TCIF0_4 << hdma->StreamIndex;
-      
+
       if(HAL_DMA_STATE_ABORT == hdma->State)
       {
         /* Disable all the transfer interrupts */
         hdma->Instance->CR  &= ~(DMA_IT_TC | DMA_IT_TE | DMA_IT_DME);
         hdma->Instance->FCR &= ~(DMA_IT_FE);
         
-        if((hdma->XferHalfCpltCallback != NULL) || (hdma->XferM1HalfCpltCallback != NULL))
+		  if((hdma->XferHalfCpltCallback != NULL) || (hdma->XferM1HalfCpltCallback != NULL))
         {
-          hdma->Instance->CR  &= ~(DMA_IT_HT);
+			 hdma->Instance->CR  &= ~(DMA_IT_HT);
         }
 
         /* Clear all interrupt flags at correct offset within the register */
@@ -881,9 +881,9 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
         /* Change the DMA state */
         hdma->State = HAL_DMA_STATE_READY;
 
-        if(hdma->XferAbortCallback != NULL)
+		  if(hdma->XferAbortCallback != NULL)
         {
-          hdma->XferAbortCallback(hdma);
+			 hdma->XferAbortCallback(hdma);
         }
         return;
       }
@@ -893,26 +893,26 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
         /* Current memory buffer used is Memory 0 */
         if((hdma->Instance->CR & DMA_SxCR_CT) == RESET)
         {
-          if(hdma->XferM1CpltCallback != NULL)
+			 if(hdma->XferM1CpltCallback != NULL)
           {
-            /* Transfer complete Callback for memory1 */
+				/* Transfer complete Callback for memory1 */
             hdma->XferM1CpltCallback(hdma);
           }
         }
         /* Current memory buffer used is Memory 1 */
         else
         {
-          if(hdma->XferCpltCallback != NULL)
+			 if(hdma->XferCpltCallback != NULL)
           {
             /* Transfer complete Callback for memory0 */
-            hdma->XferCpltCallback(hdma);
+				hdma->XferCpltCallback(hdma);
           }
         }
       }
       /* Disable the transfer complete interrupt if the DMA mode is not CIRCULAR */
       else
       {
-        if((hdma->Instance->CR & DMA_SxCR_CIRC) == RESET)
+		  if((hdma->Instance->CR & DMA_SxCR_CIRC) == RESET)
         {
           /* Disable the transfer complete interrupt */
           hdma->Instance->CR  &= ~(DMA_IT_TC);
@@ -927,7 +927,7 @@ void HAL_DMA_IRQHandler(DMA_HandleTypeDef *hdma)
         if(hdma->XferCpltCallback != NULL)
         {
           /* Transfer complete callback */
-          hdma->XferCpltCallback(hdma);
+			 hdma->XferCpltCallback(hdma);
         }
       }
     }

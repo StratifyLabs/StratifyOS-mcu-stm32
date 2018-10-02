@@ -613,7 +613,7 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
 }
 
 void HAL_TIM_TriggerCallback(TIM_HandleTypeDef *htim){
-
+    mcu_debug_printf("trigger tmr\n");
 }
 
 void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim){
@@ -634,7 +634,9 @@ void mcu_core_tim2_isr(){ tmr_isr(1); }
 #endif
 
 #if defined TIM3
-void mcu_core_tim3_isr(){ tmr_isr(2); }
+void mcu_core_tim3_isr(){
+    tmr_isr(2);
+}
 #endif
 
 #if defined TIM4

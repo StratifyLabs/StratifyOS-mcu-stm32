@@ -39,7 +39,7 @@ typedef struct {
 extern DAC_TypeDef * const dac_regs_table[MCU_DAC_PORTS];
 extern u8 const dac_irqs[MCU_DAC_PORTS];
 extern const u32 dac_channels[MCU_DAC_PORTS];
-static dac_local_t dac_local[MCU_DAC_PORTS] MCU_SYS_MEM;
+extern dac_local_t dac_local[MCU_DAC_PORTS] MCU_SYS_MEM;
 
 int dac_local_open(const devfs_handle_t * handle);
 int dac_local_close(const devfs_handle_t * handle);

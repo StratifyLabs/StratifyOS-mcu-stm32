@@ -23,6 +23,7 @@
 
 SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS] = MCU_SDIO_REGS;
 const int sdio_irqs[MCU_SDIO_PORTS] = MCU_SDIO_IRQS;
+sdio_local_t sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 
 int sdio_local_open(const devfs_handle_t * handle){
     const u32 port = handle->port;
