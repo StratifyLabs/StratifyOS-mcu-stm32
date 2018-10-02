@@ -1,4 +1,4 @@
-/* Copyright 2011-2018 Tyler Gilbert;
+﻿/* Copyright 2011-2018 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -121,11 +121,13 @@ int mcu_i2c_close(const devfs_handle_t * handle){
 }
 
 int mcu_i2c_getinfo(const devfs_handle_t * handle, void * ctl){
-    int port = handle->port;
+    u32 port = handle->port;
+    i2c_local_t * i2c = i2c_local + handle->port;
     i2c_info_t * info = ctl;
 
     info->err = i2c_local[port].err;
-    info->o_flags = I2C_FLAG_SET_MASTER |
+    info->o_flags = i2c->o_flags;
+    /*info->o_flags = I2C_FLAG_SET_MASTER |
             I2C_FLAG_SET_SLAVE |
             I2C_FLAG_PREPARE_PTR_DATA |
             I2C_FLAG_PREPARE_DATA |
@@ -135,8 +137,12 @@ int mcu_i2c_getinfo(const devfs_handle_t * handle, void * ctl){
             I2C_FLAG_IS_SLAVE_ADDR2 |
             I2C_FLAG_IS_SLAVE_ADDR3 |
             I2C_FLAG_RESET;
-
-    info->freq = 400000;
+    */
+#if defined STM32F7 || defined STM32L4
+    info->freq = i2c->hal_handle.Init.Timing;
+#else
+    info->freq = i2c->hal_handle.Init.ClockSpeed;
+#endif
 
     info->o_events = MCU_EVENT_FLAG_WRITE_COMPLETE |
             MCU_EVENT_FLAG_DATA_READY |
@@ -149,15 +155,13 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
     int port = handle->port;
     i2c_local_t * i2c = i2c_local + handle->port;
     u32 freq;
-
-
+    u32 o_flags;
     const i2c_attr_t * attr = mcu_select_attr(handle, ctl);
     if( attr == 0 ){
         return SYSFS_SET_RETURN(EINVAL);
     }
-
-    u32 o_flags = attr->o_flags;
-
+    o_flags = attr->o_flags;
+    freq = attr->freq;
     if( freq == 0 ){
         freq = 100000;
     }
@@ -187,6 +191,11 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 
     } else if( o_flags & I2C_FLAG_SET_SLAVE ){
+#if defined STM32F7 || defined STM32L4
+        i2c->hal_handle.Init.Timing = freq;
+#else
+        i2c->hal_handle.Init.ClockSpeed = freq;
+#endif
 
         i2c->hal_handle.Init.OwnAddress1 = (attr->slave_addr[0].addr8[0])<<1;
         if( o_flags & I2C_FLAG_IS_SLAVE_ADDR1 ){
@@ -208,7 +217,7 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 #if 0
         post_configure_pin_t post_configure;
 #endif
-        const void * pin_assignment;
+        const i2c_pin_assignment_t * pin_assignment;
 
         if( o_flags & I2C_FLAG_STRETCH_CLOCK ){
             i2c->hal_handle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
@@ -235,9 +244,7 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
         pin_assignment = mcu_select_pin_assignment(&attr->pin_assignment,
                                                    MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
                                                    MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t));
-
         memcpy(&i2c->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
-
         if( (i2c->pin_assignment.scl.port != 0xff) && (i2c->pin_assignment.sda.port != 0xff) ){
             mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
             i2c_clear_busy_flag_erratum(port, i2c);
@@ -245,16 +252,15 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
             return SYSFS_SET_RETURN(EINVAL);
         }
 
-
-        if( HAL_I2C_Init(&i2c->hal_handle) < 0 ){
+        if( HAL_I2C_Init(&(i2c->hal_handle)) != HAL_OK){
             return SYSFS_SET_RETURN(EINVAL);
         }
 
-
         if( o_flags & I2C_FLAG_SET_SLAVE ){
-            HAL_I2C_EnableListen_IT(&i2c->hal_handle);
+            if( HAL_I2C_EnableListen_IT(&i2c->hal_handle) != HAL_OK){
+                return SYSFS_SET_RETURN(EINVAL);
+            }
         }
-
     }
 
     if( o_flags & (I2C_FLAG_PREPARE_PTR_DATA|I2C_FLAG_PREPARE_PTR|I2C_FLAG_PREPARE_DATA) ){
@@ -419,6 +425,12 @@ void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c){
 }
 
 void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode){
+    i2c_local_t * i2c = (i2c_local_t*)hi2c;
+    HAL_StatusTypeDef hal_status;
+    hal_status = HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, i2c->slave_memory, i2c->slave_memory_size, I2C_LAST_FRAME);
+    if (hal_status != HAL_OK){
+        mcu_debug_printf("slave addr call back error %u %u\n",hal_status,hi2c->State);
+    }
     //slave has been addressed
 }
 
@@ -506,7 +518,9 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
     u32 value;
 
     // 1. Clear PE bit.
-    i2c->hal_handle.Instance->CR1 &= ~(0x0001);
+
+    __HAL_I2C_DISABLE(&i2c->hal_handle);
+    //i2c->hal_handle.Instance->CR1 &= ~(0x0001);
 
     //  2. Configure the SCL and SDA I/Os as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
     memset(&scl_pio_handle, 0, sizeof(devfs_handle_t));
@@ -524,12 +538,10 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 
     mcu_pio_setmask(&scl_pio_handle, (void*)scl_pio_attr.o_pinmask);
     mcu_pio_setmask(&sda_pio_handle, (void*)sda_pio_attr.o_pinmask);
-
     // 3. Check SCL and SDA High level in GPIOx_IDR.
     do {
         mcu_pio_get(&scl_pio_handle, &value);
     } while( (value & scl_pio_attr.o_pinmask) == 0);
-
     do {
         mcu_pio_get(&sda_pio_handle, &value);
     } while( (value & sda_pio_attr.o_pinmask) == 0);
@@ -559,7 +571,6 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
         mcu_pio_get(&sda_pio_handle, &value);
     } while( (value & sda_pio_attr.o_pinmask) == 0);
 
-
     // 12. Configure the SCL and SDA I/Os as Alternate function Open-Drain.
 
     hal_set_alternate_pin_function(i2c->pin_assignment.scl,
@@ -576,19 +587,20 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
                                    GPIO_SPEED_FREQ_LOW,
                                    GPIO_PULLUP);
 
-
+#if defined STM32F4
     // 13. Set SWRST bit in I2Cx_CR1 register.
-    i2c->hal_handle.Instance->CR1 |= 0x8000;
+    i2c->hal_handle.Instance->CR1 |= I2C_CR1_SWRST;
 
     asm("nop");
 
     // 14. Clear SWRST bit in I2Cx_CR1 register.
-    i2c->hal_handle.Instance->CR1 &= ~0x8000;
+    i2c->hal_handle.Instance->CR1 &= ~I2C_CR1_SWRST;
 
     asm("nop");
+#endif
 
     // 15. Enable the I2C peripheral by setting the PE bit in I2Cx_CR1 register
-    i2c->hal_handle.Instance->CR1 |= 0x0001;
+    __HAL_I2C_ENABLE(&i2c->hal_handle);
 }
 
 #endif
