@@ -84,6 +84,10 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 	if( o_flags & MMC_FLAG_SET_INTERFACE ){
 
+		if( o_flags & MMC_FLAG_IS_BYTE_ADDRESSING ){
+			local->o_flags = EMMC_LOCAL_FLAG_IS_BYTE_ADDRESSING;
+		}
+
 		//SDIO_CLOCK_EDGE_RISING
 		//SDIO_CLOCK_EDGE_FALLING
 		local->hal_handle.Init.ClockEdge = SDIO_CLOCK_EDGE_RISING;
@@ -139,6 +143,11 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EIO);
 		}
 
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "logical block number: %ld", local->hal_handle.MmcCard.LogBlockNbr);
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "logical block size: %ld", local->hal_handle.MmcCard.LogBlockSize);
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "physical block number: %ld", local->hal_handle.MmcCard.BlockNbr);
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "physical block size: %ld", local->hal_handle.MmcCard.BlockSize);
+
 		//SDIO_BUS_WIDE_1B -- set as default for initialziation
 		//SDIO_BUS_WIDE_4B
 		//SDIO_BUS_WIDE_8B -- not compatible with SDIO
@@ -147,6 +156,15 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 		} else if ( o_flags & MMC_FLAG_IS_BUS_WIDTH_8 ){
 			HAL_MMC_ConfigWideBusOperation(&local->hal_handle, SDIO_BUS_WIDE_8B);
 		}
+
+
+		HAL_MMC_CardCSDTypeDef csd;
+		HAL_MMC_GetCardCSD(&local->hal_handle, &csd);
+
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "spec version: 0x%X", csd.SysSpecVersion);
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "device size: %ld %ld", csd.DeviceSize, csd.DeviceSizeMul);
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read block length: %ld", csd.RdBlockLen);
+
 
 	}
 
@@ -191,6 +209,7 @@ int mmc_local_getcid(const devfs_handle_t * handle, void * ctl){
 	if( HAL_MMC_GetCardCID(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
+
 
 	return SYSFS_SET_RETURN(EIO);
 }

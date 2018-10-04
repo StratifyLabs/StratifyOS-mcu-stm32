@@ -886,11 +886,13 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData,
     
     __HAL_MMC_ENABLE_IT(hmmc, (SDIO_IT_DCRCFAIL | SDIO_IT_DTIMEOUT | SDIO_IT_RXOVERR | SDIO_IT_DATAEND | SDIO_FLAG_RXFIFOHF));
 
+#if 0
     /* Check the Card capacity in term of Logical number of blocks */
     if ((hmmc->MmcCard.LogBlockNbr) < CAPACITY)
     {
       BlockAdd *= 512U;
     }
+#endif
     
     /* Configure the MMC DPSM (Data Path State Machine) */ 
     config.DataTimeOut   = SDMMC_DATATIMEOUT;
@@ -989,11 +991,13 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks_IT(MMC_HandleTypeDef *hmmc, uint8_t *pData
     /* Enable transfer interrupts */
     __HAL_MMC_ENABLE_IT(hmmc, (SDIO_IT_DCRCFAIL | SDIO_IT_DTIMEOUT | SDIO_IT_TXUNDERR | SDIO_IT_DATAEND | SDIO_FLAG_TXFIFOHE)); 
     
+#if 0
     /* Check the Card capacity in term of Logical number of blocks */
     if ((hmmc->MmcCard.LogBlockNbr) < CAPACITY)
     {
       BlockAdd *= 512U;
     }
+#endif
     
     /* Set Block Size for Card */ 
     errorstate = SDMMC_CmdBlockLength(hmmc->Instance, BLOCKSIZE);
@@ -1107,11 +1111,13 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData
     /* Enable MMC DMA transfer */
     __HAL_MMC_DMA_ENABLE(hmmc);
     
+#if 0
     /* Check the Card capacity in term of Logical number of blocks */
     if ((hmmc->MmcCard.LogBlockNbr) < CAPACITY)
     {
       BlockAdd *= 512U;
     }
+#endif
     
     /* Configure the MMC DPSM (Data Path State Machine) */ 
     config.DataTimeOut   = SDMMC_DATATIMEOUT;
@@ -1185,7 +1191,7 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pDat
   
   if(NULL == pData)
   {
-    hmmc->ErrorCode |= HAL_MMC_ERROR_PARAM;
+	 hmmc->ErrorCode |= HAL_MMC_ERROR_PARAM;
     return HAL_ERROR;
   }
   
@@ -1194,7 +1200,7 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pDat
     hmmc->ErrorCode = HAL_DMA_ERROR_NONE;
     
     if((BlockAdd + NumberOfBlocks) > (hmmc->MmcCard.LogBlockNbr))
-    {
+	 {
       hmmc->ErrorCode |= HAL_MMC_ERROR_ADDR_OUT_OF_RANGE;
       return HAL_ERROR;
     }
@@ -1220,11 +1226,14 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pDat
     /* Set the DMA Abort callback */
     hmmc->hdmatx->XferAbortCallback = NULL;
     
+#if 0
+	 //this doesn't work with newer cards use MMC_FLAG_IS_BYTE_ADDRESSING instead
     /* Check the Card capacity in term of Logical number of blocks */
     if ((hmmc->MmcCard.LogBlockNbr) < CAPACITY)
     {
       BlockAdd *= 512U;
     }
+#endif
     
     /* Set Block Size for Card */ 
     errorstate = SDMMC_CmdBlockLength(hmmc->Instance, BLOCKSIZE);
@@ -1233,7 +1242,7 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pDat
       /* Clear all the static flags */
       __HAL_MMC_CLEAR_FLAG(hmmc, SDIO_STATIC_FLAGS); 
       hmmc->ErrorCode |= errorstate;
-      hmmc->State = HAL_MMC_STATE_READY;
+		hmmc->State = HAL_MMC_STATE_READY;
       return HAL_ERROR;
     }
     
@@ -1257,7 +1266,7 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pDat
       /* Clear all the static flags */
       __HAL_MMC_CLEAR_FLAG(hmmc, SDIO_STATIC_FLAGS); 
       hmmc->ErrorCode |= errorstate;
-      hmmc->State = HAL_MMC_STATE_READY;
+		hmmc->State = HAL_MMC_STATE_READY;
       return HAL_ERROR;
     }
     

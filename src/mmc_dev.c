@@ -80,7 +80,13 @@ int mcu_mmc_write(const devfs_handle_t * handle, devfs_async_t * async){
 
     DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
-    if( (HAL_MMC_WriteBlocks_IT(&local->hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
+	 int loc;
+	 if( local->o_flags & EMMC_LOCAL_FLAG_IS_BYTE_ADDRESSING ){
+		 loc = async->loc*512;
+	 } else {
+		 loc = async->loc;
+	 }
+	 if( (HAL_MMC_WriteBlocks_IT(&local->hal_handle, async->buf, loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
         return 0;
     }
 
@@ -93,7 +99,13 @@ int mcu_mmc_read(const devfs_handle_t * handle, devfs_async_t * async){
     int hal_result;
     DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
-    if( (hal_result = HAL_MMC_ReadBlocks_IT(&local->hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
+	 int loc;
+	 if( local->o_flags & EMMC_LOCAL_FLAG_IS_BYTE_ADDRESSING ){
+		 loc = async->loc*512;
+	 } else {
+		 loc = async->loc;
+	 }
+	 if( (hal_result = HAL_MMC_ReadBlocks_IT(&local->hal_handle, async->buf, loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
         return 0;
     }
 

@@ -35,6 +35,10 @@ typedef struct {
     u8 ref_count;
 } mmc_local_t;
 
+enum {
+	EMMC_LOCAL_FLAG_IS_BYTE_ADDRESSING = (1<<0)
+};
+
 extern SDIO_TypeDef * const mmc_regs[MCU_SDIO_PORTS];
 extern const int mmc_irqs[MCU_SDIO_PORTS];
 extern mmc_local_t mmc_local[MCU_SDIO_PORTS] MCU_SYS_MEM;

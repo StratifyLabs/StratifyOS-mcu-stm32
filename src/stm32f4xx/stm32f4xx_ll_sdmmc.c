@@ -1169,6 +1169,8 @@ static uint32_t SDMMC_GetCmdError(SDIO_TypeDef *SDIOx)
   return SDMMC_ERROR_NONE;
 }
 
+#include <mcu/debug.h>
+
 /**
   * @brief  Checks for error conditions for R1 response.
   * @param  hsd: SD handle
@@ -1221,7 +1223,10 @@ static uint32_t SDMMC_GetCmdResp1(SDIO_TypeDef *SDIOx, uint8_t SD_CMD, uint32_t 
   {
     return SDMMC_ERROR_NONE;
   }
-  else if((response_r1 & SDMMC_OCR_ADDR_OUT_OF_RANGE) == SDMMC_OCR_ADDR_OUT_OF_RANGE)
+
+  mcu_debug_printf("ERROR BITS:0x%lX\n", response_r1);
+
+  if((response_r1 & SDMMC_OCR_ADDR_OUT_OF_RANGE) == SDMMC_OCR_ADDR_OUT_OF_RANGE)
   {
     return SDMMC_ERROR_ADDR_OUT_OF_RANGE;
   }
