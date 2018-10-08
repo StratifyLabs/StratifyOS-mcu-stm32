@@ -139,7 +139,7 @@ int dac_local_getinfo(const devfs_handle_t * handle, void * ctl){
 
     dac_info_t * info = ctl;
     const dac_config_t * config = handle->config;
-    dac_local_t * local = dac_local + handle->port;
+	 //dac_local_t * local = dac_local + handle->port;
 
     info->o_flags = DAC_FLAG_IS_LEFT_JUSTIFIED |
             DAC_FLAG_IS_RIGHT_JUSTIFIED |

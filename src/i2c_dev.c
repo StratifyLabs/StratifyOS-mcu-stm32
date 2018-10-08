@@ -83,6 +83,7 @@ int mcu_i2c_open(const devfs_handle_t * handle){
 		i2c->transfer_handler.read = 0;
 		i2c->transfer_handler.write = 0;
 		i2c->hal_handle.Instance = i2c_regs_table[port];
+		mcu_debug_printf("Enable interrupt %d and %d\n", i2c_irqs[port], i2c_er_irqs[port]);
 		cortexm_enable_irq(i2c_irqs[port]);
 		cortexm_enable_irq(i2c_er_irqs[port]);
 	}
@@ -180,7 +181,7 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 	}
 
 	if( o_flags & I2C_FLAG_SET_MASTER ){
-#if defined STM32F7 || defined STM32L4
+#if defined STM32F7 || defined STM32L4 || defined STM32H7
 		i2c->hal_handle.Init.Timing = freq;
 #else
 		i2c->hal_handle.Init.ClockSpeed = freq;
@@ -334,8 +335,10 @@ int mcu_i2c_write(const devfs_handle_t * handle, devfs_async_t * async){
 	}
 
 	if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){
+		mcu_debug_log_info(MCU_DEBUG_INFO, "I2C mem write to %X", i2c->slave_addr[0]);
 		ret = HAL_I2C_Mem_Write_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->loc, addr_size, (u8*)async->buf, async->nbyte);
 	} else if( i2c->o_flags & I2C_FLAG_PREPARE_DATA ){
+		mcu_debug_log_info(MCU_DEBUG_INFO, "I2C write to %X", i2c->slave_addr[0]);
 		ret = HAL_I2C_Master_Transmit_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->buf, async->nbyte);
 	} else {
 		ret = -1;
@@ -369,8 +372,10 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
 	}
 
 	if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "I2C mem read to %X", i2c->slave_addr[0]);
 		ret = HAL_I2C_Mem_Read_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->loc, addr_size, (u8*)async->buf, async->nbyte);
 	} else if( i2c->o_flags & I2C_FLAG_PREPARE_DATA ){
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "I2C read to %X", i2c->slave_addr[0]);
 		ret = HAL_I2C_Master_Receive_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->buf, async->nbyte);
 	}
 
@@ -485,6 +490,7 @@ void HAL_I2C_AbortCpltCallback(I2C_HandleTypeDef *hi2c){
 }
 
 static void mcu_i2c_ev_isr(int port) {
+	mcu_debug_printf("I2C ev\n");
 	i2c_local_t * i2c = i2c_local + port;
 	HAL_I2C_EV_IRQHandler(&i2c->hal_handle);
 }

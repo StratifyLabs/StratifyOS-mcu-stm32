@@ -135,7 +135,9 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
         }
 
         local->i2s_hal_handle.Init.CPOL = I2S_CPOL_LOW;
+#if defined I2S_CLOCK_PLL
         local->i2s_hal_handle.Init.ClockSource = I2S_CLOCK_PLL;
+#endif
 
         //this might be better implemented in the "core" driver for controlling the clocks
 #if defined RCC_PERIPHCLK_I2S
@@ -315,7 +317,11 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
     //called on overflow and underrun
     spi_local_t * spi = (spi_local_t *)hi2s;
     volatile u32 status = hi2s->Instance->SR;
-    status = hi2s->Instance->DR;
+#if defined STM32H7
+	 status = hi2s->Instance->UDRDR;
+#else
+	 status = hi2s->Instance->DR;
+#endif
     mcu_debug_log_error(MCU_DEBUG_DEVICE, " I2S Error %d on %p", hi2s->ErrorCode, hi2s->Instance);
     devfs_execute_cancel_handler(&spi->transfer_handler, (void*)&status, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 }

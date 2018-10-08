@@ -92,10 +92,12 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 
         //SDIO_CLOCK_BYPASS_DISABLE
         //SDIO_CLOCK_BYPASS_ENABLE
+#if defined SDIO_CLOCK_BYPASS_DISABLE
         local->hal_handle.Init.ClockBypass = SDIO_CLOCK_BYPASS_DISABLE;
         if( o_flags & SDIO_FLAG_IS_CLOCK_BYPASS_ENABLED ){
             local->hal_handle.Init.ClockBypass = SDIO_CLOCK_BYPASS_ENABLE;
         }
+#endif
 
         //SDIO_CLOCK_POWER_SAVE_DISABLE
         //SDIO_CLOCK_POWER_SAVE_ENABLE

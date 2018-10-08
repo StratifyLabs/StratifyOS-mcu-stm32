@@ -21,7 +21,6 @@
 #define ADC_LOCAL_H_
 
 #include <mcu/adc.h>
-
 #include "stm32_dma.h"
 
 typedef struct {

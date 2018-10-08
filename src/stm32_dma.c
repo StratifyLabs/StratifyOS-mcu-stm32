@@ -57,7 +57,9 @@ static const u8 stm32_dma1_irqs[MCU_DMA_STREAM_COUNT] = MCU_DMA1_IRQS;
 
 
 const u32 stm32_dma_channels[8] = {
+#if defined DMA_CHANNEL_0
 	DMA_CHANNEL_0, DMA_CHANNEL_1, DMA_CHANNEL_2, DMA_CHANNEL_3, DMA_CHANNEL_4, DMA_CHANNEL_5, DMA_CHANNEL_6, DMA_CHANNEL_7
+#endif
 };
 
 const u32 stm32_dma_priorities[4] = {
@@ -183,8 +185,10 @@ int stm32_dma_setattr(stm32_dma_channel_t * channel,
 
 #if defined DMA_REQUEST_0
 	channel->handle.Init.Request = stm32_dma_decode_channel(config->channel_number);
-#else
+#elif defined DMA_CHANNEL_0
 	channel->handle.Init.Channel = stm32_dma_decode_channel(config->channel_number);
+#else
+
 #endif
 
 	channel->handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory

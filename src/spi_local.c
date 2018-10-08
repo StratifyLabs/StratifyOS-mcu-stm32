@@ -321,8 +321,8 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
 	//execute the handler
 	spi_local_t * spi = (spi_local_t*)hspi;
 	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD DONE %d", hspi->TxXferSize);
-	devfs_execute_write_handler(&spi->transfer_handler,0, hspi->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
-	devfs_execute_read_handler(&spi->transfer_handler,0, hspi->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
+	devfs_execute_write_handler(&spi->transfer_handler, 0, hspi->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
+	devfs_execute_read_handler(&spi->transfer_handler, 0, hspi->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
 
 }
 
@@ -332,10 +332,14 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
 	mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI Error:0x%X", hspi->ErrorCode);
 
 	//deal with overrrun errors
+#if defined STM32H7
+	spi->hal_handle.Instance->UDRDR;
+#else
 	spi->hal_handle.Instance->DR;
+#endif
 	spi->hal_handle.Instance->SR;
 
-	devfs_execute_cancel_handler(&spi->transfer_handler,0, SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode), MCU_EVENT_FLAG_ERROR);
+	devfs_execute_cancel_handler(&spi->transfer_handler, 0, SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode), MCU_EVENT_FLAG_ERROR);
 }
 
 void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){

@@ -30,7 +30,6 @@ int mcu_dac_dma_open(const devfs_handle_t * handle){
 }
 
 int mcu_dac_dma_close(const devfs_handle_t * handle){
-    int result;
 
     //cancel DMA operations
 
@@ -43,7 +42,6 @@ int mcu_dac_dma_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_dac_dma_setattr(const devfs_handle_t * handle, void * ctl){
-    const u32 port = handle->port;
     const stm32_dac_dma_config_t * config = handle->config;
     dac_local_t * local = dac_local + handle->port;
 

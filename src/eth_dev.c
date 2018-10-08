@@ -303,6 +303,10 @@ int mcu_eth_write(const devfs_handle_t * handle, devfs_async_t * async){
 
     DEVFS_DRIVER_IS_BUSY(eth->transfer_handler.write, async);
 
+#if defined STM32H7
+
+
+#else
     __IO ETH_DMADescTypeDef * DmaTxDesc = eth->hal_handle.TxDesc;
 
     /* Is this buffer available? If not, goto error */
@@ -353,6 +357,8 @@ int mcu_eth_write(const devfs_handle_t * handle, devfs_async_t * async){
         /* Resume DMA transmission*/
         eth->hal_handle.Instance->DMATPDR = 0;
     }
+
+#endif
 
     eth->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EIO);

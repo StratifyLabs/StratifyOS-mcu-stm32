@@ -187,7 +187,9 @@ void mcu_set_sleep_mode(int * level){
 u32 mcu_core_get_reset_src(){
     u32 src = CORE_FLAG_IS_RESET_SYSTEM;
     u32 src_reg = RCC->CSR;
+#if defined RCC_CSR_RMVF
     RCC->CSR |= RCC_CSR_RMVF; //clear flags
+#endif
 
 #if defined RCC_CSR_BORRSTF
     if ( src_reg & RCC_CSR_BORRSTF ){
@@ -195,9 +197,11 @@ u32 mcu_core_get_reset_src(){
     }
 #endif
 
+#if defined RCC_CSR_IWDGRSTF
     if ( src_reg & (RCC_CSR_IWDGRSTF|RCC_CSR_WWDGRSTF) ){
         return CORE_FLAG_IS_RESET_WDT;
     }
+#endif
 
 #if defined RCC_CSR_PORRSTF
     if ( src_reg & RCC_CSR_PORRSTF ){
@@ -205,13 +209,17 @@ u32 mcu_core_get_reset_src(){
     }
 #endif
 
+#if defined RCC_CSR_SFTRSTF
     if( src_reg & RCC_CSR_SFTRSTF ){
         return CORE_FLAG_IS_RESET_SOFTWARE;
     }
+#endif
 
+#if defined RCC_CSR_PINRSTF
     if ( src_reg & RCC_CSR_PINRSTF ){
         return CORE_FLAG_IS_RESET_EXTERNAL;
     }
+#endif
 
     return src;
 }

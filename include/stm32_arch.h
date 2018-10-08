@@ -156,6 +156,25 @@
 #include "mcu_stm32l432xx.h"
 #endif
 
+#if defined __stm32h743xx
+#define CORE_M7 1
+#define ARM_MATH_CM7 1
+#define STM32_FLASH_LAYOUT_128K_PAGES 1
+#if !defined STM32H743xx
+#define STM32H743xx 1
+#endif
+#include "mcu_stm32h743xx.h"
+#endif
+
+#if defined __stm32h750xx
+#define CORE_M7 1
+#define ARM_MATH_CM7 1
+#define STM32_FLASH_LAYOUT_128K_PAGES 1
+#if !defined STM32H750xx
+#define STM32H743xx 1
+#endif
+#include "mcu_stm32h750xx.h"
+#endif
 
 typedef struct MCU_PACK {
     u32 o_flags;
