@@ -237,7 +237,7 @@ typedef enum
 #define __FPU_PRESENT             1       /*!< FPU present                                   */
 #define __ICACHE_PRESENT          1       /*!< CM7 instruction cache present                 */
 #define __DCACHE_PRESENT          1       /*!< CM7 data cache present                        */
-#include "core_cm7.h"                     /*!< Cortex-M7 processor and core peripherals      */
+#include <mcu/arch/cmsis/core_cm7.h>                     /*!< Cortex-M7 processor and core peripherals      */
 
 /**
   * @}

@@ -14,12 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>. */
 
-#ifndef MCU_STM32H743XX_H_
-#define MCU_STM32H743XX_H_
+#ifndef MCU_STM32H750XX_H_
+#define MCU_STM32H750XX_H_
 
 #include <mcu/types.h>
 #include "cmsis/stm32h7xx.h"
-#include "cmsis/stm32h743xx.h"
+#include "cmsis/stm32h750xx.h"
 
 
 #define MCU_NO_HARD_FAULT 1
@@ -40,7 +40,6 @@
 #define MCU_I2C_IRQS { I2C1_EV_IRQn, I2C2_EV_IRQn, I2C3_EV_IRQn }
 #define MCU_I2C_ER_IRQS { I2C1_ER_IRQn, I2C2_ER_IRQn, I2C3_ER_IRQn }
 
-#define MCU_I2C_API 0
 #define MCU_I2C_FMP_PORTS 0
 
 #define MCU_CORE_PORTS 1
@@ -113,4 +112,4 @@ extern "C" {
 #endif
 
 
-#endif /* MCU_STM32H743XX_H_ */
+#endif /* MCU_STM32H750XX_H_ */

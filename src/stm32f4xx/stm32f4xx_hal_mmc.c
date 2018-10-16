@@ -1226,8 +1226,7 @@ HAL_StatusTypeDef HAL_MMC_WriteBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pDat
     /* Set the DMA Abort callback */
     hmmc->hdmatx->XferAbortCallback = NULL;
     
-#if 0
-	 //this doesn't work with newer cards use MMC_FLAG_IS_BYTE_ADDRESSING instead
+#if 0 //__StratifyOS__ this doesn't work with newer cards use MMC_FLAG_IS_BYTE_ADDRESSING instead
     /* Check the Card capacity in term of Logical number of blocks */
     if ((hmmc->MmcCard.LogBlockNbr) < CAPACITY)
     {

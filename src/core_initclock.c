@@ -202,6 +202,7 @@ int mcu_core_initclock(int div){
 #if STM32_LOCAL_HAS_PERIPH_CLOCK_48
 	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 	PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_CLK48;
+
 	PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48CLKSOURCE_PLLQ;
 
 	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK){
@@ -340,7 +341,13 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority){
 }
 
 uint32_t HAL_GetTick(void){
+#if THIS_DOESNT_WORK
+	static u32 tick = 0;
+	//cortexm_delay_ms(1); //this needs to check if SYSTICK is running before delaying
+	return tick++;
+#else
 	return 0;
+#endif
 }
 
 void HAL_Delay(__IO uint32_t Delay){

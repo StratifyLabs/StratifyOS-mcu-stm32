@@ -346,7 +346,7 @@ void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
 	spi_local_t * spi = (spi_local_t*)hspi;
 
 	mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SPI Abort:0x%X", hspi->ErrorCode);
-	devfs_execute_cancel_handler(&spi->transfer_handler,0, hspi->RxXferSize - hspi->RxXferCount, 0);
+	devfs_execute_cancel_handler(&spi->transfer_handler,0, SYSFS_SET_RETURN(EAGAIN), 0);
 }
 
 //these handlers need to move to the local file
@@ -359,6 +359,7 @@ void mcu_core_spi1_isr(){
 		HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
 	}
 #else
+	//mcu_debug_printf("SPI1 IRQ\n");
 	HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
 #endif
 }

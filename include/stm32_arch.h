@@ -171,7 +171,7 @@
 #define ARM_MATH_CM7 1
 #define STM32_FLASH_LAYOUT_128K_PAGES 1
 #if !defined STM32H750xx
-#define STM32H743xx 1
+#define STM32H750xx 1
 #endif
 #include "mcu_stm32h750xx.h"
 #endif

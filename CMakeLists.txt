@@ -16,14 +16,14 @@ set(CMAKE_TOOLCHAIN_FILE ${SOS_TOOLCHAIN_CMAKE_PATH}/sos-lib-toolchain.cmake)
 set(SOS_LIB_NAME sos)
 project(${SOS_LIB_NAME} C ASM)
 
-option(BUILD_ALL "Build All configurations" OFF)
+option(BUILD_ALL "Build All configurations" ON)
 
 option(BUILD_STM32F4 "Build All F4 configurations" OFF)
 option(BUILD_STM32F401xC "Build F401xC configuration" OFF)
 option(BUILD_STM32F401xE "Build F401xE configuration" OFF)
 option(BUILD_STM32F411 "Build F411 configuration" OFF)
 option(BUILD_STM32F412 "Build F412 configuration" OFF)
-option(BUILD_STM32F417 "Build F417 configuration" ON)
+option(BUILD_STM32F417 "Build F417 configuration" OFF)
 option(BUILD_STM32F429 "Build F429 configuration" OFF)
 option(BUILD_STM32F446 "Build F446 configuration" OFF)
 

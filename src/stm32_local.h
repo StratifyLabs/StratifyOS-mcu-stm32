@@ -80,6 +80,8 @@ typedef SDMMC_TypeDef SDIO_TypeDef;
 #define STM32_LOCAL_HAS_PERIPH_CLOCK_48 1
 #endif
 
+#define RCC_CLK48CLKSOURCE_PLLQ RCC_CLK48SOURCE_PLL
+
 #endif
 
 #if defined STM32H7
