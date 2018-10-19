@@ -30,7 +30,7 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr) 
 
 
 void mcu_core_getserialno(mcu_sn_t * serial_number){
-    const u32 * serial_addr = &_unique_id;
+	const u32 * serial_addr = &_unique_id;
 	serial_number->sn[0] = serial_addr[0];
 	serial_number->sn[1] = serial_addr[1];
 	serial_number->sn[2] = serial_addr[2];
@@ -67,32 +67,32 @@ void core_init(){
 
 	//This is the de facto MCU initialization -- turn off power to peripherals that must be "open()"ed.
 
-	  __HAL_RCC_GPIOA_CLK_ENABLE();
-	  __HAL_RCC_GPIOB_CLK_ENABLE();
-	  __HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOC_CLK_ENABLE();
 #if defined GPIOD
-	  __HAL_RCC_GPIOD_CLK_ENABLE();
+	__HAL_RCC_GPIOD_CLK_ENABLE();
 #endif
 #if defined GPIOE
-	  __HAL_RCC_GPIOE_CLK_ENABLE();
+	__HAL_RCC_GPIOE_CLK_ENABLE();
 #endif
 #if defined GPIOF
-	  __HAL_RCC_GPIOF_CLK_ENABLE();
+	__HAL_RCC_GPIOF_CLK_ENABLE();
 #endif
 #if defined GPIOG
-	  __HAL_RCC_GPIOG_CLK_ENABLE();
+	__HAL_RCC_GPIOG_CLK_ENABLE();
 #endif
 #if defined GPIOH
-	  __HAL_RCC_GPIOH_CLK_ENABLE();
+	__HAL_RCC_GPIOH_CLK_ENABLE();
 #endif
 #if defined GPIOI
-      __HAL_RCC_GPIOI_CLK_ENABLE();
+	__HAL_RCC_GPIOI_CLK_ENABLE();
 #endif
 #if defined GPIOJ
-      __HAL_RCC_GPIOJ_CLK_ENABLE();
+	__HAL_RCC_GPIOJ_CLK_ENABLE();
 #endif
 #if defined GPIOK
-      __HAL_RCC_GPIOK_CLK_ENABLE();
+	__HAL_RCC_GPIOK_CLK_ENABLE();
 #endif
 }
 

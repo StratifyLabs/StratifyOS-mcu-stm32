@@ -26,23 +26,23 @@
 #if MCU_SAI_PORTS > 0
 
 typedef struct {
-    SAI_HandleTypeDef hal_handle;
-    devfs_transfer_handler_t transfer_handler;
-    u16 o_flags;
-    u8 ref_count;
-    u8 size_mult;
+	SAI_HandleTypeDef hal_handle;
+	devfs_transfer_handler_t transfer_handler;
+	u16 o_flags;
+	u8 ref_count;
+	u8 size_mult;
 } sai_local_t;
 
 enum {
-    SAI_LOCAL_IS_DMA = (1<<0),
-    SAI_LOCAL_IS_I2S = (1<<1),
-    SAI_LOCAL_IS_FULL_DUPLEX = (1<<2)
+	SAI_LOCAL_IS_DMA = (1<<0),
+	SAI_LOCAL_IS_I2S = (1<<1),
+	SAI_LOCAL_IS_FULL_DUPLEX = (1<<2)
 };
 
 //each SAI block is half duplex -- two blocks (one SAI unit) can be full duplex
 typedef struct {
-    sai_local_t sai;
-    stm32_dma_channel_t dma_channel;
+	sai_local_t sai;
+	stm32_dma_channel_t dma_channel;
 } sai_dma_local_t;
 
 extern sai_local_t sai_local[MCU_SAI_PORTS] MCU_SYS_MEM;

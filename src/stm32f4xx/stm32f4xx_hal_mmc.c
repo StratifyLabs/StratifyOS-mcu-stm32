@@ -1135,7 +1135,7 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData
       /* Clear all the static flags */
       __HAL_MMC_CLEAR_FLAG(hmmc, SDIO_STATIC_FLAGS); 
       hmmc->ErrorCode |= errorstate;
-      hmmc->State = HAL_MMC_STATE_READY;
+		hmmc->State = HAL_MMC_STATE_READY;
       return HAL_ERROR;
     }
         
@@ -1143,7 +1143,7 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData
     if(NumberOfBlocks > 1U)
     {
       hmmc->Context = (MMC_CONTEXT_READ_MULTIPLE_BLOCK | MMC_CONTEXT_DMA);
-      
+
       /* Read Multi Block command */ 
       errorstate = SDMMC_CmdReadMultiBlock(hmmc->Instance, BlockAdd);
     }
@@ -1160,7 +1160,7 @@ HAL_StatusTypeDef HAL_MMC_ReadBlocks_DMA(MMC_HandleTypeDef *hmmc, uint8_t *pData
       __HAL_MMC_CLEAR_FLAG(hmmc, SDIO_STATIC_FLAGS); 
       hmmc->ErrorCode |= errorstate;
       hmmc->State = HAL_MMC_STATE_READY;
-      return HAL_ERROR;
+		return HAL_ERROR;
     }
 
     return HAL_OK;

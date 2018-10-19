@@ -85,7 +85,7 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 	if( o_flags & MMC_FLAG_SET_INTERFACE ){
 
 		if( o_flags & MMC_FLAG_IS_BYTE_ADDRESSING ){
-			local->o_flags = EMMC_LOCAL_FLAG_IS_BYTE_ADDRESSING;
+			local->o_flags = MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING;
 		}
 
 		//SDIO_CLOCK_EDGE_RISING
@@ -136,10 +136,6 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		if( HAL_MMC_Init(&local->hal_handle) != HAL_OK ){
-			return SYSFS_SET_RETURN(EINVAL);
-		}
-
-		if( HAL_MMC_Init(&local->hal_handle) != HAL_OK ){
 			return SYSFS_SET_RETURN(EIO);
 		}
 
@@ -147,16 +143,31 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 		//SDIO_BUS_WIDE_1B -- set as default for initialziation
 		//SDIO_BUS_WIDE_4B
 		//SDIO_BUS_WIDE_8B -- not compatible with SDIO
-		if( o_flags & MMC_FLAG_IS_BUS_WIDTH_8 ){
-			HAL_MMC_ConfigWideBusOperation(&local->hal_handle, SDIO_BUS_WIDE_4B);
+		if( o_flags & MMC_FLAG_IS_BUS_WIDTH_4 ){
+			local->hal_handle.Init.BusWide = SDIO_BUS_WIDE_4B;
 		} else if ( o_flags & MMC_FLAG_IS_BUS_WIDTH_8 ){
-			HAL_MMC_ConfigWideBusOperation(&local->hal_handle, SDIO_BUS_WIDE_8B);
+			local->hal_handle.Init.BusWide = SDIO_BUS_WIDE_8B;
 		}
 
+		HAL_MMC_ConfigWideBusOperation(&local->hal_handle, local->hal_handle.Init.BusWide);
 	}
 
 	if( o_flags & MMC_FLAG_GET_CARD_STATE ){
 		return HAL_MMC_GetCardState(&local->hal_handle);
+	}
+
+	if( o_flags & MMC_FLAG_RESET ){
+		u32 width = local->hal_handle.Init.BusWide;
+		mcu_debug_printf("Reset EMMC %d\n", width);
+		HAL_MMC_DeInit(&local->hal_handle);
+		if( HAL_MMC_Init(&local->hal_handle) != HAL_OK ){
+			mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to reset MMC\n");
+			return SYSFS_SET_RETURN(EIO);
+		}
+
+		HAL_MMC_ConfigWideBusOperation(&local->hal_handle, width);
+		mcu_debug_printf("State: %d\n", HAL_MMC_GetCardState(&mmc_local[handle->port].hal_handle));
+
 	}
 
 	if( o_flags & MMC_FLAG_ERASE_BLOCKS ){
@@ -176,13 +187,19 @@ int mmc_local_setaction(const devfs_handle_t * handle, void * ctl){
 	mmc_local_t * local = mmc_local + handle->port;
 
 	if( action->handler.callback == 0 ){
+		if( action->o_events & (MCU_EVENT_FLAG_DATA_READY|MCU_EVENT_FLAG_WRITE_COMPLETE) ){
+			if( local->o_flags & MMC_LOCAL_FLAG_IS_DMA ){
+				HAL_MMC_Abort(&local->hal_handle);
+			} else {
+				HAL_MMC_Abort_IT(&local->hal_handle);
+			}
+		}
+
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
-			HAL_MMC_Abort_IT(&local->hal_handle);
 			devfs_execute_read_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
 		}
 
 		if( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
-			HAL_MMC_Abort_IT(&local->hal_handle);
 			devfs_execute_write_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
 		}
 	}
@@ -227,10 +244,12 @@ void HAL_MMC_RxCpltCallback(MMC_HandleTypeDef *hmmc){
 	devfs_execute_read_handler(&local->transfer_handler, 0, hmmc->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
 }
 
+extern int mmc_dma_was_error;
+
 void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc){
 	mmc_local_t * local = (mmc_local_t *)hmmc;
 	//mcu_debug_log_warning(MCU_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX %ld", hmmc->ErrorCode, hmmc->hdmatx->ErrorCode);
-	if( hmmc->ErrorCode ){
+	if( hmmc->ErrorCode || mmc_dma_was_error ){
 		mcu_debug_log_error(MCU_DEBUG_DEVICE, "MMC Error 0x%lX", hmmc->ErrorCode);
 		devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 	}

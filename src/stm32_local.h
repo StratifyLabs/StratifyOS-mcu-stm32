@@ -39,14 +39,14 @@
 //#define STM32_LOCAL_HAS_PERIPH_CLOCK_SELECTOR 1
 
 #if defined(STM32F410Tx) || defined(STM32F410Cx) || defined(STM32F410Rx) || defined(STM32F446xx) || defined(STM32F469xx) ||\
-    defined(STM32F479xx) || defined(STM32F412Zx) || defined(STM32F412Vx) || defined(STM32F412Rx) || defined(STM32F412Cx) ||\
-    defined(STM32F413xx) || defined(STM32F423xx)
+	defined(STM32F479xx) || defined(STM32F412Zx) || defined(STM32F412Vx) || defined(STM32F412Rx) || defined(STM32F412Cx) ||\
+	defined(STM32F413xx) || defined(STM32F423xx)
 #define STM32_LOCAL_HAS_RCC_PLLR 1
 #endif
 
 #if defined(STM32F446xx) || defined(STM32F410Tx) || defined(STM32F410Cx) || defined(STM32F410Rx) || \
-    defined(STM32F412Zx) || defined(STM32F412Vx) || defined(STM32F412Rx) || defined(STM32F412Cx) || defined(STM32F413xx) || defined(STM32F423xx) || \
-    defined(STM32F469xx) || defined(STM32F479xx)
+	defined(STM32F412Zx) || defined(STM32F412Vx) || defined(STM32F412Rx) || defined(STM32F412Cx) || defined(STM32F413xx) || defined(STM32F423xx) || \
+	defined(STM32F469xx) || defined(STM32F479xx)
 #define STM32_LOCAL_HAS_PERIPH_CLOCK_48 1
 #endif
 
@@ -76,7 +76,7 @@ typedef SDMMC_TypeDef SDIO_TypeDef;
 #include "stm32f7xx/stm32f7xx_hal_rcc_ex.h"
 
 #if defined (STM32F745xx) || defined (STM32F746xx) || defined (STM32F756xx) || defined (STM32F765xx) || defined (STM32F767xx) || \
-    defined (STM32F769xx) || defined (STM32F777xx) || defined (STM32F779xx)
+	defined (STM32F769xx) || defined (STM32F777xx) || defined (STM32F779xx)
 #define STM32_LOCAL_HAS_PERIPH_CLOCK_48 1
 #endif
 

@@ -13,8 +13,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  */
 
 #include <string.h>
@@ -23,7 +23,7 @@
 
 
 static int get_last_bootloader_page(){
-    return stm32_flash_get_sector(MCU_FLASH_CODE_END);
+	return stm32_flash_get_sector(MCU_FLASH_CODE_END);
 }
 
 int mcu_flash_open(const devfs_handle_t * handle){ return 0; }
@@ -53,7 +53,7 @@ int mcu_flash_getpageinfo(const devfs_handle_t * handle, void * ctl){
 		ctlp->addr = addr;
 		ctlp->size = size;
 	} else {
-        ret = SYSFS_SET_RETURN(EINVAL);
+		ret = SYSFS_SET_RETURN(EINVAL);
 	}
 	return ret;
 }
@@ -76,7 +76,7 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 
 	if ( page <= last_page ){
 		//Never erase the bootloader
-        return SYSFS_SET_RETURN(EROFS);
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
 
@@ -84,7 +84,7 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 	page_size = stm32_flash_get_sector_size(page);
 
 	if( stm32_flash_is_flash(addr, page_size) == 0 ){
-        return SYSFS_SET_RETURN(EINVAL);
+		return SYSFS_SET_RETURN(EINVAL);
 	}
 
 
@@ -97,7 +97,7 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 
 	err = stm32_flash_erase_sector(page);
 	if( err < 0 ){
-        err = SYSFS_SET_RETURN(EIO);
+		err = SYSFS_SET_RETURN(EIO);
 	}
 
 	return err;
@@ -109,7 +109,7 @@ int mcu_flash_getpage(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_flash_getsize(const devfs_handle_t * handle, void * ctl){
-    return MCU_FLASH_SIZE;
+	return MCU_FLASH_SIZE;
 }
 
 int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
@@ -125,17 +125,17 @@ int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
 	//is dest in flash?
 	if( stm32_flash_is_flash(wattr->addr, nbyte) == 0 ){
 		//not if flash
-        return SYSFS_SET_RETURN(EINVAL);
+		return SYSFS_SET_RETURN(EINVAL);
 	}
 
 	//will dest overwrite bootloader?
-    if( ((wattr->addr + nbyte >= MCU_FLASH_CODE_START) && (wattr->addr <= MCU_FLASH_CODE_END)) ){
-        return SYSFS_SET_RETURN(EROFS);
+	if( ((wattr->addr + nbyte >= MCU_FLASH_CODE_START) && (wattr->addr <= MCU_FLASH_CODE_END)) ){
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
 
 	if ( stm32_flash_blank_check(wattr->addr,  nbyte) ){
-        return SYSFS_SET_RETURN(EROFS);
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
 	err = stm32_flash_write(wattr->addr, wattr->buf, nbyte);
@@ -143,12 +143,12 @@ int mcu_flash_writepage(const devfs_handle_t * handle, void * ctl){
 	if( err == 0 ){
 		err = nbyte;
 	}
-    return err;
+	return err;
 
 }
 
 int mcu_flash_write(const devfs_handle_t * cfg, devfs_async_t * async){
-    return SYSFS_SET_RETURN(ENOTSUP);
+	return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int mcu_flash_read(const devfs_handle_t * cfg, devfs_async_t * async){

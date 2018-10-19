@@ -26,8 +26,8 @@
 #if MCU_PIO_PORTS > 0
 
 typedef struct {
-    mcu_event_handler_t handler;
-    u8 ref_count;
+	mcu_event_handler_t handler;
+	u8 ref_count;
 } pio_local_t;
 
 static pio_local_t m_mcu_pio_local[MCU_PIO_PORTS] MCU_SYS_MEM;
@@ -36,197 +36,197 @@ static GPIO_TypeDef * const m_pio_regs_table[MCU_PIO_PORTS] = MCU_PIO_REGS;
 
 //this function is used by other modules to access pio regs
 GPIO_TypeDef * const hal_get_pio_regs(u8 port){
-    if( port < MCU_PIO_PORTS ){
-        return m_pio_regs_table[port];
-    }
-    return 0;
+	if( port < MCU_PIO_PORTS ){
+		return m_pio_regs_table[port];
+	}
+	return 0;
 }
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(pio, PIO_VERSION, PIO_IOC_IDENT_CHAR, I_MCU_TOTAL + I_PIO_TOTAL, mcu_pio_setmask, mcu_pio_clrmask, mcu_pio_get, mcu_pio_set)
 
 
 int mcu_pio_open(const devfs_handle_t * handle){
-    int port = handle->port;
-    if ( m_mcu_pio_local[port].ref_count == 0 ){
-        m_mcu_pio_local[port].handler.callback = NULL;
-        switch(port){
-        case 0: __HAL_RCC_GPIOA_CLK_ENABLE(); break;
-        case 1: __HAL_RCC_GPIOB_CLK_ENABLE(); break;
-        case 2: __HAL_RCC_GPIOC_CLK_ENABLE(); break;
+	int port = handle->port;
+	if ( m_mcu_pio_local[port].ref_count == 0 ){
+		m_mcu_pio_local[port].handler.callback = NULL;
+		switch(port){
+			case 0: __HAL_RCC_GPIOA_CLK_ENABLE(); break;
+			case 1: __HAL_RCC_GPIOB_CLK_ENABLE(); break;
+			case 2: __HAL_RCC_GPIOC_CLK_ENABLE(); break;
 #if defined GPIOD
-        case 3: __HAL_RCC_GPIOD_CLK_ENABLE(); break;
+			case 3: __HAL_RCC_GPIOD_CLK_ENABLE(); break;
 #endif
 #if defined GPIOE
-        case 4: __HAL_RCC_GPIOE_CLK_ENABLE(); break;
+			case 4: __HAL_RCC_GPIOE_CLK_ENABLE(); break;
 #endif
 #if defined GPIOF
-        case 5: __HAL_RCC_GPIOF_CLK_ENABLE(); break;
+			case 5: __HAL_RCC_GPIOF_CLK_ENABLE(); break;
 #endif
 #if defined GPIOG
-        case 6: __HAL_RCC_GPIOG_CLK_ENABLE(); break;
+			case 6: __HAL_RCC_GPIOG_CLK_ENABLE(); break;
 #endif
-        case 7: __HAL_RCC_GPIOH_CLK_ENABLE(); break;
-        }
-    }
-    m_mcu_pio_local[port].ref_count++;
-    return 0;
+			case 7: __HAL_RCC_GPIOH_CLK_ENABLE(); break;
+		}
+	}
+	m_mcu_pio_local[port].ref_count++;
+	return 0;
 }
 
 int mcu_pio_close(const devfs_handle_t * handle){
-    int port = handle->port;
-    if ( m_mcu_pio_local[port].ref_count > 0 ){
-        if ( m_mcu_pio_local[port].ref_count == 1 ){
+	int port = handle->port;
+	if ( m_mcu_pio_local[port].ref_count > 0 ){
+		if ( m_mcu_pio_local[port].ref_count == 1 ){
 
 
-            m_mcu_pio_local[port].handler.callback = NULL;
-        }
-        m_mcu_pio_local[port].ref_count--;
-    }
-    return 0;
+			m_mcu_pio_local[port].handler.callback = NULL;
+		}
+		m_mcu_pio_local[port].ref_count--;
+	}
+	return 0;
 }
 
 int mcu_pio_dev_is_powered(const devfs_handle_t * handle){
-    int port = handle->port;
-    if ( m_mcu_pio_local[port].ref_count > 0 ){
-        return 1;
-    }
-    return 0;
+	int port = handle->port;
+	if ( m_mcu_pio_local[port].ref_count > 0 ){
+		return 1;
+	}
+	return 0;
 }
 
 int mcu_pio_write(const devfs_handle_t * handle, devfs_async_t * wop){
-    mcu_action_t * action;
+	mcu_action_t * action;
 
-    if( wop->nbyte != sizeof(mcu_action_t) ){
-        return SYSFS_SET_RETURN(EINVAL);
-    }
+	if( wop->nbyte != sizeof(mcu_action_t) ){
+		return SYSFS_SET_RETURN(EINVAL);
+	}
 
-    action = (mcu_action_t*)wop->buf;
-    action->handler = wop->handler;
-    return mcu_pio_setaction(handle, action);
+	action = (mcu_action_t*)wop->buf;
+	action->handler = wop->handler;
+	return mcu_pio_setaction(handle, action);
 }
 
 int mcu_pio_read(const devfs_handle_t * cfg, devfs_async_t * async){
-    return SYSFS_SET_RETURN(ENOTSUP);
+	return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int mcu_pio_setaction(const devfs_handle_t * handle, void * ctl){
 
-    return 0;
+	return 0;
 }
 
 
 int mcu_pio_getinfo(const devfs_handle_t * handle, void * ctl){
-    //read the direction pin status
-    return SYSFS_SET_RETURN(ENOTSUP);
+	//read the direction pin status
+	return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int mcu_pio_setattr(const devfs_handle_t * handle, void * ctl){
-    int port = handle->port;
-    pio_attr_t * attr;
-    GPIO_InitTypeDef gpio_init;
-    GPIO_TypeDef * regs = m_pio_regs_table[port];
-    attr = ctl;
+	int port = handle->port;
+	pio_attr_t * attr;
+	GPIO_InitTypeDef gpio_init;
+	GPIO_TypeDef * regs = m_pio_regs_table[port];
+	attr = ctl;
 
-    memset(&gpio_init, 0, sizeof(GPIO_InitTypeDef));
+	memset(&gpio_init, 0, sizeof(GPIO_InitTypeDef));
 
-    //decode the direction
-    gpio_init.Mode = GPIO_MODE_INPUT;
-    if( attr->o_flags & (PIO_FLAG_SET_OUTPUT) ){
-        if( attr->o_flags & (PIO_FLAG_IS_OPENDRAIN) ){
-            gpio_init.Mode = GPIO_MODE_OUTPUT_OD;
-        } else {
-            //set output pins as output
-            gpio_init.Mode = GPIO_MODE_OUTPUT_PP;
-        }
-    }
+	//decode the direction
+	gpio_init.Mode = GPIO_MODE_INPUT;
+	if( attr->o_flags & (PIO_FLAG_SET_OUTPUT) ){
+		if( attr->o_flags & (PIO_FLAG_IS_OPENDRAIN) ){
+			gpio_init.Mode = GPIO_MODE_OUTPUT_OD;
+		} else {
+			//set output pins as output
+			gpio_init.Mode = GPIO_MODE_OUTPUT_PP;
+		}
+	}
 
-    //code the speed
-    gpio_init.Speed = GPIO_SPEED_FREQ_MEDIUM;
-    if( attr->o_flags & (PIO_FLAG_IS_SPEED_LOW) ){
-        gpio_init.Speed = GPIO_SPEED_FREQ_LOW;
-    } else if( attr->o_flags & (PIO_FLAG_IS_SPEED_HIGH) ){
-        gpio_init.Speed = GPIO_SPEED_FREQ_HIGH;
-    } else if( attr->o_flags & (PIO_FLAG_IS_SPEED_BLAZING) ){
-        gpio_init.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    }
+	//code the speed
+	gpio_init.Speed = GPIO_SPEED_FREQ_MEDIUM;
+	if( attr->o_flags & (PIO_FLAG_IS_SPEED_LOW) ){
+		gpio_init.Speed = GPIO_SPEED_FREQ_LOW;
+	} else if( attr->o_flags & (PIO_FLAG_IS_SPEED_HIGH) ){
+		gpio_init.Speed = GPIO_SPEED_FREQ_HIGH;
+	} else if( attr->o_flags & (PIO_FLAG_IS_SPEED_BLAZING) ){
+		gpio_init.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	}
 
-    //decode the pull mechanism
-    gpio_init.Pull = GPIO_NOPULL;
-    if( attr->o_flags & (PIO_FLAG_IS_PULLUP) ){
-        gpio_init.Pull = GPIO_PULLUP;
-    } else if( attr->o_flags & (PIO_FLAG_IS_PULLDOWN) ){
-        gpio_init.Pull = GPIO_PULLDOWN;
-    }
+	//decode the pull mechanism
+	gpio_init.Pull = GPIO_NOPULL;
+	if( attr->o_flags & (PIO_FLAG_IS_PULLUP) ){
+		gpio_init.Pull = GPIO_PULLUP;
+	} else if( attr->o_flags & (PIO_FLAG_IS_PULLDOWN) ){
+		gpio_init.Pull = GPIO_PULLDOWN;
+	}
 
 
-    gpio_init.Pin = attr->o_pinmask;
-    HAL_GPIO_Init(regs, &gpio_init);
+	gpio_init.Pin = attr->o_pinmask;
+	HAL_GPIO_Init(regs, &gpio_init);
 
-    return 0;
+	return 0;
 }
 
 int mcu_pio_setmask(const devfs_handle_t * handle, void * ctl){
-    int port = handle->port;
-    GPIO_TypeDef * regs = m_pio_regs_table[port];
-    u32 o_pinmask = (u32)ctl;
-    HAL_GPIO_WritePin(regs, o_pinmask, GPIO_PIN_SET);
-    return 0;
+	int port = handle->port;
+	GPIO_TypeDef * regs = m_pio_regs_table[port];
+	u32 o_pinmask = (u32)ctl;
+	HAL_GPIO_WritePin(regs, o_pinmask, GPIO_PIN_SET);
+	return 0;
 }
 
 int mcu_pio_clrmask(const devfs_handle_t * handle, void * ctl){
-    int port = handle->port;
-    GPIO_TypeDef * regs = m_pio_regs_table[port];
-    u32 o_pinmask = (u32)ctl;
-    HAL_GPIO_WritePin(regs, o_pinmask, GPIO_PIN_RESET);
-    return 0;
+	int port = handle->port;
+	GPIO_TypeDef * regs = m_pio_regs_table[port];
+	u32 o_pinmask = (u32)ctl;
+	HAL_GPIO_WritePin(regs, o_pinmask, GPIO_PIN_RESET);
+	return 0;
 }
 
 int mcu_pio_get(const devfs_handle_t * handle, void * ctl){
-    u32 * value = ctl;
-    if( value ){
-        *value = m_pio_regs_table[handle->port]->IDR;
-        return SYSFS_RETURN_SUCCESS;
-    }
-    return SYSFS_SET_RETURN(EINVAL);
+	u32 * value = ctl;
+	if( value ){
+		*value = m_pio_regs_table[handle->port]->IDR;
+		return SYSFS_RETURN_SUCCESS;
+	}
+	return SYSFS_SET_RETURN(EINVAL);
 }
 
 int mcu_pio_set(const devfs_handle_t * handle, void * ctl){
-    int port = handle->port;
-    GPIO_TypeDef * regs = m_pio_regs_table[port];
-    regs->ODR = (u32)ctl;
-    return 0;
+	int port = handle->port;
+	GPIO_TypeDef * regs = m_pio_regs_table[port];
+	regs->ODR = (u32)ctl;
+	return 0;
 }
 
 void exec_cancelled0(){
-    //mcu_execute_event_handler(&(_mcu_pio0_local.handler), MCU_EVENT_SET_CODE(MCU_EVENT_OP_CANCELLED));
+	//mcu_execute_event_handler(&(_mcu_pio0_local.handler), MCU_EVENT_SET_CODE(MCU_EVENT_OP_CANCELLED));
 }
 
 void exec_cancelled2(){
-    //mcu_execute_event_handler(&(_mcu_pio2_local.handler), MCU_EVENT_SET_CODE(MCU_EVENT_OP_CANCELLED));
+	//mcu_execute_event_handler(&(_mcu_pio2_local.handler), MCU_EVENT_SET_CODE(MCU_EVENT_OP_CANCELLED));
 }
 
 
 //argument shouldn't be zero
 void mcu_core_exti0_isr(){
-    HAL_GPIO_EXTI_IRQHandler(0);
+	HAL_GPIO_EXTI_IRQHandler(0);
 }
 
 void mcu_core_exti1_isr(){
-    HAL_GPIO_EXTI_IRQHandler(0);
+	HAL_GPIO_EXTI_IRQHandler(0);
 }
 
 void mcu_core_exti2_isr(){
-    HAL_GPIO_EXTI_IRQHandler(0);
+	HAL_GPIO_EXTI_IRQHandler(0);
 }
 
 
 void mcu_core_exti3_isr(){
-    HAL_GPIO_EXTI_IRQHandler(0);
+	HAL_GPIO_EXTI_IRQHandler(0);
 }
 
 
 void mcu_core_exti4_isr(){
-    HAL_GPIO_EXTI_IRQHandler(0);
+	HAL_GPIO_EXTI_IRQHandler(0);
 }
 
 

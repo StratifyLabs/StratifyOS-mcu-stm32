@@ -25,24 +25,22 @@
 #include "stm32_dma.h"
 
 typedef struct {
-    union { //must be first
-        SPI_HandleTypeDef hal_handle;
+	union { //must be first
+		SPI_HandleTypeDef hal_handle;
 #if MCU_I2S_SPI_PORTS > 0
-        I2S_HandleTypeDef i2s_hal_handle;
+		I2S_HandleTypeDef i2s_hal_handle;
 #endif
-    };
-    devfs_transfer_handler_t transfer_handler;
-    stm32_dma_channel_t dma_rx_channel;
-    stm32_dma_channel_t dma_tx_channel;
-    u16 o_flags;
-    u8 ref_count;
-    u8 size_mult;
+	};
+	devfs_transfer_handler_t transfer_handler;
+	u16 o_flags;
+	u8 ref_count;
+	u8 size_mult;
 } spi_local_t;
 
 enum {
-    SPI_LOCAL_IS_DMA = (1<<0),
-    SPI_LOCAL_IS_I2S = (1<<1),
-    SPI_LOCAL_IS_FULL_DUPLEX = (1<<2)
+	SPI_LOCAL_IS_DMA = (1<<0),
+	SPI_LOCAL_IS_I2S = (1<<1),
+	SPI_LOCAL_IS_FULL_DUPLEX = (1<<2)
 };
 
 

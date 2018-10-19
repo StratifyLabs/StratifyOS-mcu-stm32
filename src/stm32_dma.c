@@ -42,7 +42,7 @@
 #if MCU_DMA_PORTS > 0
 
 typedef struct {
-	stm32_dma_channel_t * stream[MCU_DMA_STREAM_COUNT];
+	stm32_dma_channel_t stream[MCU_DMA_STREAM_COUNT];
 } stm32_dma_streams_t;
 
 stm32_dma_streams_t stm32_dma_handle[MCU_DMA_PORTS] MCU_SYS_MEM;
@@ -57,9 +57,9 @@ static const u8 stm32_dma1_irqs[MCU_DMA_STREAM_COUNT] = MCU_DMA1_IRQS;
 
 
 const u32 stm32_dma_channels[8] = {
-#if defined DMA_CHANNEL_0
+	#if defined DMA_CHANNEL_0
 	DMA_CHANNEL_0, DMA_CHANNEL_1, DMA_CHANNEL_2, DMA_CHANNEL_3, DMA_CHANNEL_4, DMA_CHANNEL_5, DMA_CHANNEL_6, DMA_CHANNEL_7
-#endif
+	#endif
 };
 
 const u32 stm32_dma_priorities[4] = {
@@ -89,16 +89,26 @@ DMA_Stream_TypeDef * stm32_dma_get_stream_instance(u32 dma_number, u32 stream_nu
 	return stm32_dma0_regs[stream_number];
 }
 
-void stm32_dma_set_interrupt_priority(stm32_dma_channel_t * channel, const mcu_action_t * action){
-	if( channel->interrupt_number > 0 ){
-		cortexm_set_irq_priority(channel->interrupt_number, action->prio, action->o_events);
+void stm32_dma_set_interrupt_priority(const stm32_dma_channel_config_t * config, const mcu_action_t * action){
+	u32 dma_number = config->dma_number;
+	u32 stream_number = config->stream_number;
+	if( (dma_number < MCU_DMA_PORTS) && (stream_number < MCU_DMA_STREAM_COUNT) ){
+		stm32_dma_channel_t * channel = &stm32_dma_handle[dma_number].stream[stream_number];
+		if( channel->interrupt_number > 0 ){
+			cortexm_set_irq_priority(channel->interrupt_number, action->prio, action->o_events);
+		}
 	}
 }
 
 
-void stm32_dma_set_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number){
-	if( dma_number < MCU_DMA_PORTS ){
+stm32_dma_channel_t * stm32_dma_set_handle(u32 dma_number, u32 stream_number){
+	if( (dma_number < MCU_DMA_PORTS) && (stream_number < MCU_DMA_STREAM_COUNT) ){
+
 		int interrupt_number;
+		interrupt_number = stm32_dma_get_interrupt_number(dma_number, stream_number);
+		if( interrupt_number < 0 ){
+			return 0;
+		}
 
 		if( dma_number == 0 ){
 			__HAL_RCC_DMA1_CLK_ENABLE();
@@ -108,28 +118,14 @@ void stm32_dma_set_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 str
 #endif
 		}
 
-		interrupt_number = stm32_dma_get_interrupt_number(dma_number, stream_number);
-		if( interrupt_number > 0 ){
-			channel->interrupt_number = interrupt_number;
-			cortexm_enable_irq( interrupt_number );
-			mcu_debug_log_info(MCU_DEBUG_DEVICE, "Enable interrupt %d", channel->interrupt_number);
-		} else {
-			return;
-		}
-
-		if( stream_number < MCU_DMA_STREAM_COUNT ){
-			channel->next = 0;
-			stm32_dma_channel_t * current_channel = stm32_dma_handle[dma_number].stream[stream_number];
-			if( current_channel == 0 ){
-				stm32_dma_handle[dma_number].stream[stream_number] = channel;
-			} else {
-				while( current_channel->next != 0 ){
-					current_channel = current_channel->next;
-				}
-				current_channel->next = channel;
-			}
-		}
+		stm32_dma_channel_t * channel = &stm32_dma_handle[dma_number].stream[stream_number];
+		channel->interrupt_number = interrupt_number;
+		cortexm_enable_irq( interrupt_number );
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Enable interrupt %d", channel->interrupt_number);
+		return channel;
 	}
+
+	return 0;
 }
 
 int stm32_dma_get_interrupt_number(u32 dma_number, u32 stream_number){
@@ -143,44 +139,30 @@ int stm32_dma_get_interrupt_number(u32 dma_number, u32 stream_number){
 	return -1;
 }
 
-void stm32_dma_clear_handle(stm32_dma_channel_t * channel, u32 dma_number, u32 stream_number){
+void stm32_dma_clear_handle(u32 dma_number, u32 stream_number){
 	//remove a handle that is in the list
-	if( dma_number < MCU_DMA_PORTS ){
+	if( (dma_number < MCU_DMA_PORTS) && (stream_number < MCU_DMA_STREAM_COUNT) ){
 
+		stm32_dma_channel_t * channel = &stm32_dma_handle[dma_number].stream[stream_number];
 		//ON STM32 Interrupt zero is the WDT (or something else that typically doesn't support DMA -- so zero is not valid
 		if( channel->interrupt_number <= 0 ){
+			mcu_debug_printf("interrupt number invalid %d\n", channel->interrupt_number);
 			return;
 		}
 
+		HAL_DMA_DeInit(&channel->handle);
 		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Disable interrupt %d", channel->interrupt_number);
-
 		cortexm_enable_irq( channel->interrupt_number );
 		channel->interrupt_number = -1;
-
-		if( channel == stm32_dma_handle[dma_number].stream[stream_number] ){
-			stm32_dma_handle[dma_number].stream[stream_number] = channel->next;
-			channel->next = 0;
-		} else {
-			stm32_dma_channel_t * channel_list = stm32_dma_handle[dma_number].stream[stream_number];
-			while( channel_list != 0 ){
-				if( channel_list->next == channel ){
-					channel_list->next = channel->next;
-					channel_list = 0;
-					channel->next = 0;
-				} else {
-					channel_list = channel_list->next;
-				}
-			}
-
-		}
 	}
 }
 
-int stm32_dma_setattr(stm32_dma_channel_t * channel,
-							 const stm32_dma_channel_config_t * config){
+stm32_dma_channel_t * stm32_dma_setattr(const stm32_dma_channel_config_t * config){
 
+	stm32_dma_channel_t * channel;
 	u32 o_flags = config->o_flags;
-	stm32_dma_set_handle(channel, config->dma_number, config->stream_number);
+	channel = stm32_dma_set_handle(config->dma_number, config->stream_number);
+	if( channel == 0 ){ return 0; }
 	channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_number, config->stream_number);
 
 #if defined DMA_REQUEST_0
@@ -241,22 +223,17 @@ int stm32_dma_setattr(stm32_dma_channel_t * channel,
 	channel->handle.Init.Priority = stm32_dma_decode_priority(config->priority);
 
 	int result = HAL_DMA_Init(&channel->handle);
-	if ( result != HAL_OK){
+	if ( result != HAL_OK ){
 		mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to init DMA %d", result);
-		return SYSFS_SET_RETURN(EIO);
+		return 0;
 	}
 
-	return 0;
+	return channel;
 }
 
 
 static void mcu_core_dma_handler(int dma_number, int stream_number){
-	stm32_dma_channel_t * channel = stm32_dma_handle[dma_number].stream[stream_number];
-	while( channel != 0 ){
-		HAL_DMA_IRQHandler(&channel->handle);
-		//mcu_debug_log_info(MCU_DEBUG_DEVICE, "handle DMA %d %d %p", dma_number, stream_number, channel);
-		channel = channel->next;
-	}
+	HAL_DMA_IRQHandler(&stm32_dma_handle[dma_number].stream[stream_number].handle);
 }
 
 void mcu_core_dma1_stream0_isr(){ mcu_core_dma_handler(0, 0); }

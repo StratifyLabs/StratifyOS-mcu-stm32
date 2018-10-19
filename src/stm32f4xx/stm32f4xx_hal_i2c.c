@@ -264,7 +264,6 @@
 /**
   * @}
   */
-#include <mcu/debug.h>
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -1288,8 +1287,6 @@ HAL_StatusTypeDef HAL_I2C_Master_Receive_IT(I2C_HandleTypeDef *hi2c, uint16_t De
 
 		  /* Process Unlocked */
 		  __HAL_UNLOCK(hi2c);
-
-		  mcu_debug_printf("i2c timeout 0x%lX 0x%lX\n", hi2c->Instance->CR1, hi2c->Instance->SR2);
 
 		  return HAL_TIMEOUT;
 		}
@@ -2855,7 +2852,6 @@ HAL_StatusTypeDef HAL_I2C_Mem_Read_IT(I2C_HandleTypeDef *hi2c, uint16_t DevAddre
 		  /* Process Unlocked */
 		  __HAL_UNLOCK(hi2c);
 
-		  mcu_debug_printf("i2c timeout 0x%lX 0x%lX\n", hi2c->Instance->CR1, hi2c->Instance->SR2);
 		  return HAL_TIMEOUT;
 		}
 	 }
@@ -3339,6 +3335,7 @@ void HAL_I2C_EV_IRQHandler(I2C_HandleTypeDef *hi2c)
   uint32_t itsources    = READ_REG(hi2c->Instance->CR2);
 
   uint32_t CurrentMode  = hi2c->Mode;
+
 
   /* Master or Memory mode selected */
   if((CurrentMode == HAL_I2C_MODE_MASTER) || (CurrentMode == HAL_I2C_MODE_MEM))

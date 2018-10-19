@@ -27,12 +27,12 @@
 #if MCU_SDIO_PORTS > 0
 
 typedef struct {
-    SD_HandleTypeDef hal_handle; //must be the first member of the struct
-    devfs_transfer_handler_t transfer_handler;
-    stm32_dma_channel_t dma_rx_channel;
-    stm32_dma_channel_t dma_tx_channel;
-    u32 o_flags;
-    u8 ref_count;
+	SD_HandleTypeDef hal_handle; //must be the first member of the struct
+	devfs_transfer_handler_t transfer_handler;
+	stm32_dma_channel_t dma_rx_channel;
+	stm32_dma_channel_t dma_tx_channel;
+	u32 o_flags;
+	u8 ref_count;
 } sdio_local_t;
 
 extern SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS];
