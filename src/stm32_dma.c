@@ -146,7 +146,6 @@ void stm32_dma_clear_handle(u32 dma_number, u32 stream_number){
 		stm32_dma_channel_t * channel = &stm32_dma_handle[dma_number].stream[stream_number];
 		//ON STM32 Interrupt zero is the WDT (or something else that typically doesn't support DMA -- so zero is not valid
 		if( channel->interrupt_number <= 0 ){
-			mcu_debug_printf("interrupt number invalid %d\n", channel->interrupt_number);
 			return;
 		}
 

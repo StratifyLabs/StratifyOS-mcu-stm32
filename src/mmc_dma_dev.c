@@ -35,20 +35,17 @@ int mcu_mmc_dma_close(const devfs_handle_t * handle){
 
 	if( local->ref_count == 1 ){
 		//disable the DMA
-		mcu_debug_printf("MMC close\n");
 		if( local->transfer_handler.read || local->transfer_handler.write ){
 			mcu_debug_printf("Can't close -- busy\n");
 			return SYSFS_SET_RETURN(EBUSY);
 		}
 
-		const stm32_i2s_spi_dma_config_t * config;
+		const stm32_mmc_dma_config_t * config;
 		config = handle->config;
 
 		if( config ){
 			stm32_dma_clear_handle(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number);
 			stm32_dma_clear_handle(config->dma_config.tx.dma_number, config->dma_config.tx.stream_number);
-		} else {
-			mcu_debug_printf("config is null\n");
 		}
 
 	}
@@ -109,8 +106,6 @@ int mcu_mmc_dma_getstatus(const devfs_handle_t * handle, void * ctl){
 	return mmc_local_getstatus(handle, ctl);
 }
 
-int mmc_dma_was_error = 0;
-
 
 int mcu_mmc_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 	mmc_local_t * local = mmc_local + handle->port;
@@ -125,19 +120,8 @@ int mcu_mmc_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 		loc = async->loc;
 	}
 
-	if( mmc_dma_was_error ){
-		mcu_debug_printf("Was error State: %d\n", HAL_MMC_GetCardState(&mmc_local[handle->port].hal_handle));
-		mmc_dma_was_error++;
-	}
-
 	local->hal_handle.TxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_WriteBlocks_DMA
 	if( (result = HAL_MMC_WriteBlocks_DMA(&local->hal_handle, async->buf, loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
-		if( mmc_dma_was_error ){
-			mcu_debug_printf("Was error success?? %d\n", mmc_dma_was_error);
-			if( mmc_dma_was_error > 10 ){
-				mmc_dma_was_error = 0;
-			}
-		}
 		return 0;
 	}
 
@@ -164,25 +148,12 @@ int mcu_mmc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 		loc = async->loc;
 	}
 
-	if( mmc_dma_was_error ){
-		//mcu_debug_printf("read Was error State: %d\n", HAL_MMC_GetCardState(&mmc_local[handle->port].hal_handle));
-		//was_error++;
-	}
-
 	if( (hal_result = HAL_MMC_ReadBlocks_DMA(&local->hal_handle, async->buf, loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
-		if( mmc_dma_was_error ){
-			//mcu_debug_printf("read Was error success?? %d\n", was_error);
-			if( mmc_dma_was_error > 10 ){
-				//was_error = 0;
-			}
-		}
 		return 0;
 	}
 
-	mcu_debug_printf("R:HAL Not OK %d %d %d 0x%lX\n", async->loc, async->nbyte, hal_result, mmc_local[handle->port].hal_handle.ErrorCode);
-	mcu_debug_printf("State: %d\n", HAL_MMC_GetCardState(&mmc_local[handle->port].hal_handle));
+	mcu_debug_log_warning(MCU_DEBUG_DEVICE, "R:HAL Not OK %d %d %d 0x%lX", async->loc, async->nbyte, hal_result, mmc_local[handle->port].hal_handle.ErrorCode);
 	local->transfer_handler.read = 0;
-	mmc_dma_was_error = 1;
 	return SYSFS_SET_RETURN(EIO);
 }
 
