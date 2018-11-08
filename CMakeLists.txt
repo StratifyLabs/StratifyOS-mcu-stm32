@@ -152,6 +152,7 @@ install(FILES ${STM32F4XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f4xx)
 install(FILES ${STM32F7XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f7xx)
 install(FILES ${STM32H7XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32h7xx)
 install(FILES ${CMAKE_SOURCE_DIR}/src/stm32h7xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32h7xx/Legacy)
+install(FILES ${CMAKE_SOURCE_DIR}/src/stm32f7xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32f7xx/Legacy)
 
 
 install(DIRECTORY include/ DESTINATION include/mcu/arch/stm32)

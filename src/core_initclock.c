@@ -25,6 +25,10 @@ void sos_led_root_enable(void * args);
 //requires mcu_core_osc_freq, mcu_board_config.core_cpu_freq, and mcu_board_config.core_periph_freq to be defined ext
 int mcu_core_initclock(int div){
 
+	mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_INITIALIZE_CLOCK, 0);
+
+#if 0
+
 #if defined STM32H7
 	mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_INITIALIZE_CLOCK, 0);
 #elif !defined STM32L4
@@ -252,6 +256,8 @@ int mcu_core_initclock(int div){
 	/**Enable MSI Auto calibration
 		  */
 	HAL_RCCEx_EnableMSIPLLMode();
+
+#endif
 
 #endif
 

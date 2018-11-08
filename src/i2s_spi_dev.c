@@ -77,6 +77,7 @@ int mcu_i2s_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
+		i2s_spi_local_wait_for_errata_level(local);
 		ret = HAL_I2SEx_TransmitReceive_IT(
 					&local->i2s_hal_handle,
 					async->buf,
@@ -87,6 +88,7 @@ int mcu_i2s_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
 #endif
 
 	} else {
+		i2s_spi_local_wait_for_errata_level(local);
 		ret = HAL_I2S_Transmit_IT(&local->i2s_hal_handle, async->buf, async->nbyte/local->size_mult);
 	}
 
@@ -111,6 +113,7 @@ int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
 	}
 #endif
 	//check for overrun
+	i2s_spi_local_wait_for_errata_level(local);
 	ret = HAL_I2S_Receive_IT(&local->i2s_hal_handle, async->buf, async->nbyte/local->size_mult);
 
 	if( ret != HAL_OK ){

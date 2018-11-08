@@ -54,10 +54,10 @@ int mcu_rtc_open(const devfs_handle_t * handle){
 			//turn on RCC clock
 			switch(port){
 				case 0:
-#if defined STM32F7
+#if defined STM32H7
 					__HAL_RCC_RTC_CLK_ENABLE();
 #endif
-#if defined STM32F4
+#if defined STM32F4 || defined STM32F7
 					__HAL_RCC_RTC_ENABLE();
 #endif
 

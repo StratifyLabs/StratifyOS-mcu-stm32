@@ -150,6 +150,7 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 		if( local->transfer_handler.read->nbyte < async->nbyte ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
+		i2s_spi_local_wait_for_errata_level(local);
 
 		result = HAL_I2SEx_TransmitReceive_DMA(
 					&local->i2s_hal_handle,
@@ -162,6 +163,7 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 	} else {
 		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Write I2S DMA 0x%lX %p %d %d", local->i2s_hal_handle.Init.Mode, async->buf, async->nbyte, local->size_mult);
+		i2s_spi_local_wait_for_errata_level(local);
 
 		result = HAL_I2S_Transmit_DMA(&local->i2s_hal_handle, async->buf,  async->nbyte/local->size_mult);
 	}
@@ -197,6 +199,8 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 #endif
 
 	mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read I2S DMA 0x%lX %p %d %d", local->i2s_hal_handle.Init.Mode, async->buf, async->nbyte, local->size_mult);
+
+	i2s_spi_local_wait_for_errata_level(local);
 
 	ret = HAL_I2S_Receive_DMA(&local->i2s_hal_handle, async->buf,  (async->nbyte/local->size_mult));
 

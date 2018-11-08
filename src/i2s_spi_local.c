@@ -23,6 +23,7 @@
 
 #if MCU_I2S_SPI_PORTS > 0
 
+
 int i2s_spi_local_open(const devfs_handle_t * handle){
 	spi_local_t * local = spi_local + handle->port;
 	local->o_flags |= SPI_LOCAL_IS_I2S;
@@ -53,7 +54,6 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 		return SYSFS_SET_RETURN(EINVAL);
 	}
 
-	int is_errata_required = 0;
 	u32 o_flags = attr->o_flags;
 
 	//set I2S Flags
@@ -64,7 +64,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 
 		if( o_flags & I2S_FLAG_SET_SLAVE ){
-			is_errata_required |= (1<<1);
+			local->o_flags |= SPI_LOCAL_IS_ERRATA_REQUIRED;
 			if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
 				local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_TX;
 				if( o_flags & I2S_FLAG_IS_RECEIVER ){
@@ -100,7 +100,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 		} else if( o_flags & I2S_FLAG_IS_FORMAT_PCM_LONG ){
 			local->i2s_hal_handle.Init.Standard = I2S_STANDARD_PCM_LONG;
 		} else {
-			is_errata_required |= (1<<0);
+			local->o_flags |= SPI_LOCAL_IS_ERRATA_I2S;
 		}
 
 		local->i2s_hal_handle.Init.DataFormat = I2S_DATAFORMAT_16B;
@@ -143,6 +143,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 #if defined RCC_PERIPHCLK_I2S
 		RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 		PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
+		//PeriphClkInitStruct.PLLI2S.PLLI2SM = 4;
 		PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
 		PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
 		int result;
@@ -177,30 +178,15 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 
 		//errata: http://www.st.com/content/ccc/resource/technical/document/errata_sheet/0a/98/58/84/86/b6/47/a2/DM00037591.pdf/files/DM00037591.pdf/jcr:content/translations/en.DM00037591.pdf
-		if( is_errata_required & (1<<1) ){
-			u32 pio_value;
-			u32 pio_mask;
-			u32 pio_level;
-			u32 target_level;
-			devfs_handle_t handle;
-			handle.port = attr->pin_assignment.ws.port;
-			pio_mask = 1<<attr->pin_assignment.ws.pin;
-
-			//MSB Mode errata_required & (1<<0) == 0 -- wait until high then wait until low
-			//I2S Mode errata_required & (1<<0) == 1 -- wait until low then wait until high
-
-			target_level = (is_errata_required & (1<<0)) == 0; //MSB : 1, I2S: 0
-			do {
-				mcu_pio_get(&handle, &pio_value);
-				pio_level = (pio_value & pio_mask) != 0; //1 for set, 0 for not
-			} while( pio_level != target_level );
-
-			target_level = (is_errata_required & (1<<0)) != 0; //MSB : 1, I2S: 1
-			do {
-				mcu_pio_get(&handle, &pio_value);
-				pio_level = (pio_value & pio_mask) != 0; //1 for set, 0 for not
-			} while( pio_level != target_level );
-
+		if( local->o_flags & SPI_LOCAL_IS_ERRATA_REQUIRED ){
+			local->ws_pin = attr->pin_assignment.ws;
+			if( local->ws_pin.port == 0xff ){
+				//try the other config
+				if( handle->config ){
+					const i2s_attr_t * config_attr = handle->config;
+					local->ws_pin = config_attr->pin_assignment.ws;
+				}
+			}
 		}
 
 		if( mcu_set_pin_assignment(
@@ -211,12 +197,46 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
-		if( HAL_I2S_Init(&local->i2s_hal_handle) != HAL_OK ){
+		int hal_result;
+		if( (hal_result = HAL_I2S_Init(&local->i2s_hal_handle)) != HAL_OK ){
+			mcu_debug_log_error(MCU_DEBUG_DEVICE, "Init I2S failed %d", hal_result);
 			return SYSFS_SET_RETURN(EIO);
 		}
 	}
 
 	return 0;
+}
+
+void i2s_spi_local_wait_for_errata_level(spi_local_t * local){
+
+	if( local->o_flags & SPI_LOCAL_IS_ERRATA_REQUIRED ){
+		devfs_handle_t pio_handle;
+		u32 pio_level;
+		u32 pio_value;
+		u32 pio_mask;
+		u32 target_level;
+		pio_handle.port = local->ws_pin.port;
+		pio_mask = 1 << local->ws_pin.pin;
+
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "execute I2S slave errata on %d.%d", local->ws_pin.port, local->ws_pin.pin);
+
+		//errata: http://www.st.com/content/ccc/resource/technical/document/errata_sheet/0a/98/58/84/86/b6/47/a2/DM00037591.pdf/files/DM00037591.pdf/jcr:content/translations/en.DM00037591.pdf
+
+		//MSB Mode errata_required & (1<<0) == 0 -- wait until high then wait until low
+		//I2S Mode errata_required & (1<<0) == 1 -- wait until low then wait until high
+
+		target_level = (local->o_flags & SPI_LOCAL_IS_ERRATA_I2S) == 0; //MSB : 1, I2S: 0
+		do {
+			mcu_pio_get(&pio_handle, &pio_value);
+			pio_level = (pio_value & pio_mask) != 0; //1 for set, 0 for not
+		} while( pio_level != target_level );
+
+		target_level = !target_level; //MSB : 0, I2S: 1
+		do {
+			mcu_pio_get(&pio_handle, &pio_value);
+			pio_level = (pio_value & pio_mask) != 0; //1 for set, 0 for not
+		} while( pio_level != target_level );
+	}
 }
 
 //where is the half callback??

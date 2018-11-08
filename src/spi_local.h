@@ -32,6 +32,7 @@ typedef struct {
 #endif
 	};
 	devfs_transfer_handler_t transfer_handler;
+	mcu_pin_t ws_pin;
 	u16 o_flags;
 	u8 ref_count;
 	u8 size_mult;
@@ -40,7 +41,9 @@ typedef struct {
 enum {
 	SPI_LOCAL_IS_DMA = (1<<0),
 	SPI_LOCAL_IS_I2S = (1<<1),
-	SPI_LOCAL_IS_FULL_DUPLEX = (1<<2)
+	SPI_LOCAL_IS_FULL_DUPLEX = (1<<2),
+	SPI_LOCAL_IS_ERRATA_REQUIRED = (1<<3),
+	SPI_LOCAL_IS_ERRATA_I2S = (1<<4)
 };
 
 
