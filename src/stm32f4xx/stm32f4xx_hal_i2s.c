@@ -328,10 +328,6 @@ HAL_StatusTypeDef HAL_I2S_Init(I2S_HandleTypeDef *hi2s)
     i2sodd = (uint32_t) (i2sodd << 8U);
   }
 
-#if 1 //__StratifyOS__
-  mcu_debug_printf("I2S:%ld %ld %ld %ld\n", i2sclk, tmp, i2sdiv, i2sodd); //this seems to add a delay that actually matters??
-#endif
-
   /* Test if the divider is 1 or 0 or greater than 0xFF */
   if((i2sdiv < 2U) || (i2sdiv > 0xFFU))
   {

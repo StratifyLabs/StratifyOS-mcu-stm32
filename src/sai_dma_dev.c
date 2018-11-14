@@ -49,7 +49,7 @@ int mcu_sai_dma_close(const devfs_handle_t * handle){
 		}
 
 		if( config ){
-			stm32_dma_clear_handle(&sai_dma_local[port].dma_channel, config->dma_config.dma_number, config->dma_config.stream_number);
+			stm32_dma_clear_handle(config->dma_config.dma_number, config->dma_config.stream_number);
 		}
 
 	}
@@ -104,9 +104,8 @@ int mcu_sai_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
 		sai_dma_local[port].sai.o_flags = SAI_LOCAL_IS_DMA;
 
-
-		int dma_result = stm32_dma_setattr(&sai_dma_local[port].dma_channel, &config->dma_config);
-		if( dma_result < 0 ){ return dma_result; }
+		stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config);
+		if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
 
 		if( attr->o_flags & I2S_FLAG_IS_RECEIVER ){
 			mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set I2S DMA as receiver %d.%d.%d",
@@ -116,7 +115,7 @@ int mcu_sai_dma_setattr(const devfs_handle_t * handle, void * ctl){
 									 );
 
 
-			__HAL_LINKDMA((&sai_dma_local[port].sai.hal_handle), hdmarx, sai_dma_local[port].dma_channel.handle);
+			__HAL_LINKDMA((&sai_dma_local[port].sai.hal_handle), hdmarx, channel->handle);
 		}
 
 		if( attr->o_flags & I2S_FLAG_IS_TRANSMITTER ){

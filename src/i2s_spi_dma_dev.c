@@ -162,10 +162,10 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 #endif
 
 	} else {
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Write I2S DMA 0x%lX %p %d %d", local->i2s_hal_handle.Init.Mode, async->buf, async->nbyte, local->size_mult);
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Write I2S DMA 0x%lX %p %d %d 0x%lX", local->i2s_hal_handle.Init.Mode, async->buf, async->nbyte, local->size_mult, local->o_flags);
 		i2s_spi_local_wait_for_errata_level(local);
 
-		result = HAL_I2S_Transmit_DMA(&local->i2s_hal_handle, async->buf,  async->nbyte/local->size_mult);
+		result = HAL_I2S_Transmit_DMA(&local->i2s_hal_handle, async->buf,  (async->nbyte/local->size_mult));
 	}
 
 	if( result != HAL_OK ){

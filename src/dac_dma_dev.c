@@ -81,14 +81,15 @@ int mcu_dac_dma_setattr(const devfs_handle_t * handle, void * ctl){
     }
 #else
 
-    int dma_result = stm32_dma_setattr(&local->dma_tx_channel, &config->dma_config);
-    if( dma_result < 0 ){ return dma_result; }
+	 stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config);
+	 if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
+
 #endif
 
     if( handle->port == 0 ){
-        __HAL_LINKDMA((&local->hal_handle), DMA_Handle1, local->dma_tx_channel.handle);
+		  __HAL_LINKDMA((&local->hal_handle), DMA_Handle1, channel->handle);
     } else {
-        __HAL_LINKDMA((&local->hal_handle), DMA_Handle2, local->dma_tx_channel.handle);
+		  __HAL_LINKDMA((&local->hal_handle), DMA_Handle2, channel->handle);
     }
 
     return dac_local_setattr(handle, ctl);

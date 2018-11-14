@@ -26,7 +26,7 @@
 
 int i2s_spi_local_open(const devfs_handle_t * handle){
 	spi_local_t * local = spi_local + handle->port;
-	local->o_flags |= SPI_LOCAL_IS_I2S;
+	local->o_flags = SPI_LOCAL_IS_I2S;
 	return spi_local_open(handle);
 }
 
@@ -50,9 +50,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 	const u32 port = handle->port;
 	const i2s_attr_t * attr = mcu_select_attr(handle, ctl);
 	spi_local_t * local = spi_local + handle->port;
-	if( attr == 0 ){
-		return SYSFS_SET_RETURN(EINVAL);
-	}
+	if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
 
 	u32 o_flags = attr->o_flags;
 
@@ -62,6 +60,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
 		local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
 #endif
+
 
 		if( o_flags & I2S_FLAG_SET_SLAVE ){
 			local->o_flags |= SPI_LOCAL_IS_ERRATA_REQUIRED;
@@ -77,6 +76,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 				local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_RX;
 			}
 		} else {
+
 			if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
 				local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_TX;
 				if( o_flags & I2S_FLAG_IS_RECEIVER ){
@@ -139,6 +139,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 		local->i2s_hal_handle.Init.ClockSource = I2S_CLOCK_PLL;
 #endif
 
+#if 0
 		//this might be better implemented in the "core" driver for controlling the clocks
 #if defined RCC_PERIPHCLK_I2S
 		RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
@@ -175,6 +176,8 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 			mcu_debug_log_error(MCU_DEBUG_DEVICE, "PERIPH CLOCK SET FAILED %d", result);
 			return SYSFS_SET_RETURN(EIO);
 		}
+#endif
+
 #endif
 
 		//errata: http://www.st.com/content/ccc/resource/technical/document/errata_sheet/0a/98/58/84/86/b6/47/a2/DM00037591.pdf/files/DM00037591.pdf/jcr:content/translations/en.DM00037591.pdf

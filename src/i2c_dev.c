@@ -533,16 +533,20 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 			cortexm_delay_us(1000);
 			__HAL_RCC_I2C1_RELEASE_RESET();
 			break;
+#if defined I2C2
 		case 1:
 			__HAL_RCC_I2C2_FORCE_RESET();
 			cortexm_delay_us(1000);
 			__HAL_RCC_I2C2_RELEASE_RESET();
 			break;
+#endif
+#if defined I2C3
 		case 2:
-			__HAL_RCC_I2C2_FORCE_RESET();
+			__HAL_RCC_I2C3_FORCE_RESET();
 			cortexm_delay_us(1000);
-			__HAL_RCC_I2C2_RELEASE_RESET();
+			__HAL_RCC_I2C3_RELEASE_RESET();
 			break;
+#endif
 	}
 
 
