@@ -26,13 +26,19 @@
 #if MCU_PIO_PORTS > 0
 
 typedef struct {
-	mcu_event_handler_t handler;
 	u8 ref_count;
+	u8 pull_mode;
 } pio_local_t;
+
+typedef struct {
+	mcu_event_handler_t handler;
+} pio_local_event_handler_t;
 
 static pio_local_t m_mcu_pio_local[MCU_PIO_PORTS] MCU_SYS_MEM;
 static GPIO_TypeDef * const m_pio_regs_table[MCU_PIO_PORTS] = MCU_PIO_REGS;
 //static u8 const m_pio_irqs[MCU_PIO_PORTS] = MCU_PIO_IRQS;
+
+static pio_local_event_handler_t pio_local_event_handler[16]; //there are 23 events but on 16 interrupts/events
 
 //this function is used by other modules to access pio regs
 GPIO_TypeDef * const hal_get_pio_regs(u8 port){
@@ -48,7 +54,6 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(pio, PIO_VERSION, PIO_IOC_IDENT_CHAR, I_MCU_TOTA
 int mcu_pio_open(const devfs_handle_t * handle){
 	int port = handle->port;
 	if ( m_mcu_pio_local[port].ref_count == 0 ){
-		m_mcu_pio_local[port].handler.callback = NULL;
 		switch(port){
 			case 0: __HAL_RCC_GPIOA_CLK_ENABLE(); break;
 			case 1: __HAL_RCC_GPIOB_CLK_ENABLE(); break;
@@ -76,9 +81,7 @@ int mcu_pio_close(const devfs_handle_t * handle){
 	int port = handle->port;
 	if ( m_mcu_pio_local[port].ref_count > 0 ){
 		if ( m_mcu_pio_local[port].ref_count == 1 ){
-
-
-			m_mcu_pio_local[port].handler.callback = NULL;
+			//
 		}
 		m_mcu_pio_local[port].ref_count--;
 	}
@@ -110,6 +113,35 @@ int mcu_pio_read(const devfs_handle_t * cfg, devfs_async_t * async){
 }
 
 int mcu_pio_setaction(const devfs_handle_t * handle, void * ctl){
+	const mcu_action_t * action = ctl;
+	pio_local_t * local = m_mcu_pio_local + handle->port;
+	//there are 23 events but on 16 that have interrupts
+	GPIO_TypeDef * regs = m_pio_regs_table[handle->port];
+
+	if( action->channel < 16 ){
+		GPIO_InitTypeDef gpio_init;
+
+		pio_local_event_handler_t * local_handler = pio_local_event_handler + action->channel;
+
+		if( action->o_events & MCU_EVENT_FLAG_RISING ){
+			if( action->o_events & MCU_EVENT_FLAG_RISING ){
+				gpio_init.Mode = GPIO_MODE_IT_RISING_FALLING;
+			} else {
+				gpio_init.Mode = GPIO_MODE_IT_RISING;
+			}
+		} else if( action->o_events & MCU_EVENT_FLAG_FALLING ){
+			gpio_init.Mode = GPIO_MODE_IT_FALLING;
+		}
+
+		//set pull to current status
+		gpio_init.Pull = local->pull_mode;
+
+		local_handler->handler = action->handler;
+
+		HAL_GPIO_Init(regs, &gpio_init);
+
+	}
+
 
 	return 0;
 }
@@ -126,6 +158,7 @@ int mcu_pio_setattr(const devfs_handle_t * handle, void * ctl){
 	GPIO_InitTypeDef gpio_init;
 	GPIO_TypeDef * regs = m_pio_regs_table[port];
 	attr = ctl;
+	pio_local_t * local = m_mcu_pio_local + handle->port;
 
 	memset(&gpio_init, 0, sizeof(GPIO_InitTypeDef));
 
@@ -158,6 +191,7 @@ int mcu_pio_setattr(const devfs_handle_t * handle, void * ctl){
 		gpio_init.Pull = GPIO_PULLDOWN;
 	}
 
+	local->pull_mode = gpio_init.Pull;
 
 	gpio_init.Pin = attr->o_pinmask;
 	HAL_GPIO_Init(regs, &gpio_init);
@@ -197,12 +231,18 @@ int mcu_pio_set(const devfs_handle_t * handle, void * ctl){
 	return 0;
 }
 
-void exec_cancelled0(){
-	//mcu_execute_event_handler(&(_mcu_pio0_local.handler), MCU_EVENT_SET_CODE(MCU_EVENT_OP_CANCELLED));
-}
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	pio_local_event_handler_t * local = pio_local_event_handler + GPIO_Pin;
+	pio_event_data_t event_data;
 
-void exec_cancelled2(){
-	//mcu_execute_event_handler(&(_mcu_pio2_local.handler), MCU_EVENT_SET_CODE(MCU_EVENT_OP_CANCELLED));
+	event_data.falling = 0;
+	event_data.rising = 0;
+	event_data.status = 0;
+
+	if( devfs_execute_event_handler(&local->handler, MCU_EVENT_FLAG_RISING, &event_data) == 0 ){
+		//cancel the action -- what IO is it on? Or just disable the interrupt
+		//HAL_GPIO_DeInit()
+	}
 }
 
 
@@ -212,21 +252,40 @@ void mcu_core_exti0_isr(){
 }
 
 void mcu_core_exti1_isr(){
-	HAL_GPIO_EXTI_IRQHandler(0);
+	HAL_GPIO_EXTI_IRQHandler(1);
 }
 
 void mcu_core_exti2_isr(){
-	HAL_GPIO_EXTI_IRQHandler(0);
+	HAL_GPIO_EXTI_IRQHandler(2);
 }
 
 
 void mcu_core_exti3_isr(){
-	HAL_GPIO_EXTI_IRQHandler(0);
+	HAL_GPIO_EXTI_IRQHandler(3);
 }
 
 
 void mcu_core_exti4_isr(){
-	HAL_GPIO_EXTI_IRQHandler(0);
+	HAL_GPIO_EXTI_IRQHandler(4);
+}
+
+//pins 5 to 9
+void mcu_core_exti9_5_isr(){
+	HAL_GPIO_EXTI_IRQHandler(5);
+	HAL_GPIO_EXTI_IRQHandler(6);
+	HAL_GPIO_EXTI_IRQHandler(7);
+	HAL_GPIO_EXTI_IRQHandler(8);
+	HAL_GPIO_EXTI_IRQHandler(9);
+}
+
+//pins 10 to 15
+void mcu_core_exti15_10_isr(){
+	HAL_GPIO_EXTI_IRQHandler(10);
+	HAL_GPIO_EXTI_IRQHandler(11);
+	HAL_GPIO_EXTI_IRQHandler(12);
+	HAL_GPIO_EXTI_IRQHandler(13);
+	HAL_GPIO_EXTI_IRQHandler(14);
+	HAL_GPIO_EXTI_IRQHandler(15);
 }
 
 
