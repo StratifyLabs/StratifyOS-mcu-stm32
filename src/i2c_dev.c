@@ -377,7 +377,12 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
 	}
 
 	if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){
-		ret = HAL_I2C_Mem_Read_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->loc, addr_size, (u8*)async->buf, async->nbyte);
+		//ret = HAL_I2C_Mem_Read_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->loc, addr_size, (u8*)async->buf, async->nbyte);
+		//do a no stop here
+		ret = HAL_I2C_Master_Sequential_Transmit_IT(
+					&i2c->hal_handle,
+					i2c->slave_addr[0]<<1,
+				(u8*)&async->loc, addr_size, I2C_FIRST_FRAME);
 	} else if( i2c->o_flags & I2C_FLAG_PREPARE_DATA ){
 		ret = HAL_I2C_Master_Receive_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->buf, async->nbyte);
 	}
@@ -396,15 +401,29 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
 }
 
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c){
-	i2c_local_t * i2c = (i2c_local_t*)hi2c;
+	i2c_local_t * local = (i2c_local_t*)hi2c;
 
 	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "Tx complete");
 
-	//TX complete
-	devfs_execute_write_handler(&i2c->transfer_handler,
-										 0,
-										 0,
-										 MCU_EVENT_FLAG_WRITE_COMPLETE);
+	//is this a read operation to be continued?
+	if( local->transfer_handler.read != 0 ){
+		if( HAL_I2C_Master_Sequential_Receive_IT(&local->hal_handle,
+															  local->slave_addr[0]<<1,
+															  local->transfer_handler.read->buf,
+															  local->transfer_handler.read->nbyte,
+															  I2C_LAST_FRAME) != HAL_OK ){
+			devfs_execute_cancel_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_ERROR);
+		}
+
+
+	} else {
+
+		//TX complete
+		devfs_execute_write_handler(&local->transfer_handler,
+											 0,
+											 0,
+											 MCU_EVENT_FLAG_WRITE_COMPLETE);
+	}
 }
 
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c){

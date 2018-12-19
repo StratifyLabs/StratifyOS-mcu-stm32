@@ -31,7 +31,26 @@ int mcu_dac_dma_open(const devfs_handle_t * handle){
 
 int mcu_dac_dma_close(const devfs_handle_t * handle){
 
-    //cancel DMA operations
+	 //cancel DMA operations	adc_local_t * local = adc_local + handle->port;
+	dac_local_t * local = dac_local + handle->port;
+	if( local->ref_count == 1 ){
+		//disable the DMA
+
+		const stm32_adc_dma_config_t * config;
+		config = handle->config;
+		u32 channel;
+		if( handle->port ){
+			channel = DAC_CHANNEL_1;
+		} else {
+			channel = DAC_CHANNEL_2;
+		}
+		HAL_DAC_Stop_DMA(&local->hal_handle, channel);
+		devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), 0);
+
+		if( config ){
+			stm32_dma_clear_handle(config->dma_config.dma_number, config->dma_config.stream_number);
+		}
+	}
 
     return dac_local_close(handle);
 }
@@ -47,44 +66,9 @@ int mcu_dac_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
     if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
-#if 0
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "DAC Configure DMA %d %d %d", config->dma_config.dma_number, config->dma_config.stream_number, config->dma_config.channel_number);
-    stm32_dma_channel_t * dma_channel = &dac_local[port].dma_tx_channel;
-    stm32_dma_set_handle(dma_channel, config->dma_config.dma_number, config->dma_config.stream_number); //need to get the DMA# and stream# from a table -- or from config
-    dma_channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_config.dma_number, config->dma_config.stream_number); //DMA1 stream 0
-
-#if defined DMA_REQUEST_0
-    dma_channel->handle.Init.Request = stm32_dma_decode_channel(config->dma_config.channel_number);
-#else
-    dma_channel->handle.Init.Channel = stm32_dma_decode_channel(config->dma_config.channel_number);
-#endif
-    dma_channel->handle.Init.Mode = DMA_CIRCULAR;
-    dma_channel->handle.Init.Direction = DMA_MEMORY_TO_PERIPH; //read is always periph to memory
-    dma_channel->handle.Init.PeriphInc = DMA_PINC_DISABLE; //don't inc peripheral
-    dma_channel->handle.Init.MemInc = DMA_MINC_ENABLE; //do inc the memory
-
-#if defined DMA_FIFOMODE_ENABLE
-    dma_channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    dma_channel->handle.Init.FIFOMode = DMA_FIFO_THRESHOLD_HALFFULL;
-    dma_channel->handle.Init.MemBurst = DMA_MBURST_INC4;
-    dma_channel->handle.Init.PeriphBurst = DMA_MBURST_INC4;
-#endif
-
-    dma_channel->handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    dma_channel->handle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-
-
-    dma_channel->handle.Init.Priority = stm32_dma_decode_priority(config->dma_config.priority);
-
-    if (HAL_DMA_Init(&dma_channel->handle) != HAL_OK){
-        return SYSFS_SET_RETURN(EIO);
-    }
-#else
 
 	 stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config);
 	 if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
-
-#endif
 
     if( handle->port == 0 ){
 		  __HAL_LINKDMA((&local->hal_handle), DMA_Handle1, channel->handle);
