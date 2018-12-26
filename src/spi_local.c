@@ -226,6 +226,10 @@ int spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 		local->hal_handle.Init.NSS = SPI_NSS_SOFT;
 		local->hal_handle.Init.FirstBit = SPI_FIRSTBIT_MSB;
+		if( o_flags & SPI_FLAG_IS_LSB_FIRST ){
+			local->hal_handle.Init.FirstBit = SPI_FIRSTBIT_LSB;
+		}
+
 		if( o_flags & SPI_FLAG_IS_FORMAT_TI ){
 			local->hal_handle.Init.TIMode = SPI_TIMODE_ENABLE;
 		} else {
