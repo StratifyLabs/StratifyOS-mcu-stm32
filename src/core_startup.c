@@ -21,6 +21,7 @@
 #include "stm32_local.h"
 
 extern u32 _unique_id;
+extern void SystemInit();
 
 static const char sys_proc_name[] = "sys";
 
@@ -66,6 +67,10 @@ void core_init(){
 	__lock_init_recursive_global(__env_lock_object);
 
 	//This is the de facto MCU initialization -- turn off power to peripherals that must be "open()"ed.
+#if defined STM32H7
+	SystemInit();
+	__HAL_RCC_SYSCFG_CLK_ENABLE();
+#endif
 
 	__HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
@@ -94,6 +99,7 @@ void core_init(){
 #if defined GPIOK
 	__HAL_RCC_GPIOK_CLK_ENABLE();
 #endif
+
 }
 
 

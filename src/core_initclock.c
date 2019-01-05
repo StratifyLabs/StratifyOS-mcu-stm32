@@ -292,7 +292,7 @@ uint32_t HAL_GetTick(void){
 	//cortexm_delay_ms(1); //this needs to check if SYSTICK is running before delaying
 	return tick++;
 #else
-	return 0;
+	return 1;
 #endif
 }
 

@@ -93,8 +93,6 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 		return 0;
 	}
 
-
-
 	err = stm32_flash_erase_sector(page);
 	if( err < 0 ){
 		err = SYSFS_SET_RETURN(EIO);

@@ -175,7 +175,7 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 
 		if( port == 0 ){
-			usb_local[port].hal_handle.Init.dev_endpoints = 6;
+			usb_local[port].hal_handle.Init.dev_endpoints = 9;
 			usb_local[port].hal_handle.Init.speed = PCD_SPEED_FULL;
 			usb_local[port].hal_handle.Init.phy_itface = PCD_PHY_EMBEDDED;
 		} else {
@@ -305,6 +305,9 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 void usb_connect(u32 port, u32 con){
 	if( con ){
 		HAL_PCD_Start(&usb_local[port].hal_handle);
+#if defined STM32H7
+		HAL_PWREx_EnableUSBVoltageDetector();
+#endif
 	} else {
 		HAL_PCD_Stop(&usb_local[port].hal_handle);
 	}
@@ -634,7 +637,6 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	void * src_buffer;
 	void * dest_buffer;
 
-
 	//set read ready flag
 	usb->read_ready |= (1<<epnum);
 	count = HAL_PCD_EP_GetRxCount(&usb->hal_handle, epnum);
@@ -722,8 +724,6 @@ void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 
 			epnum = 0x80 | i;
 			u8 logical_ep = epnum & 0x7F;
-
-
 
 			//Close will disable the endpoint and flush the TX FIFO
 			if( HAL_PCD_EP_Close(hpcd, epnum) != HAL_OK ){

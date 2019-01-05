@@ -45,11 +45,9 @@ u16 stm32_flash_local_get_sector_size(u16 sector){
 	return 2;
 }
 #elif defined STM32_FLASH_LAYOUT_128K_PAGES
-
 u16 stm32_flash_local_get_sector_size(u16 sector){
 	return 128;
 }
-
 #endif
 
 
@@ -78,6 +76,23 @@ int stm32_flash_write(u32 addr, const void * buf, int nbyte){
 			break;
 		}
 	}
+#elif defined STM32H7
+
+	const u8 * pbuf = buf;
+	u8 empty[32]; //flash word is 256-bit or 32 bytes
+	memset(empty, 0xff, 8);
+
+	for(i=0; i < nbyte; i+=32){
+		if( memcmp(pbuf + i, empty, 32) ){ //don't touch unless it is non 0xFF
+			err = HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, addr + i, (u32)(pbuf+i));
+		} else {
+			err = HAL_OK;
+		}
+		if( err != HAL_OK ){
+			break;
+		}
+	}
+
 #else
 	const u32 * pbuf = buf;
 	for(i=0; i < nbyte; i+=4){
@@ -113,9 +128,24 @@ int stm32_flash_erase_sector(u32 sector){
 	hal_erase_attr.NbPages = 1;
 #else
 	hal_erase_attr.TypeErase = FLASH_TYPEERASE_SECTORS;
+
+
+#if defined STM32H7
+	if( sector/8 == 0 ){
+		hal_erase_attr.Banks = FLASH_BANK_1; //only used for mass erase?
+	} else {
+		hal_erase_attr.Banks = FLASH_BANK_2; //only used for mass erase?
+	}
+	hal_erase_attr.Sector = sector % 8;
+#else
+	hal_erase_attr.Banks = FLASH_BANK_1; //only used for mass erase?
 	hal_erase_attr.Sector = sector;
+#endif
+
 	hal_erase_attr.NbSectors = 1;
-	hal_erase_attr.VoltageRange = FLASH_VOLTAGE_RANGE_3;  //! \todo This needs to be added to mcu_board_config
+	hal_erase_attr.VoltageRange = FLASH_VOLTAGE_RANGE_1;  //! \todo This needs to be added to mcu_board_config
+
+
 #endif
 	err = HAL_FLASHEx_Erase(&hal_erase_attr, &erase_error);
 	HAL_FLASH_Lock();
@@ -155,15 +185,11 @@ int stm32_flash_get_sector_addr(u32 sector){
 	int i;
 
 	if( sector < MCU_FLASH_PAGE_COUNT ){
-
 		for(i=0; i < sector; i++){
 			sum += stm32_flash_local_get_sector_size(i);
 		}
-
 		offset = sum * 1024 + MCU_FLASH_START;
-
 		return offset;
-
 	}
 
 	return -1;
