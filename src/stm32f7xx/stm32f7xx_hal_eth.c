@@ -217,7 +217,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   /* Wait for software reset */
   while (((heth->Instance)->DMABMR & ETH_DMABMR_SR) != (uint32_t)RESET)
   {
-      cortexm_delay_ms(1);
+		cortexm_delay_ms(5);
     /* Check for the Timeout */
     if((tickstart++ ) > ETH_TIMEOUT_SWRESET)
     {     
@@ -228,7 +228,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
     
       /* Note: The SWR is not performed if the ETH_RX_CLK or the ETH_TX_CLK are  
          not available, please check your external PHY or the IO configuration */
-               
+
       return HAL_TIMEOUT;
     }
   }
@@ -301,7 +301,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
     do
     {
       HAL_ETH_ReadPHYRegister(heth, PHY_BSR, &phyreg);
-      cortexm_delay_ms(1);
+		cortexm_delay_ms(5);
 
       /* Check for the Timeout */
       if((tickstart++) > ETH_TIMEOUT_LINKED_STATE)
@@ -316,7 +316,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   
         /* Process Unlocked */
         __HAL_UNLOCK(heth);
-    
+
         return HAL_TIMEOUT;
       }
     } while (((phyreg & PHY_LINKED_STATUS) != PHY_LINKED_STATUS));
@@ -345,7 +345,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
     do
     {
       HAL_ETH_ReadPHYRegister(heth, PHY_BSR, &phyreg);
-      cortexm_delay_ms(1);
+		cortexm_delay_ms(5);
 
       /* Check for the Timeout */
       if((tickstart++ ) > ETH_TIMEOUT_AUTONEGO_COMPLETED)
@@ -360,7 +360,6 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   
         /* Process Unlocked */
         __HAL_UNLOCK(heth);
-    
         return HAL_TIMEOUT;
       }
       

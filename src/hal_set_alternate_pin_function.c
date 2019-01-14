@@ -96,6 +96,7 @@ int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int 
 		case CORE_PERIPH_I2S:
 		case CORE_PERIPH_TMR:
 		case CORE_PERIPH_SDIO:
+		case CORE_PERIPH_EMC:
 			speed = GPIO_SPEED_FREQ_VERY_HIGH;
 			break;
 	}

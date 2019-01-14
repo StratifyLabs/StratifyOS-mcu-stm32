@@ -1,11 +1,11 @@
 
 SECTIONS {
 
-	 .sysmem : {
+	.sysmem : {
 		_sys = . ;
 		*(.sysmem)
 		. = ALIGN(1024);
-	} >sysmem
+	} > sysmem
 	_esys = .;
 
 	. = 0;

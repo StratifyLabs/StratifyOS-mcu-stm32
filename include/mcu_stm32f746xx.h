@@ -34,6 +34,16 @@
 #define MCU_FLASH_PORTS 1
 #define MCU_MEM_PORTS 1
 
+#define MCU_LTDC_API 0
+#define MCU_LTDC_PORTS 1
+#define MCU_LTDC_REGS { LTDC }
+#define MCU_LTDC_IRQS { LTDC_IRQn }
+#define MCU_LTDC_ER_IRQS { LTDC_ER_IRQn }
+
+#define MCU_FMC_API 0
+#define MCU_FMC_PORTS 1
+#define MCU_FMC_IRQS { FMC_IRQn }
+
 #define MCU_I2C_API 0
 #define MCU_I2C_PORTS 3
 #define MCU_I2C_REGS { I2C1, I2C2, I2C3 }

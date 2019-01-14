@@ -66,9 +66,13 @@ void core_init(){
 	__lock_init_recursive_global(__sinit_lock);
 	__lock_init_recursive_global(__env_lock_object);
 
+
 	//This is the de facto MCU initialization -- turn off power to peripherals that must be "open()"ed.
-#if defined STM32H7
+#if defined STM32H7 || defined STM32F7
 	SystemInit();
+#endif
+
+#if defined STM32H7
 	__HAL_RCC_SYSCFG_CLK_ENABLE();
 #endif
 

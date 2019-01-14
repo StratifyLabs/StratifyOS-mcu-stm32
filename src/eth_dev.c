@@ -100,6 +100,7 @@ int mcu_eth_setattr(const devfs_handle_t * handle, void * ctl){
 	u32 o_flags;
 	int port = handle->port;
 	const eth_attr_t * attr;
+	int result;
 
 	eth_local_t * eth = eth_local + port;
 	attr = mcu_select_attr(handle, ctl);
@@ -165,8 +166,8 @@ int mcu_eth_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		mcu_debug_log_info(MCU_DEBUG_DEVICE, "HAL_ETH_Init()");
-		if( HAL_ETH_Init(&eth->hal_handle) != HAL_OK ){
-			mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_ETH_Init() failed");
+		if( (result = HAL_ETH_Init(&eth->hal_handle)) != HAL_OK ){
+			mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_ETH_Init() failed (%d)", result);
 			return SYSFS_SET_RETURN(EIO);
 		}
 

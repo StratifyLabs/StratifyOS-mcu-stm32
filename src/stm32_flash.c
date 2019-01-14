@@ -138,7 +138,9 @@ int stm32_flash_erase_sector(u32 sector){
 	}
 	hal_erase_attr.Sector = sector % 8;
 #else
+#if defined FLASH_BANK_1
 	hal_erase_attr.Banks = FLASH_BANK_1; //only used for mass erase?
+#endif
 	hal_erase_attr.Sector = sector;
 #endif
 
