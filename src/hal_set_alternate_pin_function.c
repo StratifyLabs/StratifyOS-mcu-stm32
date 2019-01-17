@@ -73,7 +73,7 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
 	GPIO_InitStruct.Mode = mode;
 	GPIO_InitStruct.Pull = pull;
 	GPIO_InitStruct.Speed = speed;
-	GPIO_InitStruct.Alternate = alternate_function;
+    GPIO_InitStruct.Alternate = alternate_function;
 	HAL_GPIO_Init(gpio_regs, &GPIO_InitStruct);
 	return 0;
 }
@@ -96,8 +96,10 @@ int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int 
 		case CORE_PERIPH_I2S:
 		case CORE_PERIPH_TMR:
 		case CORE_PERIPH_SDIO:
-		case CORE_PERIPH_EMC:
 			speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        case CORE_PERIPH_QSPI:
+            speed = GPIO_SPEED_FREQ_HIGH;
+            pull = GPIO_PULLUP;
 			break;
 	}
 	return hal_set_alternate_pin_function(*pin, function, periph_port, mode, speed, pull);
