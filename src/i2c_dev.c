@@ -188,9 +188,9 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 
     } else if( o_flags & I2C_FLAG_SET_SLAVE ){
 #if defined STM32F7 || defined STM32L4
-        i2c->hal_handle.Init.Timing = freq;
+		  local->hal_handle.Init.Timing = freq;
 #else
-        i2c->hal_handle.Init.ClockSpeed = freq;
+		  local->hal_handle.Init.ClockSpeed = freq;
 #endif
 
 
@@ -241,9 +241,9 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
         pin_assignment = mcu_select_pin_assignment(&attr->pin_assignment,
                                                    MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
                                                    MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t));
-        memcpy(&i2c->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
-        if( (i2c->pin_assignment.scl.port != 0xff) && (i2c->pin_assignment.sda.port != 0xff) ){
-			if( __HAL_I2C_GET_FLAG((&i2c->hal_handle), I2C_FLAG_BUSY) ){
+		  memcpy(&local->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
+		  if( (local->pin_assignment.scl.port != 0xff) && (local->pin_assignment.sda.port != 0xff) ){
+			if( __HAL_I2C_GET_FLAG((&local->hal_handle), I2C_FLAG_BUSY) ){
 
 				mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
 			} else {
@@ -258,12 +258,12 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
-        if( HAL_I2C_Init(&(i2c->hal_handle)) != HAL_OK){
+		  if( HAL_I2C_Init(&(local->hal_handle)) != HAL_OK){
             return SYSFS_SET_RETURN(EINVAL);
         }
 
         if( o_flags & I2C_FLAG_SET_SLAVE ){
-            if( HAL_I2C_EnableListen_IT(&i2c->hal_handle) != HAL_OK){
+				if( HAL_I2C_EnableListen_IT(&local->hal_handle) != HAL_OK){
                 return SYSFS_SET_RETURN(EINVAL);
             }
         }
