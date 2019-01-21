@@ -1,4 +1,4 @@
-/* Copyright 2011-2018 Tyler Gilbert;
+﻿/* Copyright 2011-2018 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -186,7 +186,13 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 		local->hal_handle.Init.ClockSpeed = freq;
 #endif
 
-	} else if( o_flags & I2C_FLAG_SET_SLAVE ){
+    } else if( o_flags & I2C_FLAG_SET_SLAVE ){
+#if defined STM32F7 || defined STM32L4
+        i2c->hal_handle.Init.Timing = freq;
+#else
+        i2c->hal_handle.Init.ClockSpeed = freq;
+#endif
+
 
 		local->hal_handle.Init.OwnAddress1 = (attr->slave_addr[0].addr8[0])<<1;
 		if( o_flags & I2C_FLAG_IS_SLAVE_ADDR1 ){
@@ -208,7 +214,7 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 #if 0
 		post_configure_pin_t post_configure;
 #endif
-		const void * pin_assignment;
+        const i2c_pin_assignment_t * pin_assignment;
 
 		if( o_flags & I2C_FLAG_STRETCH_CLOCK ){
 			local->hal_handle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
@@ -231,15 +237,14 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 
 
-		//force a start and stop condition to clear the busy bit
-		pin_assignment = mcu_select_pin_assignment(&attr->pin_assignment,
-																 MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
-																 MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t));
+        //force a start and stop condition to clear the busy bit
+        pin_assignment = mcu_select_pin_assignment(&attr->pin_assignment,
+                                                   MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
+                                                   MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t));
+        memcpy(&i2c->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
+        if( (i2c->pin_assignment.scl.port != 0xff) && (i2c->pin_assignment.sda.port != 0xff) ){
+			if( __HAL_I2C_GET_FLAG((&i2c->hal_handle), I2C_FLAG_BUSY) ){
 
-		memcpy(&local->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
-
-		if( (local->pin_assignment.scl.port != 0xff) && (local->pin_assignment.sda.port != 0xff) ){
-			if( __HAL_I2C_GET_FLAG((&local->hal_handle), I2C_FLAG_BUSY) ){
 				mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
 			} else {
 				mcu_debug_log_info(MCU_DEBUG_DEVICE, "I2C not busy");
@@ -253,17 +258,17 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
+        if( HAL_I2C_Init(&(i2c->hal_handle)) != HAL_OK){
+            return SYSFS_SET_RETURN(EINVAL);
+        }
 
-		if( HAL_I2C_Init(&local->hal_handle) < 0 ){
-			return SYSFS_SET_RETURN(EINVAL);
-		}
+        if( o_flags & I2C_FLAG_SET_SLAVE ){
+            if( HAL_I2C_EnableListen_IT(&i2c->hal_handle) != HAL_OK){
+                return SYSFS_SET_RETURN(EINVAL);
+            }
+        }
+    }
 
-
-		if( o_flags & I2C_FLAG_SET_SLAVE ){
-			HAL_I2C_EnableListen_IT(&local->hal_handle);
-		}
-
-	}
 
 	if( o_flags & (I2C_FLAG_PREPARE_PTR_DATA|I2C_FLAG_PREPARE_PTR|I2C_FLAG_PREPARE_DATA) ){
 		local->o_flags = o_flags;
@@ -454,7 +459,14 @@ void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c){
 }
 
 void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode){
-	//slave has been addressed
+  //slave has been addressed
+    i2c_local_t * i2c = (i2c_local_t*)hi2c;
+    HAL_StatusTypeDef hal_status;
+    hal_status = HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, i2c->slave_memory, i2c->slave_memory_size, I2C_LAST_FRAME);
+    if (hal_status != HAL_OK){
+        mcu_debug_printf("slave addr call back error %u %u\n",hal_status,hi2c->State);
+    }
+    
 }
 
 void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c){
@@ -542,6 +554,7 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 	pio_attr_t sda_pio_attr;
 	const u32 delay_us = 1;
 
+
 #if I2C_WAIT_FOR_LINE_CHANGE
 	u32 value;
 #endif
@@ -569,8 +582,10 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 	}
 
 
+
 	// 1. Clear PE bit.
 	i2c->hal_handle.Instance->CR1 &= ~(0x0001);
+
 
 	//  2. Configure the SCL and SDA I/Os as General Purpose Output Open-Drain, High level (Write 1 to GPIOx_ODR).
 	memset(&scl_pio_handle, 0, sizeof(devfs_handle_t));
@@ -589,14 +604,16 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 	mcu_pio_setmask(&sda_pio_handle, (void*)sda_pio_attr.o_pinmask);
 
 	// 3. Check SCL and SDA High level in GPIOx_IDR.
+
 	cortexm_delay_us(delay_us);
 #if I2C_CLEAR_BUSY_DEBUG_MESSAGES
 	mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
 #endif
 #if I2C_WAIT_FOR_LINE_CHANGE
 	do {
-		mcu_pio_get(&scl_pio_handle, &value);
-	} while( (value & scl_pio_attr.o_pinmask) == 0);
+        mcu_pio_get(&scl_pio_handle, &value);
+    } while( (value & scl_pio_attr.o_pinmask) == 0);
+
 	cortexm_delay_us(delay_us);
 #endif
 
@@ -657,8 +674,8 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 	} while( (value & sda_pio_attr.o_pinmask) == 0);
 #endif
 
+    // 12. Configure the SCL and SDA I/Os as Alternate function Open-Drain.
 
-	// 12. Configure the SCL and SDA I/Os as Alternate function Open-Drain.
 
 	hal_set_alternate_pin_function(i2c->pin_assignment.scl,
 											 CORE_PERIPH_I2C,
@@ -675,15 +692,18 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 											 GPIO_PULLUP);
 
 
+
 	// 13. Set SWRST bit in I2Cx_CR1 register.
 	i2c->hal_handle.Instance->CR1 |= 0x8000;
 
 	cortexm_delay_us(10);
 
+
 	// 14. Clear SWRST bit in I2Cx_CR1 register.
 	i2c->hal_handle.Instance->CR1 &= ~0x8000;
 
 	cortexm_delay_us(10);
+
 
 	// 15. Enable the I2C peripheral by setting the PE bit in I2Cx_CR1 register
 	i2c->hal_handle.Instance->CR1 |= 0x0001;
