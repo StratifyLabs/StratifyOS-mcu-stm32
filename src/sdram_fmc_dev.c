@@ -109,6 +109,7 @@ int mcu_emc_sdram_write(const devfs_handle_t * handle, devfs_async_t * async){
 	if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
 	if( async->loc >= config->size ){
+		mcu_debug_printf("EOF\n");
 		return SYSFS_RETURN_EOF;
 	}
 
@@ -116,9 +117,11 @@ int mcu_emc_sdram_write(const devfs_handle_t * handle, devfs_async_t * async){
 		async->nbyte = config->size - async->loc;
 	}
 
-	async->nbyte &= ~0x03; //word aligned
-
-	HAL_SDRAM_Write_32b(&local->hal_handle, (u32*)(config->base_address + async->loc), async->buf, async->nbyte/4);
+	if( async->loc & 0x03 || async->nbyte & 0x03 ){
+		HAL_SDRAM_Write_8b(&local->hal_handle, (u32*)(config->base_address + async->loc), async->buf, async->nbyte);
+	} else {
+		HAL_SDRAM_Write_32b(&local->hal_handle, (u32*)(config->base_address + async->loc), async->buf, async->nbyte/4);
+	}
 
 	//memory is mapped
 	return async->nbyte;
@@ -138,10 +141,11 @@ int mcu_emc_sdram_read(const devfs_handle_t * handle, devfs_async_t * async){
 		async->nbyte = config->size - async->loc;
 	}
 
-	async->nbyte &= ~0x03; //word aligned
-
-	HAL_SDRAM_Read_32b(&local->hal_handle, (u32*)(config->base_address + async->loc), async->buf, async->nbyte/4);
-
+	if( async->loc & 0x03 || async->nbyte & 0x03 ){
+		HAL_SDRAM_Read_8b(&local->hal_handle, (u32*)(config->base_address + async->loc), async->buf, async->nbyte);
+	} else {
+		HAL_SDRAM_Read_32b(&local->hal_handle, (u32*)(config->base_address + async->loc), async->buf, async->nbyte/4);
+	}
 	//memory is mapped
 	return async->nbyte;
 }
