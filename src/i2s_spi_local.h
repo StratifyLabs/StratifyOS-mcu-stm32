@@ -29,4 +29,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl);
 int i2s_spi_local_mute(const devfs_handle_t * handle, void * ctl);
 int i2s_spi_local_unmute(const devfs_handle_t * handle, void * ctl);
 
+void i2s_spi_local_wait_for_errata_level(spi_local_t * local);
+
+
 #endif /* SPI_LOCAL_H_ */

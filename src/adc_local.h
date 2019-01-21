@@ -21,22 +21,20 @@
 #define ADC_LOCAL_H_
 
 #include <mcu/adc.h>
-
 #include "stm32_dma.h"
 
 typedef struct {
-    ADC_HandleTypeDef hal_handle;
-    devfs_transfer_handler_t transfer_handler;
-    stm32_dma_channel_t dma_rx_channel;
-    int words_read;
-    u32 o_flags;
-    u8 ref_count;
+	ADC_HandleTypeDef hal_handle;
+	devfs_transfer_handler_t transfer_handler;
+	int words_read;
+	u32 o_flags;
+	u8 ref_count;
 } adc_local_t;
 
 enum {
-    ADC_LOCAL_IS_DMA = (1<<0),
-    ADC_LOCAL_IS_I2S = (1<<1),
-    ADC_LOCAL_IS_FULL_DUPLEX = (1<<2)
+	ADC_LOCAL_IS_DMA = (1<<0),
+	ADC_LOCAL_IS_I2S = (1<<1),
+	ADC_LOCAL_IS_FULL_DUPLEX = (1<<2)
 };
 
 extern ADC_TypeDef * const adc_regs_table[MCU_ADC_PORTS];

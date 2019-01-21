@@ -28,12 +28,12 @@
 #define DAC_LOCAL_FLAG_IS_DMA (1<<0)
 
 typedef struct {
-    DAC_HandleTypeDef hal_handle;
-    devfs_transfer_handler_t transfer_handler;
-    int words_written;
-    u32 o_flags;
-    u8 ref_count;
-    stm32_dma_channel_t dma_tx_channel;
+	DAC_HandleTypeDef hal_handle;
+	devfs_transfer_handler_t transfer_handler;
+	int words_written;
+	u32 o_flags;
+	u8 ref_count;
+	stm32_dma_channel_t dma_tx_channel;
 } dac_local_t;
 
 extern DAC_TypeDef * const dac_regs_table[MCU_DAC_PORTS];

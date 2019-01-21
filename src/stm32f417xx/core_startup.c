@@ -26,7 +26,7 @@
 
 const bootloader_api_t mcu_core_bootloader_api MCU_WEAK;
 const bootloader_api_t mcu_core_bootloader_api = {
-		.code_size = 0,
+	.code_size = 0,
 };
 
 void mcu_core_default_isr();
@@ -171,9 +171,9 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(dma1_stream5),
 		_ISR(dma1_stream6),
 		_ISR(adc), //18
-        _ISR(can1_tx),
-        _ISR(can1_rx0), //20
-        _ISR(can1_rx1),
+		_ISR(can1_tx),
+		_ISR(can1_rx0), //20
+		_ISR(can1_rx1),
 		_ISR(can1_sce),
 		_ISR(exti9_5), //23
 		_ISR(tim1_brk_tim9),
@@ -191,50 +191,50 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(spi2),
 		_ISR(usart1),
 		_ISR(usart2),
-        _ISR(usart3),
+		_ISR(usart3),
 		_ISR(exti15_10), //40
 		_ISR(rtc_alarm),
 		_ISR(otg_fs_wkup),
-        _ISR(tim8_brk_tim12),
-        _ISR(tim8_up_tim13),
-        _ISR(tim8_trg_com_tim14),
-        _ISR(tim8_cc),
-        _ISR(dma1_stream7), //47
-        _ISR(fmc),
+		_ISR(tim8_brk_tim12),
+		_ISR(tim8_up_tim13),
+		_ISR(tim8_trg_com_tim14),
+		_ISR(tim8_cc),
+		_ISR(dma1_stream7), //47
+		_ISR(fmc),
 		_ISR(sdio),
 		_ISR(tim5), //50
 		_ISR(spi3), //51
-        _ISR(uart4),
-        _ISR(uart5),
-        _ISR(tim6_dac),
-        _ISR(tim7),
-        _ISR(dma2_stream0), //56
+		_ISR(uart4),
+		_ISR(uart5),
+		_ISR(tim6_dac),
+		_ISR(tim7),
+		_ISR(dma2_stream0), //56
 		_ISR(dma2_stream1),
 		_ISR(dma2_stream2),
 		_ISR(dma2_stream3),
 		_ISR(dma2_stream4), //60
-        _ISR(eth),
-        _ISR(eth_wkup),
-        _ISR(can2_tx),
-        _ISR(can2_rx0),
-        _ISR(can2_rx1),
-        _ISR(can2_sce),
-        _ISR(otg_fs), //67
+		_ISR(eth),
+		_ISR(eth_wkup),
+		_ISR(can2_tx),
+		_ISR(can2_rx0),
+		_ISR(can2_rx1),
+		_ISR(can2_sce),
+		_ISR(otg_fs), //67
 		_ISR(dma2_stream5),
 		_ISR(dma2_stream6),
 		_ISR(dma2_stream7), //70
-        _ISR(usart6),  //71
-        _ISR(i2c3_ev), //72
+		_ISR(usart6),  //71
+		_ISR(i2c3_ev), //72
 		_ISR(i2c3_er), //73
-        _ISR(otg_hs_ep1_out),
-        _ISR(otg_hs_ep1_in),
-        _ISR(otg_hs_wkup),
-        _ISR(otg_hs),
-        _ISR(dcmi),
-        _ISR(cryp),
-        _ISR(hash), //80
-        _ISR(fpu), //81
-};
+		_ISR(otg_hs_ep1_out),
+		_ISR(otg_hs_ep1_in),
+		_ISR(otg_hs_wkup),
+		_ISR(otg_hs),
+		_ISR(dcmi),
+		_ISR(cryp),
+		_ISR(hash), //80
+		_ISR(fpu), //81
+		};
 
 void mcu_core_reset_handler(){
 	core_init();

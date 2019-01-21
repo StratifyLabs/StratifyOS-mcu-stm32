@@ -226,6 +226,10 @@ int spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 		local->hal_handle.Init.NSS = SPI_NSS_SOFT;
 		local->hal_handle.Init.FirstBit = SPI_FIRSTBIT_MSB;
+		if( o_flags & SPI_FLAG_IS_LSB_FIRST ){
+			local->hal_handle.Init.FirstBit = SPI_FIRSTBIT_LSB;
+		}
+
 		if( o_flags & SPI_FLAG_IS_FORMAT_TI ){
 			local->hal_handle.Init.TIMode = SPI_TIMODE_ENABLE;
 		} else {
@@ -321,8 +325,8 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
 	//execute the handler
 	spi_local_t * spi = (spi_local_t*)hspi;
 	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD DONE %d", hspi->TxXferSize);
-	devfs_execute_write_handler(&spi->transfer_handler,0, hspi->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
-	devfs_execute_read_handler(&spi->transfer_handler,0, hspi->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
+	devfs_execute_write_handler(&spi->transfer_handler, 0, hspi->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
+	devfs_execute_read_handler(&spi->transfer_handler, 0, hspi->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
 
 }
 
@@ -332,17 +336,21 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
 	mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI Error:0x%X", hspi->ErrorCode);
 
 	//deal with overrrun errors
+#if defined STM32H7
+	spi->hal_handle.Instance->UDRDR;
+#else
 	spi->hal_handle.Instance->DR;
+#endif
 	spi->hal_handle.Instance->SR;
 
-	devfs_execute_cancel_handler(&spi->transfer_handler,0, SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode), MCU_EVENT_FLAG_ERROR);
+	devfs_execute_cancel_handler(&spi->transfer_handler, 0, SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode), MCU_EVENT_FLAG_ERROR);
 }
 
 void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
 	spi_local_t * spi = (spi_local_t*)hspi;
 
 	mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SPI Abort:0x%X", hspi->ErrorCode);
-	devfs_execute_cancel_handler(&spi->transfer_handler,0, hspi->RxXferSize - hspi->RxXferCount, 0);
+	devfs_execute_cancel_handler(&spi->transfer_handler,0, SYSFS_SET_RETURN(EAGAIN), 0);
 }
 
 //these handlers need to move to the local file
@@ -355,6 +363,7 @@ void mcu_core_spi1_isr(){
 		HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
 	}
 #else
+	//mcu_debug_printf("SPI1 IRQ\n");
 	HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
 #endif
 }

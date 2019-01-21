@@ -26,7 +26,7 @@ const int mmc_irqs[MCU_SDIO_PORTS] = MCU_SDIO_IRQS;
 mmc_local_t mmc_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 
 int mmc_local_open(const devfs_handle_t * handle){
-	int port = handle->port;
+	const u32 port = handle->port;
 	mmc_local_t * local = mmc_local + handle->port;
 	if( port < MCU_SDIO_PORTS ){
 		if ( local->ref_count == 0 ){
@@ -47,8 +47,26 @@ int mmc_local_open(const devfs_handle_t * handle){
 }
 
 int mmc_local_close(const devfs_handle_t * handle){
+	const u32 port = handle->port;
+	mmc_local_t * local = mmc_local + handle->port;
+	if( local->ref_count > 0 ){
+		//do the opposite of mmc_local_open() -- ref_count is zero -- turn off interrupt
+		if( local->ref_count == 1 ){
+			HAL_MMC_DeInit(&local->hal_handle);
 
-	//do the opposite of mmc_local_open() -- ref_count is zero -- turn off interrupt
+			switch(port){
+				case 0:
+					__HAL_RCC_SDIO_CLK_DISABLE();
+					break;
+			}
+			local->transfer_handler.read = NULL;
+			local->transfer_handler.write = NULL;
+			local->hal_handle.Instance = 0;
+			cortexm_disable_irq(mmc_irqs[port]);
+		}
+		local->ref_count--;
+	}
+
 	return 0;
 }
 
@@ -83,6 +101,10 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 	u32 o_flags = attr->o_flags;
 
 	if( o_flags & MMC_FLAG_SET_INTERFACE ){
+
+		if( o_flags & MMC_FLAG_IS_BYTE_ADDRESSING ){
+			local->o_flags = MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING;
+		}
 
 		//SDIO_CLOCK_EDGE_RISING
 		//SDIO_CLOCK_EDGE_FALLING
@@ -132,26 +154,39 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		if( HAL_MMC_Init(&local->hal_handle) != HAL_OK ){
-			return SYSFS_SET_RETURN(EINVAL);
-		}
-
-		if( HAL_MMC_Init(&local->hal_handle) != HAL_OK ){
 			return SYSFS_SET_RETURN(EIO);
 		}
+
 
 		//SDIO_BUS_WIDE_1B -- set as default for initialziation
 		//SDIO_BUS_WIDE_4B
 		//SDIO_BUS_WIDE_8B -- not compatible with SDIO
-		if( o_flags & MMC_FLAG_IS_BUS_WIDTH_8 ){
-			HAL_MMC_ConfigWideBusOperation(&local->hal_handle, SDIO_BUS_WIDE_4B);
+		if( o_flags & MMC_FLAG_IS_BUS_WIDTH_4 ){
+			local->hal_handle.Init.BusWide = SDIO_BUS_WIDE_4B;
 		} else if ( o_flags & MMC_FLAG_IS_BUS_WIDTH_8 ){
-			HAL_MMC_ConfigWideBusOperation(&local->hal_handle, SDIO_BUS_WIDE_8B);
+			local->hal_handle.Init.BusWide = SDIO_BUS_WIDE_8B;
 		}
 
+		HAL_MMC_ConfigWideBusOperation(&local->hal_handle, local->hal_handle.Init.BusWide);
 	}
 
 	if( o_flags & MMC_FLAG_GET_CARD_STATE ){
 		return HAL_MMC_GetCardState(&local->hal_handle);
+	}
+
+	if( o_flags & MMC_FLAG_RESET ){
+		u32 width = local->hal_handle.Init.BusWide;
+		mcu_debug_printf("Reset EMMC %d\n", width);
+		HAL_MMC_Abort(&local->hal_handle);
+		HAL_MMC_DeInit(&local->hal_handle);
+		if( HAL_MMC_Init(&local->hal_handle) != HAL_OK ){
+			mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to reset MMC\n");
+			return SYSFS_SET_RETURN(EIO);
+		}
+
+		HAL_MMC_ConfigWideBusOperation(&local->hal_handle, width);
+		mcu_debug_printf("State: %d\n", HAL_MMC_GetCardState(&mmc_local[handle->port].hal_handle));
+
 	}
 
 	if( o_flags & MMC_FLAG_ERASE_BLOCKS ){
@@ -159,7 +194,6 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EIO);
 		}
 	}
-
 
 	return SYSFS_RETURN_SUCCESS;
 }
@@ -171,13 +205,19 @@ int mmc_local_setaction(const devfs_handle_t * handle, void * ctl){
 	mmc_local_t * local = mmc_local + handle->port;
 
 	if( action->handler.callback == 0 ){
+		if( action->o_events & (MCU_EVENT_FLAG_DATA_READY|MCU_EVENT_FLAG_WRITE_COMPLETE) ){
+			if( local->o_flags & MMC_LOCAL_FLAG_IS_DMA ){
+				HAL_MMC_Abort(&local->hal_handle);
+			} else {
+				HAL_MMC_Abort_IT(&local->hal_handle);
+			}
+		}
+
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
-			HAL_MMC_Abort_IT(&local->hal_handle);
 			devfs_execute_read_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
 		}
 
 		if( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
-			HAL_MMC_Abort_IT(&local->hal_handle);
 			devfs_execute_write_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED);
 		}
 	}
@@ -191,6 +231,7 @@ int mmc_local_getcid(const devfs_handle_t * handle, void * ctl){
 	if( HAL_MMC_GetCardCID(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
+
 
 	return SYSFS_SET_RETURN(EIO);
 }
@@ -225,7 +266,7 @@ void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc){
 	mmc_local_t * local = (mmc_local_t *)hmmc;
 	//mcu_debug_log_warning(MCU_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX %ld", hmmc->ErrorCode, hmmc->hdmatx->ErrorCode);
 	if( hmmc->ErrorCode ){
-		mcu_debug_log_error(MCU_DEBUG_DEVICE, "MMC Error 0x%lX", hmmc->ErrorCode);
+		mcu_debug_log_warning(MCU_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX 0x%lX", hmmc->ErrorCode, hmmc->hdmatx->ErrorCode, hmmc->hdmarx->ErrorCode);
 		devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 	}
 }

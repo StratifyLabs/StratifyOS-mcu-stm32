@@ -33,8 +33,8 @@
 #if MCU_UART_PORTS > 0
 
 enum {
-    UART_LOCAL_FLAG_IS_INCOMING_ENABLED = (1<<0),
-    UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE = (1<<1)
+	UART_LOCAL_FLAG_IS_INCOMING_ENABLED = (1<<0),
+	UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE = (1<<1)
 };
 
 typedef struct {
@@ -43,9 +43,9 @@ typedef struct {
 	mcu_event_handler_t read;
 	u8 ref_count;
 	const uart_attr_t * attr;
-    u8 o_flags;
-    u8 incoming;
-    u8 incoming_received;
+	u8 o_flags;
+	u8 incoming;
+	u8 incoming_received;
 } uart_local_t;
 
 static uart_local_t uart_local[UART_PORTS] MCU_SYS_MEM;
@@ -64,43 +64,43 @@ int mcu_uart_open(const devfs_handle_t * handle){
 		uart_local[port].hal_handle.Instance = uart_regs_table[port];
 
 		switch(port){
-		case 0:
-			__HAL_RCC_USART1_CLK_ENABLE();
-			break;
+			case 0:
+				__HAL_RCC_USART1_CLK_ENABLE();
+				break;
 #if defined USART2
-		case 1:
-			__HAL_RCC_USART2_CLK_ENABLE();
-			break;
+			case 1:
+				__HAL_RCC_USART2_CLK_ENABLE();
+				break;
 #endif
 #if defined USART3
-		case 2:
-			__HAL_RCC_USART3_CLK_ENABLE();
-			break;
+			case 2:
+				__HAL_RCC_USART3_CLK_ENABLE();
+				break;
 #endif
 #if defined UART4
-		case 3:
-			__HAL_RCC_UART4_CLK_ENABLE();
-			break;
+			case 3:
+				__HAL_RCC_UART4_CLK_ENABLE();
+				break;
 #endif
 #if defined UART5
-		case 4:
-			__HAL_RCC_UART5_CLK_ENABLE();
-			break;
+			case 4:
+				__HAL_RCC_UART5_CLK_ENABLE();
+				break;
 #endif
 #if defined USART6
-		case 5:
-			__HAL_RCC_USART6_CLK_ENABLE();
-			break;
+			case 5:
+				__HAL_RCC_USART6_CLK_ENABLE();
+				break;
 #endif
 
 		}
 		//reset HAL UART
-        cortexm_enable_irq(uart_irqs[port]);
+		cortexm_enable_irq(uart_irqs[port]);
 
 	}
 	uart_local[port].ref_count++;
 
-    return 0;
+	return 0;
 }
 
 int mcu_uart_close(const devfs_handle_t * handle){
@@ -108,43 +108,43 @@ int mcu_uart_close(const devfs_handle_t * handle){
 
 	if ( uart_local[port].ref_count > 0 ){
 		if ( uart_local[port].ref_count == 1 ){
-            cortexm_disable_irq(uart_irqs[port]);
+			cortexm_disable_irq(uart_irqs[port]);
 			switch(port){
-			case 0:
-				__HAL_RCC_USART1_CLK_DISABLE();
-				break;
+				case 0:
+					__HAL_RCC_USART1_CLK_DISABLE();
+					break;
 #if defined USART2
-			case 1:
-				__HAL_RCC_USART2_CLK_DISABLE();
-				break;
+				case 1:
+					__HAL_RCC_USART2_CLK_DISABLE();
+					break;
 #endif
 #if defined USART3
-			case 2:
-				__HAL_RCC_USART3_CLK_DISABLE();
-				break;
+				case 2:
+					__HAL_RCC_USART3_CLK_DISABLE();
+					break;
 #endif
 #if defined UART4
-			case 3:
-				__HAL_RCC_UART4_CLK_DISABLE();
-				break;
+				case 3:
+					__HAL_RCC_UART4_CLK_DISABLE();
+					break;
 #endif
 #if defined UART5
-			case 4:
-				__HAL_RCC_UART5_CLK_DISABLE();
-				break;
+				case 4:
+					__HAL_RCC_UART5_CLK_DISABLE();
+					break;
 #endif
 #if defined USART6
-			case 5:
-				__HAL_RCC_USART6_CLK_DISABLE();
-				break;
+				case 5:
+					__HAL_RCC_USART6_CLK_DISABLE();
+					break;
 #endif
 
 			}
 			uart_local[port].hal_handle.Instance = 0;
 		}
 		uart_local[port].ref_count--;
-    }
-    return 0;
+	}
+	return 0;
 }
 
 int mcu_uart_dev_is_powered(const devfs_handle_t * handle){
@@ -172,7 +172,7 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 	uart_local_t * uart = uart_local + port;
 	uart->attr = mcu_select_attr(handle, ctl);
 	if( uart->attr == 0 ){
-        return SYSFS_SET_RETURN(EINVAL);
+		return SYSFS_SET_RETURN(EINVAL);
 	}
 
 	o_flags = uart->attr->o_flags;
@@ -195,11 +195,11 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 			uart->hal_handle.Init.StopBits = UART_STOPBITS_2;
 		}
 
-        uart->hal_handle.Init.Parity = UART_PARITY_NONE;
+		uart->hal_handle.Init.Parity = UART_PARITY_NONE;
 		if( o_flags & UART_FLAG_IS_PARITY_EVEN ){
-            uart->hal_handle.Init.Parity = UART_PARITY_EVEN;
+			uart->hal_handle.Init.Parity = UART_PARITY_EVEN;
 		} else if( o_flags & UART_FLAG_IS_PARITY_ODD ){
-            uart->hal_handle.Init.Parity = UART_PARITY_ODD;
+			uart->hal_handle.Init.Parity = UART_PARITY_ODD;
 		}
 
 		uart->hal_handle.Init.Mode = UART_MODE_TX_RX;
@@ -208,16 +208,16 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 
 		//pin assignments
 		if( mcu_set_pin_assignment(
-				&(uart->attr->pin_assignment),
-				MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
-				MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t),
-                CORE_PERIPH_UART, port, 0, 0, 0) < 0 ){
-            return SYSFS_SET_RETURN(EINVAL);
-        }
+				 &(uart->attr->pin_assignment),
+				 MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
+				 MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t),
+				 CORE_PERIPH_UART, port, 0, 0, 0) < 0 ){
+			return SYSFS_SET_RETURN(EINVAL);
+		}
 
 		if( HAL_UART_Init(&uart->hal_handle) != HAL_OK ){
-            return SYSFS_SET_RETURN(EIO);
-        }
+			return SYSFS_SET_RETURN(EIO);
+		}
 	}
 
 	return 0;
@@ -225,11 +225,11 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 
 static void exec_readcallback(uart_local_t * uart, u32 o_events){
 	uart_event_t uart_event;
-    uart_event.value = uart->incoming_received;
-    mcu_execute_event_handler(&(uart->read), o_events, &uart_event);
+	uart_event.value = uart->incoming_received;
+	mcu_execute_event_handler(&(uart->read), o_events, &uart_event);
 
 	//if the callback is NULL now, disable the interrupt
-    if( uart->read.callback == NULL ){
+	if( uart->read.callback == NULL ){
 
 	}
 }
@@ -237,66 +237,66 @@ static void exec_readcallback(uart_local_t * uart, u32 o_events){
 static void exec_writecallback(uart_local_t * uart, u32 o_events){
 	uart_event_t uart_event;
 	//call the write callback
-    mcu_execute_event_handler(&(uart->write), o_events, &uart_event);
+	mcu_execute_event_handler(&(uart->write), o_events, &uart_event);
 
 	//if the callback is NULL now, disable the interrupt
-    if( uart->write.callback == NULL ){
+	if( uart->write.callback == NULL ){
 
-    }
+	}
 }
 
 int mcu_uart_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = (mcu_action_t*)ctl;
 	int port = handle->port;
-    uart_local_t * uart = uart_local + port;
+	uart_local_t * uart = uart_local + port;
 
 	if( action->handler.callback == 0 ){
 		//if there is an ongoing operation -- cancel it
 
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
 			//execute the read callback if not null
-            if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_ENABLED ){
-                uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_ENABLED;
+			if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_ENABLED ){
+				uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_ENABLED;
 #if defined STM32F4
-                HAL_UART_AbortReceive_IT(&uart->hal_handle);
+				HAL_UART_AbortReceive_IT(&uart->hal_handle);
 #endif
-            }
+			}
 
-            exec_readcallback(uart, MCU_EVENT_FLAG_CANCELED);
-            uart->read.callback = 0;
+			exec_readcallback(uart, MCU_EVENT_FLAG_CANCELED);
+			uart->read.callback = 0;
 		}
 
 		if( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
 #if defined STM32F4
-            HAL_UART_AbortTransmit_IT(&uart->hal_handle);
+			HAL_UART_AbortTransmit_IT(&uart->hal_handle);
 #endif
-            exec_writecallback(uart, MCU_EVENT_FLAG_CANCELED);
-            uart->write.callback = 0;
+			exec_writecallback(uart, MCU_EVENT_FLAG_CANCELED);
+			uart->write.callback = 0;
 		}
 
 	} else {
 
 		if( cortexm_validate_callback(action->handler.callback) < 0 ){
-            return SYSFS_SET_RETURN(EPERM);
-        }
+			return SYSFS_SET_RETURN(EPERM);
+		}
 
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
-            uart->read = action->handler;
+			uart->read = action->handler;
 
-            //enable the receiver so that the action is called when a byte arrives
-            uart->o_flags |= UART_LOCAL_FLAG_IS_INCOMING_ENABLED;
-            uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
-            if( HAL_UART_Receive_IT(&uart->hal_handle, &uart->incoming, 1) != HAL_OK ){
-                return SYSFS_SET_RETURN(EIO);
-            }
+			//enable the receiver so that the action is called when a byte arrives
+			uart->o_flags |= UART_LOCAL_FLAG_IS_INCOMING_ENABLED;
+			uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
+			if( HAL_UART_Receive_IT(&uart->hal_handle, &uart->incoming, 1) != HAL_OK ){
+				return SYSFS_SET_RETURN(EIO);
+			}
 		}
 
 		if ( action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE ){
-            uart->write = action->handler;
+			uart->write = action->handler;
 		}
 	}
 
-    cortexm_set_irq_priority(uart_irqs[port], action->prio, action->o_events);
+	cortexm_set_irq_priority(uart_irqs[port], action->prio, action->o_events);
 	return 0;
 }
 
@@ -306,8 +306,8 @@ int mcu_uart_put(const devfs_handle_t * handle, void * ctl){
 	uart_local_t * uart = uart_local + port;
 
 	if( HAL_UART_Transmit(&uart->hal_handle, &c, 1, HAL_MAX_DELAY) != HAL_OK ){
-        return SYSFS_SET_RETURN(EIO);
-    }
+		return SYSFS_SET_RETURN(EIO);
+	}
 
 	return 0;
 }
@@ -325,22 +325,22 @@ int mcu_uart_get(const devfs_handle_t * handle, void * ctl){
 	uart_local_t * uart = uart_local + port;
 
 
-    //if action was set return uart->incoming;
-    if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_ENABLED ){
-        if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE ){
-            uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
-            *dest = uart->incoming_received;
-            return 0;
-        }
-        return SYSFS_SET_RETURN(ENODATA);
-    }
+	//if action was set return uart->incoming;
+	if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_ENABLED ){
+		if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE ){
+			uart->o_flags &= ~UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
+			*dest = uart->incoming_received;
+			return 0;
+		}
+		return SYSFS_SET_RETURN(ENODATA);
+	}
 
 
 	if( HAL_UART_Receive(&uart->hal_handle, dest, 1, 0) == HAL_OK ){
 		return 0;
 	}
 
-    return SYSFS_SET_RETURN(ENODATA);
+	return SYSFS_SET_RETURN(ENODATA);
 }
 
 int mcu_uart_getall(const devfs_handle_t * handle, void * ctl){
@@ -353,7 +353,7 @@ int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 
 	if( uart->read.callback ){
-        return SYSFS_SET_RETURN(EBUSY);
+		return SYSFS_SET_RETURN(EBUSY);
 	}
 
 	//this driver will only read one byte at a time
@@ -361,17 +361,17 @@ int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 	//check to see if a byte is ready right now
 	if( mcu_uart_get(handle, async->buf) == 0 ){
-        //got one byte
+		//got one byte
 		return 1;
 	}
 
 	if ( async->flags & O_NONBLOCK ){
-        return SYSFS_SET_RETURN(EAGAIN);
+		return SYSFS_SET_RETURN(EAGAIN);
 	} else {
 		//no bytes
 		if( cortexm_validate_callback(async->handler.callback) < 0 ){
-            return SYSFS_SET_RETURN(EPERM);
-        }
+			return SYSFS_SET_RETURN(EPERM);
+		}
 
 		uart->read = async->handler;
 		if( HAL_UART_Receive_IT(&uart->hal_handle, async->buf, async->nbyte) == HAL_OK ){
@@ -380,19 +380,19 @@ int mcu_uart_read(const devfs_handle_t * handle, devfs_async_t * async){
 	}
 
 	uart->read.callback = 0;
-    return SYSFS_SET_RETURN(EIO);
+	return SYSFS_SET_RETURN(EIO);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	uart_local_t * uart = (uart_local_t*)huart;
 	uart_event_t uart_event;
 
-    if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_ENABLED ){
-        uart->o_flags |= UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
-        uart->incoming_received = uart->incoming;
-        uart_event.value = uart->incoming_received;
-        HAL_UART_Receive_IT(&uart->hal_handle, &uart->incoming, 1);
-    }
+	if( uart->o_flags & UART_LOCAL_FLAG_IS_INCOMING_ENABLED ){
+		uart->o_flags |= UART_LOCAL_FLAG_IS_INCOMING_AVAILABLE;
+		uart->incoming_received = uart->incoming;
+		uart_event.value = uart->incoming_received;
+		HAL_UART_Receive_IT(&uart->hal_handle, &uart->incoming, 1);
+	}
 
 	mcu_execute_event_handler(&uart->read, MCU_EVENT_FLAG_DATA_READY, &uart_event);
 }
@@ -404,23 +404,23 @@ int mcu_uart_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 
 	if( uart->write.callback ){
-        return SYSFS_SET_RETURN(EBUSY);
+		return SYSFS_SET_RETURN(EBUSY);
 	}
 
-    uart->write = async->handler;
+	uart->write = async->handler;
 	ret = HAL_UART_Transmit_IT(&uart->hal_handle, async->buf, async->nbyte);
 	if( ret == HAL_OK ){
 		return 0;
 	}
 
-    return SYSFS_SET_RETURN(EIO);
+	return SYSFS_SET_RETURN(EIO);
 }
 
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 	uart_local_t * uart = (uart_local_t*)huart;
 	uart_event_t uart_event;
-    uart_event.value = 0;
+	uart_event.value = 0;
 	mcu_execute_event_handler(&uart->write, MCU_EVENT_FLAG_WRITE_COMPLETE, &uart_event);
 }
 
@@ -466,14 +466,14 @@ void mcu_core_usart6_isr(){
 
 #if MCU_UART_PORTS > 6
 void mcu_core_uart7_isr(){
-    mcu_uart_isr(6);
+	mcu_uart_isr(6);
 }
 #endif
 
 
 #if MCU_UART_PORTS > 7
 void mcu_core_uart8_isr(){
-    mcu_uart_isr(7);
+	mcu_uart_isr(7);
 }
 #endif
 

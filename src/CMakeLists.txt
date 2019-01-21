@@ -21,6 +21,7 @@ set(SOURCES
 	${SOURCES_PREFIX}/rng_dev.c
 	${SOURCES_PREFIX}/eth_dev.c
 	${SOURCES_PREFIX}/crc_dev.c
+	${SOURCES_PREFIX}/ltdc_dev.c
 	${SOURCES_PREFIX}/i2c_dev.c
 	${SOURCES_PREFIX}/sai_dma_dev.c
 	${SOURCES_PREFIX}/sai_local.c
@@ -49,8 +50,9 @@ set(SOURCES
 	${SOURCES_PREFIX}/spi_dev.c
 	${SOURCES_PREFIX}/spi_dma_dev.c
 	${SOURCES_PREFIX}/qspi_dev.c
+	${SOURCES_PREFIX}/sdram_fmc_dev.c
 	${SOURCES_PREFIX}/tmr_dev.c
-  ${SOURCES_PREFIX}/uart_dev.c
+	${SOURCES_PREFIX}/uart_dev.c
 	${SOURCES_PREFIX}/usb_otg_fs_dev.c
 	${SOURCES_PREFIX}/wdt.c
 	${SOURCES_PREFIX}/stm32_local.h

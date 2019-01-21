@@ -13,8 +13,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  */
 
 #include <cortexm/cortexm.h>
@@ -47,9 +47,9 @@ int mcu_mem_getsyspage(){
 
 int mcu_mem_getinfo(const devfs_handle_t * handle, void * ctl){
 	mem_info_t * info = ctl;
-    info->flash_pages = MCU_FLASH_PAGE_COUNT;
-    info->flash_size = MCU_FLASH_SIZE;
-    info->ram_pages = SRAM_PAGES;
+	info->flash_pages = MCU_FLASH_PAGE_COUNT;
+	info->flash_size = MCU_FLASH_SIZE;
+	info->ram_pages = SRAM_PAGES;
 	info->ram_size = SRAM_SIZE;
 	return 0;
 }
@@ -58,12 +58,12 @@ int mcu_mem_setattr(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_mem_setaction(const devfs_handle_t * handle, void * ctl){
-    return SYSFS_SET_RETURN(ENOTSUP);
+	return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int mcu_mem_getpageinfo(const devfs_handle_t * handle, void * ctl){
 	u32 size = 0;
-    int addr = 0;
+	int addr = 0;
 	mem_pageinfo_t * ctlp = ctl;
 
 
@@ -79,11 +79,11 @@ int mcu_mem_getpageinfo(const devfs_handle_t * handle, void * ctl){
 
 		size = stm32_flash_get_sector_size(ctlp->num);
 		addr = stm32_flash_get_sector_addr(ctlp->num);
-        if( addr < 0 ){
-            return -1;
-        }
+		if( addr < 0 ){
+			return -1;
+		}
 
-        if ( (addr + size) > (MCU_FLASH_SIZE + MCU_FLASH_START) ){
+		if ( (addr + size) > (MCU_FLASH_SIZE + MCU_FLASH_START) ){
 			return -1; //this page does not exist on this part
 		}
 
@@ -126,32 +126,32 @@ int mcu_mem_erasepage(const devfs_handle_t * handle, void * ctl){
 	int last_boot_page = get_last_boot_page();
 	int page_size;
 
-    if( addr < 0 ){
-        return -1;
-    }
+	if( addr < 0 ){
+		return -1;
+	}
 
 	page_size = stm32_flash_get_sector_size(page);
 
 	//protect the OS and the bootloader from being erased
 	if( page <= last_boot_page ){
-        mcu_debug_log_error(MCU_DEBUG_DEVICE, "Can't erase page (BOOT) %d in 0x%lX %d", page, addr, page_size);
-        return SYSFS_SET_RETURN(EROFS);
+		mcu_debug_log_error(MCU_DEBUG_DEVICE, "Can't erase page (BOOT) %d in 0x%lX %d", page, addr, page_size);
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
 	if( stm32_flash_is_flash(addr, page_size) == 0 ){
-        mcu_debug_log_error(MCU_DEBUG_DEVICE, "Can't erase page (FLASH) %d in 0x%lX %d", page, addr, page_size);
-        return SYSFS_SET_RETURN(EROFS);
+		mcu_debug_log_error(MCU_DEBUG_DEVICE, "Can't erase page (FLASH) %d in 0x%lX %d", page, addr, page_size);
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
 	if( stm32_flash_is_code(addr, page_size) ){
-        mcu_debug_log_error(MCU_DEBUG_DEVICE, "Can't erase page (CODE) %d in 0x%lX %d", page, addr, page_size);
-        return SYSFS_SET_RETURN(EROFS);
+		mcu_debug_log_error(MCU_DEBUG_DEVICE, "Can't erase page (CODE) %d in 0x%lX %d", page, addr, page_size);
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
 
 	err = stm32_flash_erase_sector(page);
 	if( err < 0 ){
-        err = SYSFS_SET_RETURN(EIO);
+		err = SYSFS_SET_RETURN(EIO);
 	}
 	return err;
 }
@@ -178,26 +178,26 @@ int mcu_mem_writepage(const devfs_handle_t * handle, void * ctl){
 	write_page = stm32_flash_get_sector(wattr->addr);
 
 	if ( write_page <= last_boot_page ){
-        mcu_debug_log_error(MCU_DEBUG_DEVICE, "Can't write to 0x%lX boot page %d %d", wattr->addr, write_page, last_boot_page);
-        return SYSFS_SET_RETURN(EROFS);
+		mcu_debug_log_error(MCU_DEBUG_DEVICE, "Can't write to 0x%lX boot page %d %d", wattr->addr, write_page, last_boot_page);
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
-    if( ((wattr->addr + nbyte >= MCU_FLASH_CODE_START) && (wattr->addr <= MCU_FLASH_CODE_END)) ){
-        return SYSFS_SET_RETURN(EROFS);
+	if( ((wattr->addr + nbyte >= MCU_FLASH_CODE_START) && (wattr->addr <= MCU_FLASH_CODE_END)) ){
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
-    if ( wattr->addr >= (MCU_FLASH_SIZE + MCU_FLASH_START) ){
-        return SYSFS_SET_RETURN(EINVAL);
+	if ( wattr->addr >= (MCU_FLASH_SIZE + MCU_FLASH_START) ){
+		return SYSFS_SET_RETURN(EINVAL);
 	}
 
-    if ( wattr->addr + nbyte > (MCU_FLASH_SIZE + MCU_FLASH_START) ){
-        nbyte = MCU_FLASH_SIZE - wattr->addr; //update the bytes read to not go past the end of the disk
+	if ( wattr->addr + nbyte > (MCU_FLASH_SIZE + MCU_FLASH_START) ){
+		nbyte = MCU_FLASH_SIZE - wattr->addr; //update the bytes read to not go past the end of the disk
 	}
 
 
 	if ( stm32_flash_blank_check(wattr->addr,  nbyte) ){
-        mcu_debug_log_error(MCU_DEBUG_DEVICE, "not blank 0x%lX", wattr->addr);
-        return SYSFS_SET_RETURN(EROFS);
+		mcu_debug_log_error(MCU_DEBUG_DEVICE, "not blank 0x%lX", wattr->addr);
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
 	err = stm32_flash_write(wattr->addr, wattr->buf, nbyte);
@@ -215,16 +215,16 @@ int mcu_mem_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 		return wop->nbyte;
 	}
 
-    return SYSFS_SET_RETURN(EINVAL);
+	return SYSFS_SET_RETURN(EINVAL);
 }
 
 int mcu_mem_read(const devfs_handle_t * cfg, devfs_async_t * rop){
 	if ( (stm32_flash_is_flash(rop->loc, rop->nbyte) ) ||
-			( is_ram(rop->loc, rop->nbyte) ) 	){
+		  ( is_ram(rop->loc, rop->nbyte) ) 	){
 		memcpy(rop->buf, (const void*)rop->loc, rop->nbyte);
 		return rop->nbyte;
 	}
-    return SYSFS_SET_RETURN(EINVAL);
+	return SYSFS_SET_RETURN(EINVAL);
 }
 
 //RAM paging

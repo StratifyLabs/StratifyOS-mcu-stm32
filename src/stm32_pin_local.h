@@ -24,11 +24,11 @@
 #define DMA_STREAMS_PER_CHANNEL 8
 
 typedef struct {
-    u16 entry[DMA_STREAMS_PER_CHANNEL]; //eight streams per channel
+	u16 entry[DMA_STREAMS_PER_CHANNEL]; //eight streams per channel
 } dma_channel_entry_t;
 
 typedef struct {
-    u16 entry[TOTAL_ENTRIES];
+	u16 entry[TOTAL_ENTRIES];
 } alternate_function_entry_t;
 
 
