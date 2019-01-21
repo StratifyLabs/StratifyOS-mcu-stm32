@@ -29,7 +29,7 @@ option(BUILD_STM32F446 "Build F446 configuration" OFF)
 
 option(BUILD_STM32F7 "Build All F7 configurations" OFF)
 option(BUILD_STM32F722 "Build F722 configuration" OFF)
-option(BUILD_STM32F723 "Build F723 configuration" ON)
+option(BUILD_STM32F723 "Build F723 configuration" OFF)
 option(BUILD_STM32F746 "Build F746 configuration" OFF)
 option(BUILD_STM32F767 "Build F767 configuration" OFF)
 
