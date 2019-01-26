@@ -30,7 +30,7 @@ typedef struct {
     QSPI_HandleTypeDef hal_handle;
     devfs_transfer_handler_t transfer_handler;
     u32 state;
-    u32 read_instruction;
+    u32 read_instruction;   /*sets in QSPI_FLAG_SET_MASTER*/
     u32 mem_mapped_read_instruction;
     u32 write_instruction;
     u32 dummy_cycle;
@@ -57,8 +57,7 @@ static QUADSPI_TypeDef * const qspi_regs_table[MCU_QSPI_PORTS] = MCU_QSPI_REGS;
 static u8 const qspi_irqs[MCU_QSPI_PORTS] = MCU_QSPI_IRQS;
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(qspi, QSPI_VERSION, QSPI_IOC_IDENT_CHAR, I_MCU_TOTAL + I_QSPI_TOTAL, \
-                                mcu_qspi_command,mcu_qspi_addr_command,\
-                                mcu_qspi_read_regs,mcu_qspi_write_regs)
+                                mcu_qspi_command)
 //DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(qspi, QSPI_VERSION, QSPI_IOC_IDENT_CHAR)
 
 int mcu_qspi_open(const devfs_handle_t * handle){
@@ -101,7 +100,7 @@ int mcu_qspi_close(const devfs_handle_t * handle){
 
 int mcu_qspi_getinfo(const devfs_handle_t * handle, void * ctl){
 	qspi_info_t * info = ctl;
-    info->o_flags = QSPI_FLAG_SET_MASTER | QSPI_FLAG_READ_MEM_MAPPED_MODE;
+    info->o_flags = QSPI_FLAG_SET_MASTER | QSPI_FLAG_IS_READ_MEM_MAPPED_MODE;
 	return 0;
 }
 
@@ -142,14 +141,14 @@ int mcu_qspi_setattr(const devfs_handle_t * handle, void * ctl){
         qspi->hal_handle.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_HALFCYCLE;
         qspi->hal_handle.Init.FlashSize = flash_size;/*attribute size 2^size-1*/
         qspi->hal_handle.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_1_CYCLE;
-        if(o_flags & QSPI_FLAG_CLK_HIGH_WHILE_CS ){
+        if(o_flags & QSPI_FLAG_IS_CLK_HIGH_WHILE_CS ){
             qspi->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_3;
         }else{
             /*default*/
             qspi->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_0;
         }
         //Clock mode QSPI_CLOCK_MODE_3 is double data rate
-        if(o_flags & QSPI_FLAG_FLASH_ID_2){
+        if(o_flags & QSPI_FLAG_IS_FLASH_ID_2){
             qspi->hal_handle.Init.FlashID = QSPI_FLASH_ID_2;
             qspi->hal_handle.Init.DualFlash = QSPI_DUALFLASH_ENABLE;
         }else{
@@ -161,16 +160,63 @@ int mcu_qspi_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EIO);
         }
 	}
-    if((o_flags & QSPI_FLAG_READ_MEM_MAPPED_MODE) && !(qspi->hal_handle.State & HAL_QSPI_STATE_BUSY_MEM_MAPPED)){
+    if((o_flags & QSPI_FLAG_IS_READ_MEM_MAPPED_MODE) && !(qspi->hal_handle.State & HAL_QSPI_STATE_BUSY_MEM_MAPPED)){
         external_flash_switch_to_mem_maped(&qspi->hal_handle,qspi );
     }
-
-    if(o_flags & QSPI_FLAG_INSTRUCTION_1_LINE){
-
+    if(o_flags & QSPI_FLAG_READ_REGISTER){
+        QSPI_CommandTypeDef command;
+        command = get_command_config(o_flags);
+        command.Instruction       = attr->command;
+        command.AddressMode       = QSPI_ADDRESS_NONE;
+        if(o_flags & QSPI_FLAG_IS_REGISTER_WIDTH_8){
+            command.NbData        = 1;
+        }else if(o_flags & QSPI_FLAG_IS_REGISTER_WIDTH_16){
+            command.NbData        = 2;
+        }else if(o_flags & QSPI_FLAG_IS_REGISTER_WIDTH_24){
+            command.NbData        = 3;
+        }else if(o_flags & QSPI_FLAG_IS_REGISTER_WIDTH_32){
+            command.NbData        = 4;
+        }else{
+            command.NbData        = 1;
+        }
+        if( HAL_QSPI_Command(&qspi->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK ){
+            qspi->transfer_handler.write = 0;
+            return SYSFS_SET_RETURN(EIO);
+        }
+        if (HAL_QSPI_Receive(&qspi->hal_handle, attr->data,HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK){
+            qspi->transfer_handler.read = 0;
+            return SYSFS_SET_RETURN(EIO);
+        }
+    }else if(o_flags & QSPI_FLAG_WRITE_REGISTER){
+        qspi_local_t * qspi = qspi_local + handle->port * sizeof(qspi_local_t);
+        QSPI_CommandTypeDef command;
+        command = get_command_config(o_flags);
+        command.Instruction       = attr->command;
+        command.AddressMode       = QSPI_ADDRESS_NONE;
+        if(o_flags & QSPI_FLAG_IS_REGISTER_WIDTH_8){
+            command.NbData        = 1;
+        }else if(o_flags & QSPI_FLAG_IS_REGISTER_WIDTH_16){
+            command.NbData        = 2;
+        }else if(o_flags & QSPI_FLAG_IS_REGISTER_WIDTH_24){
+            command.NbData        = 3;
+        }else if(o_flags & QSPI_FLAG_IS_REGISTER_WIDTH_32){
+            command.NbData        = 4;
+        }else{
+            command.DataMode =QSPI_DATA_NONE;
+            command.NbData        = 0;
+        }
+        if( HAL_QSPI_Command(&qspi->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK ){
+            return SYSFS_SET_RETURN(EIO);
+        }
+        if (command.NbData){
+            if(HAL_QSPI_Transmit(&qspi->hal_handle, attr->data, HAL_QPSI_TIMEOUT_DEFAULT_VALUE)!=HAL_OK){
+                return SYSFS_SET_RETURN(EIO);
+            }
+        }
+        return 0;
     }
 	return 0;
 }
-
 
 int mcu_qspi_setaction(const devfs_handle_t * handle, void * ctl){
 	int port = handle->port;
@@ -187,82 +233,16 @@ int mcu_qspi_command(const devfs_handle_t * handle, void * ctl){
     u32 data_command;
     QSPI_CommandTypeDef command;
     data_command = (u32)ctl;
-    mcu_debug_printf("mcu_qspi_command \n");
     command = get_command_config(qspi->state);
     command.Instruction       = data_command;
     command.AddressMode       = QSPI_ADDRESS_NONE;
     command.DataMode          = QSPI_DATA_NONE;
     command.NbData = 0;
     if( HAL_QSPI_Command(&qspi->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK ){
-        qspi->transfer_handler.write = 0;
         return SYSFS_SET_RETURN(EIO);
     }
     return 0;
 }
-
-int mcu_qspi_addr_command(const devfs_handle_t * handle, void * ctl){
-    qspi_local_t * qspi = qspi_local + handle->port * sizeof(qspi_local_t);
-    qspi_addr_command_config_t * addr_command_config;
-    QSPI_CommandTypeDef command;
-    addr_command_config = ctl;
-    mcu_debug_printf("mcu_qspi_addr_command \n");
-    command = get_command_config(qspi->state);
-    command.Instruction       = addr_command_config->command;
-    command.Address           = addr_command_config->address;
-    command.DataMode          = QSPI_DATA_NONE;
-    command.NbData = 0;
-    if( HAL_QSPI_Command(&qspi->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK ){
-        qspi->transfer_handler.write = 0;
-        return SYSFS_SET_RETURN(EIO);
-    }
-    return 0;
-}
-int mcu_qspi_read_regs(const devfs_handle_t * handle, void * ctl){
-    qspi_local_t * qspi = qspi_local + handle->port * sizeof(qspi_local_t);
-    qspi_read_regs_config_t * read_addr_config;
-    QSPI_CommandTypeDef command;
-    read_addr_config = ctl;
-    mcu_debug_printf("mcu_qspi_read_regs \n");
-    command = get_command_config(qspi->state);
-    command.Instruction       = read_addr_config->command;
-    command.AddressMode       = QSPI_ADDRESS_NONE;
-    command.NbData            = read_addr_config->regs_number;
-    if( HAL_QSPI_Command(&qspi->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK ){
-        qspi->transfer_handler.write = 0;
-        return SYSFS_SET_RETURN(EIO);
-    }
-    if (HAL_QSPI_Receive(&qspi->hal_handle, read_addr_config->data,HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK){
-        qspi->transfer_handler.read = 0;
-        return SYSFS_SET_RETURN(EIO);
-    }
-
-    return 0;
-}
-int mcu_qspi_write_regs(const devfs_handle_t * handle, void * ctl){
-    qspi_local_t * qspi = qspi_local + handle->port * sizeof(qspi_local_t);
-    qspi_read_regs_config_t * read_addr_config;
-    QSPI_CommandTypeDef command;
-    read_addr_config = ctl;
-    mcu_debug_printf("mcu_qspi_write_regs \n");
-    command = get_command_config(qspi->state);
-    command.Instruction       = read_addr_config->command;
-    command.AddressMode       = QSPI_ADDRESS_NONE;
-    command.NbData = read_addr_config->regs_number;
-    if( HAL_QSPI_Command(&qspi->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK ){
-        qspi->transfer_handler.write = 0;
-        return SYSFS_SET_RETURN(EIO);
-    }
-    if (read_addr_config->data!=0){
-        if(HAL_QSPI_Transmit(&qspi->hal_handle, read_addr_config->data, HAL_QPSI_TIMEOUT_DEFAULT_VALUE)!=HAL_OK){
-            qspi->transfer_handler.write = 0;
-            return SYSFS_SET_RETURN(EIO);
-        }
-    }else{
-        return -1;
-    }
-    return 0;
-}
-
 
 int mcu_qspi_read(const devfs_handle_t * handle, devfs_async_t * async){
     qspi_local_t * qspi = qspi_local + handle->port * sizeof(qspi_local_t);
@@ -283,11 +263,9 @@ int mcu_qspi_read(const devfs_handle_t * handle, devfs_async_t * async){
     command.DummyCycles       = qspi->dummy_cycle;
     command.NbData            = (u32)async->nbyte;
     if( HAL_QSPI_Command(&qspi->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK ){
-        qspi->transfer_handler.read = 0;
         return SYSFS_SET_RETURN(EIO);
     }
     if (HAL_QSPI_Receive_IT(&qspi->hal_handle, qspi->transfer_handler.read->buf) != HAL_OK){
-        qspi->transfer_handler.read = 0;
         return SYSFS_SET_RETURN(EIO);
     }
     return 0;
@@ -413,28 +391,28 @@ int external_flash_switch_to_mem_maped(QSPI_HandleTypeDef *hqspi,qspi_local_t * 
  * */
 QSPI_CommandTypeDef get_command_config(u32 state){
     QSPI_CommandTypeDef command;
-    if(state & QSPI_FLAG_INSTRUCTION_1_LINE){
+    if(state & QSPI_FLAG_IS_INSTRUCTION_1_LINE){
         command.InstructionMode   = QSPI_INSTRUCTION_1_LINE;
     }else{
         command.InstructionMode   = QSPI_INSTRUCTION_4_LINES;
     }
-    if (state & QSPI_FLAG_ADDRESS_1_LINE){
+    if (state & QSPI_FLAG_IS_ADDRESS_1_LINE){
         command.AddressMode       = QSPI_ADDRESS_1_LINE;
     }else{
         command.AddressMode       = QSPI_ADDRESS_4_LINES;
     }
     /*if use QSPI_ADDRESS_NONE AddressSize not use*/
-    if(state & QSPI_FLAG_ADDRESS_8_BITS){
+    if(state & QSPI_FLAG_IS_ADDRESS_8_BITS){
         command.AddressSize  = QSPI_ADDRESS_8_BITS;
-    }else if(state & QSPI_FLAG_ADDRESS_16_BITS){
+    }else if(state & QSPI_FLAG_IS_ADDRESS_16_BITS){
         command.AddressSize  = QSPI_ADDRESS_16_BITS;
-    }else if(state & QSPI_FLAG_ADDRESS_24_BITS){
+    }else if(state & QSPI_FLAG_IS_ADDRESS_24_BITS){
         command.AddressSize  = QSPI_ADDRESS_24_BITS;
     }else{
         command.AddressSize  = QSPI_ADDRESS_32_BITS;
     }
     command.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
-    if(state & QSPI_FLAG_DATA_1_LINE){
+    if(state & QSPI_FLAG_IS_DATA_1_LINE){
         command.DataMode = QSPI_DATA_1_LINE;
     }else{
         command.DataMode = QSPI_DATA_4_LINES;
