@@ -66,7 +66,7 @@ int mcu_spi_setaction(const devfs_handle_t * handle, void * ctl){
 
 int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
@@ -106,7 +106,7 @@ int mcu_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 int mcu_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

@@ -25,7 +25,7 @@
 
 
 int i2s_spi_local_open(const devfs_handle_t * handle){
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 	local->o_flags = SPI_LOCAL_IS_I2S;
 	return spi_local_open(handle);
 }
@@ -49,7 +49,7 @@ int i2s_spi_local_unmute(const devfs_handle_t * handle, void * ctl){
 int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 	const u32 port = handle->port;
 	const i2s_attr_t * attr = mcu_select_attr(handle, ctl);
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 	if( attr == 0 ){ return SYSFS_SET_RETURN(EINVAL); }
 
 	u32 o_flags = attr->o_flags;

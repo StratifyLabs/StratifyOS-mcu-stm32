@@ -426,6 +426,7 @@ __weak void HAL_RTC_MspDeInit(RTC_HandleTypeDef* hrtc)
   * @{
   */
 
+#include <mcu/debug.h>
 /**
   * @brief  Sets RTC current time.
   * @param  hrtc: pointer to a RTC_HandleTypeDef structure that contains
@@ -453,7 +454,7 @@ HAL_StatusTypeDef HAL_RTC_SetTime(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTim
   
   if(Format == RTC_FORMAT_BIN)
   {
-    if((hrtc->Instance->CR & RTC_CR_FMT) != (uint32_t)RESET)
+	 if((hrtc->Instance->CR & RTC_CR_FMT) != (uint32_t)RESET)
     {
       assert_param(IS_RTC_HOUR12(sTime->Hours));
       assert_param(IS_RTC_HOURFORMAT12(sTime->TimeFormat));
@@ -463,7 +464,7 @@ HAL_StatusTypeDef HAL_RTC_SetTime(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTim
       sTime->TimeFormat = 0x00;
       assert_param(IS_RTC_HOUR24(sTime->Hours));
     }
-    assert_param(IS_RTC_MINUTES(sTime->Minutes));
+	 assert_param(IS_RTC_MINUTES(sTime->Minutes));
     assert_param(IS_RTC_SECONDS(sTime->Seconds));
     
     tmpreg = (uint32_t)(((uint32_t)RTC_ByteToBcd2(sTime->Hours) << 16) | \
@@ -494,7 +495,8 @@ HAL_StatusTypeDef HAL_RTC_SetTime(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTim
   
   /* Disable the write protection for RTC registers */
   __HAL_RTC_WRITEPROTECTION_DISABLE(hrtc);
-  
+
+  mcu_debug_printf("%s():%d\n", __FUNCTION__, __LINE__);
   /* Set Initialization mode */
   if(RTC_EnterInitMode(hrtc) != HAL_OK)
   {
@@ -502,7 +504,7 @@ HAL_StatusTypeDef HAL_RTC_SetTime(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTim
     __HAL_RTC_WRITEPROTECTION_ENABLE(hrtc); 
     
     /* Set RTC state */
-    hrtc->State = HAL_RTC_STATE_ERROR;
+	 hrtc->State = HAL_RTC_STATE_ERROR;
     
     /* Process Unlocked */ 
     __HAL_UNLOCK(hrtc);
@@ -512,7 +514,7 @@ HAL_StatusTypeDef HAL_RTC_SetTime(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTim
   else
   {
     /* Set the RTC_TR register */
-    hrtc->Instance->TR = (uint32_t)(tmpreg & RTC_TR_RESERVED_MASK);
+	 hrtc->Instance->TR = (uint32_t)(tmpreg & RTC_TR_RESERVED_MASK);
      
     /* Clear the bits to be configured */
     hrtc->Instance->CR &= (uint32_t)~RTC_CR_BKP;
@@ -523,7 +525,7 @@ HAL_StatusTypeDef HAL_RTC_SetTime(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTim
     /* Exit Initialization mode */
     hrtc->Instance->ISR &= (uint32_t)~RTC_ISR_INIT;  
     
-    /* If  CR_BYPSHAD bit = 0, wait for synchro else this check is not needed */
+	 /* If  CR_BYPSHAD bit = 0, wait for synchro else this check is not needed */
     if((hrtc->Instance->CR & RTC_CR_BYPSHAD) == RESET)
     {
       if(HAL_RTC_WaitForSynchro(hrtc) != HAL_OK)
@@ -535,16 +537,16 @@ HAL_StatusTypeDef HAL_RTC_SetTime(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTim
         
         /* Process Unlocked */ 
         __HAL_UNLOCK(hrtc);
-        
+
         return HAL_ERROR;
       }
     }
-    
+
     /* Enable the write protection for RTC registers */
     __HAL_RTC_WRITEPROTECTION_ENABLE(hrtc);
     
    hrtc->State = HAL_RTC_STATE_READY;
-  
+
    __HAL_UNLOCK(hrtc); 
      
    return HAL_OK;
@@ -1505,12 +1507,13 @@ HAL_StatusTypeDef RTC_EnterInitMode(RTC_HandleTypeDef* hrtc)
     hrtc->Instance->ISR = (uint32_t)RTC_INIT_MASK;
 
     /* Get tick */
-    tickstart = HAL_GetTick();
+	 tickstart = 0;
 
     /* Wait till RTC is in INIT state and if Time out is reached exit */
     while((hrtc->Instance->ISR & RTC_ISR_INITF) == (uint32_t)RESET)
     {
-      if((HAL_GetTick() - tickstart ) > RTC_TIMEOUT_VALUE)
+		 cortexm_delay_ms(1);
+		if(tickstart++ > RTC_TIMEOUT_VALUE)
       {       
         return HAL_TIMEOUT;
       } 

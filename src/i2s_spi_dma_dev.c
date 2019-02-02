@@ -30,14 +30,14 @@
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi_dma, I2S_VERSION, I2S_IOC_IDENT_CHAR, I_MCU_TOTAL + I_I2S_TOTAL, mcu_i2s_spi_dma_mute, mcu_i2s_spi_dma_unmute)
 
 int mcu_i2s_spi_dma_open(const devfs_handle_t * handle){
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 	local->o_flags = SPI_LOCAL_IS_DMA;
 	return i2s_spi_local_open(handle);
 }
 
 int mcu_i2s_spi_dma_close(const devfs_handle_t * handle){
 	//same as SPI
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 
 	if( local->ref_count == 1 ){
 		//disable the DMA
@@ -87,7 +87,7 @@ int mcu_i2s_spi_dma_unmute(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 	const stm32_i2s_spi_dma_config_t * config;
 	const i2s_attr_t * attr = mcu_select_attr(handle, ctl);
 	if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
@@ -140,7 +140,7 @@ int mcu_i2s_spi_dma_setaction(const devfs_handle_t * handle, void * ctl){
 
 int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int result;
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
@@ -186,7 +186,7 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

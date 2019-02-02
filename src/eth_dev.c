@@ -174,10 +174,16 @@ int mcu_eth_setattr(const devfs_handle_t * handle, void * ctl){
 		HAL_ETH_DMATxDescListInit(&eth->hal_handle, eth->tx_dma_desc, config->tx_buffer, ETH_TXBUFNB);
 		HAL_ETH_DMARxDescListInit(&eth->hal_handle, eth->rx_dma_desc, config->rx_buffer, ETH_RXBUFNB);
 		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Start Ethernet");
+	}
+
+	if( o_flags & ETH_FLAG_GET_STATE ){
+		return HAL_ETH_GetState(&eth->hal_handle);
+	}
+
+	if( o_flags & ETH_FLAG_START ){
 		HAL_ETH_Start(&eth->hal_handle);
 	}
 
-	if( o_flags & ETH_FLAG_GET_STATE ){ return HAL_ETH_GetState(&eth->hal_handle); }
 	if( o_flags & ETH_FLAG_STOP ){
 		HAL_ETH_Stop(&eth->hal_handle);
 
