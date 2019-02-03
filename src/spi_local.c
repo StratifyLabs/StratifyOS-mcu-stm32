@@ -25,11 +25,10 @@
 
 SPI_TypeDef * const spi_regs[MCU_SPI_PORTS] = MCU_SPI_REGS;
 u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
-spi_local_t spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
+spi_local_t m_spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
 
 int spi_local_open(const devfs_handle_t * handle){
-	const u32 port = handle->port;
-	spi_local_t * local = spi_local + port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 	if( port < MCU_SPI_PORTS ){
 		if ( local->ref_count == 0 ){
 			//turn on RCC clock
@@ -76,8 +75,7 @@ int spi_local_open(const devfs_handle_t * handle){
 }
 
 int spi_local_close(const devfs_handle_t * handle){
-	const u32 port = handle->port;
-	spi_local_t * local = spi_local + port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 	if ( local->ref_count > 0 ){
 		if ( local->ref_count == 1 ){
 
@@ -134,8 +132,7 @@ int spi_local_close(const devfs_handle_t * handle){
 }
 
 int spi_local_setattr(const devfs_handle_t * handle, void * ctl){
-	const u32 port = handle->port;
-	spi_local_t * local = spi_local + port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 
 	u32 pclk;
 	u32 prescalar;
@@ -257,15 +254,11 @@ int spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 		local->o_flags &= ~SPI_LOCAL_IS_FULL_DUPLEX;
 	}
 
-
-
-
 	return 0;
 }
 
 int spi_local_swap(const devfs_handle_t * handle, void * ctl){
-	const u32 port = handle->port;
-	spi_local_t * local = spi_local + port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 
 	u8 tx_data;
 	u8 rx_data;
@@ -280,9 +273,8 @@ int spi_local_swap(const devfs_handle_t * handle, void * ctl){
 }
 
 int spi_local_setaction(const devfs_handle_t * handle, void * ctl){
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 	mcu_action_t * action = (mcu_action_t*)ctl;
-	const u32 port = handle->port;
-	spi_local_t * local = spi_local + port;
 
 	//callback = 0 with flags set will cancel an ongoing operation
 	if(action->handler.callback == 0){
@@ -364,16 +356,16 @@ void mcu_core_spi1_isr(){
 	}
 #else
 	//mcu_debug_printf("SPI1 IRQ\n");
-	HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
+	HAL_SPI_IRQHandler(&m_spi_local[0].hal_handle);
 #endif
 }
 
 void mcu_core_spi2_isr(){
 #if MCU_I2S_ON_SPI2 != 0
-	if( spi_local[1].o_flags & SPI_LOCAL_IS_I2S ){
-		HAL_I2S_IRQHandler(&spi_local[1].i2s_hal_handle);
+	if( m_spi_local[1].o_flags & SPI_LOCAL_IS_I2S ){
+		HAL_I2S_IRQHandler(&m_spi_local[1].i2s_hal_handle);
 	} else {
-		HAL_SPI_IRQHandler(&spi_local[1].hal_handle);
+		HAL_SPI_IRQHandler(&m_spi_local[1].hal_handle);
 	}
 #elif MCU_SPI_PORTS > 1
 	HAL_SPI_IRQHandler(&spi_local[1].hal_handle);
@@ -382,10 +374,10 @@ void mcu_core_spi2_isr(){
 
 void mcu_core_spi3_isr(){
 #if MCU_I2S_ON_SPI3 != 0
-	if( spi_local[2].o_flags & SPI_LOCAL_IS_I2S ){
-		HAL_I2S_IRQHandler(&spi_local[2].i2s_hal_handle);
+	if( m_spi_local[2].o_flags & SPI_LOCAL_IS_I2S ){
+		HAL_I2S_IRQHandler(&m_spi_local[2].i2s_hal_handle);
 	} else {
-		HAL_SPI_IRQHandler(&spi_local[2].hal_handle);
+		HAL_SPI_IRQHandler(&m_spi_local[2].hal_handle);
 	}
 #elif MCU_SPI_PORTS > 2
 	HAL_SPI_IRQHandler(&spi_local[2].hal_handle);
@@ -400,19 +392,19 @@ void mcu_core_spi4_isr(){
 		HAL_SPI_IRQHandler(&spi_local[3].hal_handle);
 	}
 #elif MCU_SPI_PORTS > 3
-	HAL_SPI_IRQHandler(&spi_local[3].hal_handle);
+	HAL_SPI_IRQHandler(&m_spi_local[3].hal_handle);
 #endif
 }
 
 #if MCU_SPI_PORTS > 4
 void mcu_core_spi5_isr(){
-	HAL_SPI_IRQHandler(&spi_local[4].hal_handle);
+	HAL_SPI_IRQHandler(&m_spi_local[4].hal_handle);
 }
 #endif
 
 #if MCU_SPI_PORTS > 5
 void mcu_core_spi6_isr(){
-	HAL_SPI_IRQHandler(&spi_local[5].hal_handle);
+	HAL_SPI_IRQHandler(&m_spi_local[5].hal_handle);
 }
 #endif
 

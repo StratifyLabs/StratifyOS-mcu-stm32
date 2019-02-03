@@ -47,7 +47,7 @@ enum {
 };
 
 
-extern spi_local_t spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
+extern spi_local_t m_spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
 extern SPI_TypeDef * const spi_regs[MCU_SPI_PORTS];
 extern u8 const spi_irqs[MCU_SPI_PORTS];
 

@@ -28,7 +28,7 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi, I2S_VERSION, I2S_IOC_IDENT_CHAR, I_MCU_
 
 int mcu_i2s_spi_open(const devfs_handle_t * handle){
 	//make sure port supports I2S -- not all ports support I2S
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 	local->o_flags = 0;
 	return i2s_spi_local_open(handle);
 }
@@ -66,7 +66,7 @@ int mcu_i2s_spi_setaction(const devfs_handle_t * handle, void * ctl){
 
 int mcu_i2s_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
 
@@ -103,7 +103,7 @@ int mcu_i2s_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 int mcu_i2s_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

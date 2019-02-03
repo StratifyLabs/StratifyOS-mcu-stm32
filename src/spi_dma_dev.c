@@ -33,7 +33,7 @@ int mcu_spi_dma_open(const devfs_handle_t * handle){
 }
 
 int mcu_spi_dma_close(const devfs_handle_t * handle){
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 	if( local->ref_count == 1 ){
 		//disable the DMA
 
@@ -76,7 +76,7 @@ int mcu_spi_dma_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 	const stm32_spi_dma_config_t * config;
 
 	//BSP *MUST* provide DMA configuration information
@@ -115,7 +115,7 @@ int mcu_spi_dma_setaction(const devfs_handle_t * handle, void * ctl){
 
 int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
@@ -146,7 +146,7 @@ int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 int mcu_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
-	spi_local_t * local = spi_local + handle->port;
+	spi_local_t * local = m_spi_local + handle->port;
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

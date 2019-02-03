@@ -187,7 +187,7 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 
     } else if( o_flags & I2C_FLAG_SET_SLAVE ){
-#if defined STM32F7 || defined STM32L4
+#if defined STM32F7 || defined STM32L4 || defined STM32H7
 		  local->hal_handle.Init.Timing = freq;
 #else
 		  local->hal_handle.Init.ClockSpeed = freq;
