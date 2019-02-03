@@ -51,6 +51,7 @@ set(SOURCES
 	${SOURCES_PREFIX}/spi_dma_dev.c
 	${SOURCES_PREFIX}/qspi_dev.c
 	${SOURCES_PREFIX}/sdram_fmc_dev.c
+	${SOURCES_PREFIX}/psram_fmc_dev.c
 	${SOURCES_PREFIX}/tmr_dev.c
 	${SOURCES_PREFIX}/uart_dev.c
 	${SOURCES_PREFIX}/usb_otg_fs_dev.c
@@ -60,4 +61,5 @@ set(SOURCES
 	${SOURCES_PREFIX}/stm32_dma.h
 	${SOURCES_PREFIX}/stm32_pin_local.h
 	${SOURCES_PREFIX}/spi_local.h
+
 	PARENT_SCOPE)
