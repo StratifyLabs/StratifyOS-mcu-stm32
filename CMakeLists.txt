@@ -18,6 +18,12 @@ project(${SOS_LIB_NAME} C ASM)
 
 option(BUILD_ALL "Build All configurations" ON)
 
+option(BUILD_STM32F2 "Build All F2 configurations" OFF)
+option(BUILD_STM32F205xx "Build F205xx configuration" OFF)
+option(BUILD_STM32F207xx "Build F207xx configuration" OFF)
+option(BUILD_STM32F215xx "Build F215xx configuration" OFF)
+option(BUILD_STM32F217xx "Build F217xx configuration" OFF)
+
 option(BUILD_STM32F4 "Build All F4 configurations" OFF)
 option(BUILD_STM32F401xC "Build F401xC configuration" OFF)
 option(BUILD_STM32F401xE "Build F401xE configuration" OFF)
@@ -42,6 +48,12 @@ option(BUILD_STM32H743 "Build H743 configuration" OFF)
 option(BUILD_STM32H750 "Build H750 configuration" OFF)
 
 set(SOS_LIB_BUILD_FLAGS -Wno-strict-aliasing)
+
+if(BUILD_STM32F205xx OR BUILD_STM32F2 OR BUILD_ALL)
+set(STM32_VARIANT stm32f205xx)
+set(STM32_VARIANT_DEFINE STM32F205xx)
+include(${CMAKE_SOURCE_DIR}/stm32f2.cmake)
+endif()
 
 if(BUILD_STM32F401xC OR BUILD_STM32F4 OR BUILD_ALL)
 set(STM32_VARIANT stm32f401xc)
@@ -142,17 +154,20 @@ include(${CMAKE_SOURCE_DIR}/stm32h7.cmake)
 endif()
 
 
+file(GLOB STM32F2XX_HEADERS ${CMAKE_SOURCE_DIR}/src/stm32f2xx/*.h)
 file(GLOB STM32F3XX_HEADERS ${CMAKE_SOURCE_DIR}/src/stm32f3xx/*.h)
 file(GLOB STM32L4XX_HEADERS ${CMAKE_SOURCE_DIR}/src/stm32l4xx/*.h)
 file(GLOB STM32F4XX_HEADERS ${CMAKE_SOURCE_DIR}/src/stm32f4xx/*.h)
 file(GLOB STM32F7XX_HEADERS ${CMAKE_SOURCE_DIR}/src/stm32f7xx/*.h)
 file(GLOB STM32H7XX_HEADERS ${CMAKE_SOURCE_DIR}/src/stm32h7xx/*.h)
 
+install(FILES ${STM32F2XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f2xx)
 install(FILES ${STM32F3XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f3xx)
 install(FILES ${STM32L4XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32l4xx)
 install(FILES ${STM32F4XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f4xx)
 install(FILES ${STM32F7XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f7xx)
 install(FILES ${STM32H7XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32h7xx)
+install(FILES ${CMAKE_SOURCE_DIR}/src/stm32f2xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32f2xx/Legacy)
 install(FILES ${CMAKE_SOURCE_DIR}/src/stm32h7xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32h7xx/Legacy)
 install(FILES ${CMAKE_SOURCE_DIR}/src/stm32f7xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32f7xx/Legacy)
 install(FILES ${CMAKE_SOURCE_DIR}/src/stm32l4xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32l4xx/Legacy)

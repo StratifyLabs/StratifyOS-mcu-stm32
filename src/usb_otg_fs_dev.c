@@ -203,8 +203,11 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 
 		usb_local[port].hal_handle.Init.Sof_enable = DISABLE;
 		usb_local[port].hal_handle.Init.low_power_enable = DISABLE;
+
+#if !defined STM32F2
 		usb_local[port].hal_handle.Init.lpm_enable = DISABLE;
 		usb_local[port].hal_handle.Init.battery_charging_enable = DISABLE;
+#endif
 
 #if MCU_USB_API > 0
 		usb_local[port].hal_handle.Init.vbus_sensing_enable = DISABLE;
@@ -220,6 +223,7 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 			usb_local[port].hal_handle.Init.Sof_enable = ENABLE;
 		}
 
+#if !defined STM32F2
 		if( o_flags & USB_FLAG_IS_LOW_POWER_MODE_ENABLED ){
 			usb_local[port].hal_handle.Init.lpm_enable = ENABLE;
 		}
@@ -227,6 +231,7 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 		if( o_flags & USB_FLAG_IS_BATTERY_CHARGING_ENABLED ){
 			usb_local[port].hal_handle.Init.battery_charging_enable = ENABLE;
 		}
+#endif
 
 		if( HAL_PCD_Init(&usb_local[port].hal_handle) != HAL_OK ){
 			return SYSFS_SET_RETURN(EIO);

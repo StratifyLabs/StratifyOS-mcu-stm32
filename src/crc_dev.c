@@ -44,6 +44,7 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(crc, CRC_VERSION, CRC_IOC_IDENT_CHAR, I_MCU_TOTA
 u32 mcu_calc_crc32(u32 seed, u32 polynomial, const u8 * buffer, u32 nbyte){
 	crc_local_t * local = m_crc_local;
 
+#if MCU_CRC_API == 1
 	local->hal_handle.Instance = CRC;
 	local->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
 	local->hal_handle.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
@@ -53,6 +54,7 @@ u32 mcu_calc_crc32(u32 seed, u32 polynomial, const u8 * buffer, u32 nbyte){
 	local->hal_handle.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
 	local->hal_handle.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
 	local->hal_handle.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
+#endif
 	HAL_CRC_Init(&local->hal_handle);
 
 	return HAL_CRC_Accumulate(&local->hal_handle, (u32*)buffer, nbyte);
@@ -61,6 +63,7 @@ u32 mcu_calc_crc32(u32 seed, u32 polynomial, const u8 * buffer, u32 nbyte){
 u16 mcu_calc_crc16(u16 seed, u16 polynomial, const u8 * buffer, u32 nbyte){
 	crc_local_t * local = m_crc_local;
 
+#if MCU_CRC_API == 1
 	local->hal_handle.Instance = CRC;
 	local->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
 	local->hal_handle.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
@@ -70,6 +73,7 @@ u16 mcu_calc_crc16(u16 seed, u16 polynomial, const u8 * buffer, u32 nbyte){
 	local->hal_handle.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
 	local->hal_handle.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
 	local->hal_handle.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
+#endif
 	HAL_CRC_Init(&local->hal_handle);
 
 	return HAL_CRC_Accumulate(&local->hal_handle, (u32*)buffer, nbyte);
@@ -153,7 +157,7 @@ int mcu_crc_setattr(const devfs_handle_t * handle, void * ctl){
 	u32 o_flags = attr->o_flags;
 
 	if( o_flags & CRC_FLAG_ENABLE ){
-
+#if MCU_CRC_API == 1
 		local->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
 		local->hal_handle.Init.GeneratingPolynomial = attr->seed;
 		if( o_flags & CRC_FLAG_IS_DEFAULT_POLYNOMIAL ){
@@ -188,6 +192,7 @@ int mcu_crc_setattr(const devfs_handle_t * handle, void * ctl){
 		if( o_flags & CRC_FLAG_IS_INVERT_OUTPUT ){
 			local->hal_handle.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_ENABLE;
 		}
+#endif
 
 		local->value = 0UL;
 		if( HAL_CRC_Init(&local->hal_handle) != HAL_OK ){

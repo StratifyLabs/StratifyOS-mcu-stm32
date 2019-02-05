@@ -33,6 +33,10 @@
 #include <mcu/pio.h>
 #include <mcu/debug.h>
 
+#if defined STM32F2
+#include "stm32f2xx/stm32f2xx_hal_conf.h"
+#endif
+
 #if defined STM32F4
 #include "stm32f4xx/stm32f4xx_hal_conf.h"
 

@@ -138,6 +138,7 @@ typedef struct {
 #define ESWPMI(port) RESERVED_
 #define E_TSC_(port) RESERVED_
 #define ELUART(port) RESERVED_
+#define E_SWJ_(port) RESERVED_
 
 extern const alternate_function_entry_t alternate_function_table[];
 

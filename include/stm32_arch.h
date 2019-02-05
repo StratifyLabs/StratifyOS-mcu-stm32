@@ -26,6 +26,16 @@
 #include <mcu/adc.h>
 #include <mcu/dac.h>
 
+#if defined __stm32f205xx
+#define CORE_M4 1
+#define ARM_MATH_CM4 1
+#define STM32_FLASH_LAYOUT_16_16_16_16_64_128_128_128 1
+#if !defined STM32F205xx
+#define STM32F205xx 1
+#endif
+#include "mcu_stm32f205xx.h"
+#endif
+
 #if defined __stm32f401xc
 #define CORE_M4 1
 #define ARM_MATH_CM4 1
