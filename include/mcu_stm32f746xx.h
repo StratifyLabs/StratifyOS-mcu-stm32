@@ -107,6 +107,7 @@
 #define MCU_CRC_PORTS 1
 #define MCU_CRC_REGS { CRC }
 #define MCU_CRC_IRQS { -1 }
+#define MCU_CRC_API 1
 
 #define DEV_USB_LOGICAL_ENDPOINT_COUNT 4
 

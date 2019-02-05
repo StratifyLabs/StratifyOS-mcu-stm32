@@ -55,6 +55,7 @@ u32 mcu_calc_crc32(u32 seed, u32 polynomial, const u8 * buffer, u32 nbyte){
 	local->hal_handle.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
 	local->hal_handle.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
 #endif
+	__HAL_RCC_CRC_CLK_ENABLE();
 	HAL_CRC_Init(&local->hal_handle);
 
 	return HAL_CRC_Accumulate(&local->hal_handle, (u32*)buffer, nbyte);
@@ -74,7 +75,10 @@ u16 mcu_calc_crc16(u16 seed, u16 polynomial, const u8 * buffer, u32 nbyte){
 	local->hal_handle.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
 	local->hal_handle.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
 #endif
-	HAL_CRC_Init(&local->hal_handle);
+	__HAL_RCC_CRC_CLK_ENABLE();
+	if( HAL_CRC_Init(&local->hal_handle) != HAL_OK ){
+		return 0xffff;
+	}
 
 	return HAL_CRC_Accumulate(&local->hal_handle, (u32*)buffer, nbyte);
 }
