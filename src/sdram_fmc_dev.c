@@ -25,7 +25,15 @@ static u8 const sdram_irqs[MCU_FMC_PORTS] = MCU_FMC_IRQS;
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(emc_sdram, EMC_VERSION, EMC_IOC_IDENT_CHAR)
 
 int mcu_emc_sdram_open(const devfs_handle_t * handle){
-	DEVFS_DRIVER_DECLARE_LOCAL(sdram, MCU_FMC_PORTS);
+    DEVFS_DRIVER_DECLARE_LOCAL(sdram, MCU_FMC_PORTS);
+    const emc_attr_t * attr;
+    attr = mcu_select_attr(handle, NULL);
+    if( attr == 0 ){
+        mcu_debug_printf("attr failed select \n");
+    }else{
+        mcu_debug_printf("test print attr pin %u %u \n",attr->pin_assignment.bl[0].pin
+                                                       ,attr->pin_assignment.bl[0].port);
+    }
 	if ( local->ref_count == 0 ){
 		switch(port){
 			case 0:
@@ -63,7 +71,7 @@ int mcu_emc_sdram_getinfo(const devfs_handle_t * handle, void * ctl){
 	if( handle->config == 0 ){
 		return SYSFS_SET_RETURN(ENOSYS);
 	}
-	const emc_config_t * config = handle->config;
+    const emc_attr_t * config = handle->config;
 	info->o_flags = 0;
 	info->freq = config->freq;
 	info->o_events =  MCU_EVENT_FLAG_ERROR;
@@ -83,6 +91,14 @@ int mcu_emc_sdram_setattr(const devfs_handle_t * handle, void * ctl){
 	u32 o_flags = attr->o_flags;
 
 	if( o_flags & EMC_FLAG_ENABLE ){
+        /*if( mcu_set_pin_assignment(
+                 &(attr->pin_assignment),
+                 MCU_CONFIG_PIN_ASSIGNMENT(qspi_config_t, handle),
+                 MCU_PIN_ASSIGNMENT_COUNT(qspi_pin_assignment_t),
+                 CORE_PERIPH_EMC, port, 0, 0, 0) < 0 ){
+            return SYSFS_SET_RETURN(EINVAL);
+        }*/
+
 		//power up
 	}
 
@@ -105,7 +121,7 @@ int mcu_emc_sdram_setaction(const devfs_handle_t * handle, void * ctl){
 int mcu_emc_sdram_write(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(sdram, MCU_FMC_PORTS);
 
-	const emc_config_t * config = handle->config;
+    const emc_attr_t * config = handle->config;
 	if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
 	if( async->loc >= config->size ){
@@ -130,7 +146,7 @@ int mcu_emc_sdram_write(const devfs_handle_t * handle, devfs_async_t * async){
 int mcu_emc_sdram_read(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(sdram, MCU_FMC_PORTS);
 
-	const emc_config_t * config = handle->config;
+    const emc_attr_t * config = handle->config;
 	if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
 	if( async->loc >= config->size ){

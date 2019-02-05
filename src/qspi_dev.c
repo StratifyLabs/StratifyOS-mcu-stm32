@@ -121,14 +121,13 @@ int mcu_qspi_setattr(const devfs_handle_t * handle, void * ctl){
         qspi->write_instruction = attr->write_instruction;
         qspi->dummy_cycle = attr->dummy_cycle;
         qspi->mem_mapped_read_instruction = attr->mem_mapped_read_instruction;
-        if (attr->size!=0 && attr->size < 32){
-            flash_size = attr->size - 1;
+        if (attr->width!=0 && attr->width < 32){
+            flash_size = attr->width - 1;
         }else{
             flash_size = 0;
         }
         __HAL_RCC_QSPI_FORCE_RESET();
         __HAL_RCC_QSPI_RELEASE_RESET();
-		//pin assignments
 		if( mcu_set_pin_assignment(
 				 &(attr->pin_assignment),
                  MCU_CONFIG_PIN_ASSIGNMENT(qspi_config_t, handle),
@@ -136,7 +135,7 @@ int mcu_qspi_setattr(const devfs_handle_t * handle, void * ctl){
                  CORE_PERIPH_QSPI, port, 0, 0, 0) < 0 ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
-        qspi->hal_handle.Init.ClockPrescaler = 1; //need to calculate
+        qspi->hal_handle.Init.ClockPrescaler = attr->freq; //need to calculate
         qspi->hal_handle.Init.FifoThreshold = 16; //not sure how this will be used
         qspi->hal_handle.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_HALFCYCLE;
         qspi->hal_handle.Init.FlashSize = flash_size;/*attribute size 2^size-1*/
@@ -365,7 +364,7 @@ int external_flash_switch_to_mem_maped(QSPI_HandleTypeDef *hqspi,qspi_local_t * 
     mem_map_config.TimeOutActivation = QSPI_TIMEOUT_COUNTER_DISABLE;
     if (HAL_QSPI_MemoryMapped(hqspi, &qspi_command, &mem_map_config) != HAL_OK) {
         result = -1;
-        mcu_debug_printf("\nFailed %s:%d\n",__FILE__,__LINE__);
+        mcu_debug_printf("Failed %s:%d\n",__FILE__,__LINE__);
     }else{
         result = 0;
     }
