@@ -186,11 +186,11 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 		local->hal_handle.Init.ClockSpeed = freq;
 #endif
 
-    } else if( o_flags & I2C_FLAG_SET_SLAVE ){
+	} else if( o_flags & I2C_FLAG_SET_SLAVE ){
 #if defined STM32F7 || defined STM32L4 || defined STM32H7
-		  local->hal_handle.Init.Timing = freq;
+		local->hal_handle.Init.Timing = freq;
 #else
-		  local->hal_handle.Init.ClockSpeed = freq;
+		local->hal_handle.Init.ClockSpeed = freq;
 #endif
 
 
@@ -214,7 +214,7 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 #if 0
 		post_configure_pin_t post_configure;
 #endif
-        const i2c_pin_assignment_t * pin_assignment;
+		const i2c_pin_assignment_t * pin_assignment;
 
 		if( o_flags & I2C_FLAG_STRETCH_CLOCK ){
 			local->hal_handle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
@@ -237,12 +237,12 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 
 
-        //force a start and stop condition to clear the busy bit
-        pin_assignment = mcu_select_pin_assignment(&attr->pin_assignment,
-                                                   MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
-                                                   MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t));
-		  memcpy(&local->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
-		  if( (local->pin_assignment.scl.port != 0xff) && (local->pin_assignment.sda.port != 0xff) ){
+		//force a start and stop condition to clear the busy bit
+		pin_assignment = mcu_select_pin_assignment(&attr->pin_assignment,
+																 MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
+																 MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t));
+		memcpy(&local->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
+		if( (local->pin_assignment.scl.port != 0xff) && (local->pin_assignment.sda.port != 0xff) ){
 			if( __HAL_I2C_GET_FLAG((&local->hal_handle), I2C_FLAG_BUSY) ){
 
 				mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
@@ -258,16 +258,16 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
-		  if( HAL_I2C_Init(&(local->hal_handle)) != HAL_OK){
-            return SYSFS_SET_RETURN(EINVAL);
-        }
+		if( HAL_I2C_Init(&(local->hal_handle)) != HAL_OK){
+			return SYSFS_SET_RETURN(EINVAL);
+		}
 
-        if( o_flags & I2C_FLAG_SET_SLAVE ){
-				if( HAL_I2C_EnableListen_IT(&local->hal_handle) != HAL_OK){
-                return SYSFS_SET_RETURN(EINVAL);
-            }
-        }
-    }
+		if( o_flags & I2C_FLAG_SET_SLAVE ){
+			if( HAL_I2C_EnableListen_IT(&local->hal_handle) != HAL_OK){
+				return SYSFS_SET_RETURN(EINVAL);
+			}
+		}
+	}
 
 
 	if( o_flags & (I2C_FLAG_PREPARE_PTR_DATA|I2C_FLAG_PREPARE_PTR|I2C_FLAG_PREPARE_DATA) ){
@@ -376,9 +376,9 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_IS_BUSY(i2c->transfer_handler.read, async);
 
 	if( i2c->o_flags & I2C_FLAG_IS_PTR_16 ){
-		addr_size = I2C_MEMADD_SIZE_16BIT;
+		addr_size = 2;
 	} else {
-		addr_size = I2C_MEMADD_SIZE_8BIT;
+		addr_size = 1;
 	}
 
 	if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){
@@ -387,7 +387,9 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
 		ret = HAL_I2C_Master_Sequential_Transmit_IT(
 					&i2c->hal_handle,
 					i2c->slave_addr[0]<<1,
-				(u8*)&async->loc, addr_size, I2C_FIRST_FRAME);
+				(u8*)&async->loc,
+				addr_size,
+				I2C_FIRST_FRAME);
 	} else if( i2c->o_flags & I2C_FLAG_PREPARE_DATA ){
 		ret = HAL_I2C_Master_Receive_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->buf, async->nbyte);
 	}
@@ -459,14 +461,14 @@ void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c){
 }
 
 void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, uint16_t AddrMatchCode){
-  //slave has been addressed
-    i2c_local_t * i2c = (i2c_local_t*)hi2c;
-    HAL_StatusTypeDef hal_status;
-    hal_status = HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, i2c->slave_memory, i2c->slave_memory_size, I2C_LAST_FRAME);
-    if (hal_status != HAL_OK){
-        mcu_debug_printf("slave addr call back error %u %u\n",hal_status,hi2c->State);
-    }
-    
+	//slave has been addressed
+	i2c_local_t * i2c = (i2c_local_t*)hi2c;
+	HAL_StatusTypeDef hal_status;
+	hal_status = HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, i2c->slave_memory, i2c->slave_memory_size, I2C_LAST_FRAME);
+	if (hal_status != HAL_OK){
+		mcu_debug_printf("slave addr call back error %u %u\n",hal_status,hi2c->State);
+	}
+
 }
 
 void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c){
@@ -611,8 +613,8 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 #endif
 #if I2C_WAIT_FOR_LINE_CHANGE
 	do {
-        mcu_pio_get(&scl_pio_handle, &value);
-    } while( (value & scl_pio_attr.o_pinmask) == 0);
+		mcu_pio_get(&scl_pio_handle, &value);
+	} while( (value & scl_pio_attr.o_pinmask) == 0);
 
 	cortexm_delay_us(delay_us);
 #endif
@@ -674,7 +676,7 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 	} while( (value & sda_pio_attr.o_pinmask) == 0);
 #endif
 
-    // 12. Configure the SCL and SDA I/Os as Alternate function Open-Drain.
+	// 12. Configure the SCL and SDA I/Os as Alternate function Open-Drain.
 
 
 	hal_set_alternate_pin_function(i2c->pin_assignment.scl,

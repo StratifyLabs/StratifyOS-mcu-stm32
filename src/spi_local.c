@@ -349,10 +349,10 @@ void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
 void mcu_core_spi1_isr(){
 	//No I2S on SPI 1
 #if MCU_I2S_ON_SPI1 != 0
-	if( spi_local[0].o_flags & SPI_LOCAL_IS_I2S ){
-		HAL_I2S_IRQHandler(&spi_local[0].i2s_hal_handle);
+	if( m_spi_local[0].o_flags & SPI_LOCAL_IS_I2S ){
+		HAL_I2S_IRQHandler(&m_spi_local[0].i2s_hal_handle);
 	} else {
-		HAL_SPI_IRQHandler(&spi_local[0].hal_handle);
+		HAL_SPI_IRQHandler(&m_spi_local[0].hal_handle);
 	}
 #else
 	//mcu_debug_printf("SPI1 IRQ\n");
@@ -368,7 +368,7 @@ void mcu_core_spi2_isr(){
 		HAL_SPI_IRQHandler(&m_spi_local[1].hal_handle);
 	}
 #elif MCU_SPI_PORTS > 1
-	HAL_SPI_IRQHandler(&spi_local[1].hal_handle);
+	HAL_SPI_IRQHandler(&m_spi_local[1].hal_handle);
 #endif
 }
 
@@ -380,16 +380,16 @@ void mcu_core_spi3_isr(){
 		HAL_SPI_IRQHandler(&m_spi_local[2].hal_handle);
 	}
 #elif MCU_SPI_PORTS > 2
-	HAL_SPI_IRQHandler(&spi_local[2].hal_handle);
+	HAL_SPI_IRQHandler(&m_spi_local[2].hal_handle);
 #endif
 }
 
 void mcu_core_spi4_isr(){
 #if MCU_I2S_ON_SPI4 != 0
-	if( spi_local[3].o_flags & SPI_LOCAL_IS_I2S ){
-		HAL_I2S_IRQHandler(&spi_local[3].i2s_hal_handle);
+	if( m_spi_local[3].o_flags & SPI_LOCAL_IS_I2S ){
+		HAL_I2S_IRQHandler(&m_spi_local[3].i2s_hal_handle);
 	} else {
-		HAL_SPI_IRQHandler(&spi_local[3].hal_handle);
+		HAL_SPI_IRQHandler(&m_spi_local[3].hal_handle);
 	}
 #elif MCU_SPI_PORTS > 3
 	HAL_SPI_IRQHandler(&m_spi_local[3].hal_handle);
