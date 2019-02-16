@@ -208,6 +208,8 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(dma2_stream2), //58
 		_ISR(dma2_stream3), //59
 		_ISR(dma2_stream4), //60
+		mcu_core_default_isr,
+		mcu_core_default_isr,
 		_ISR(can2_tx), //63
 		_ISR(can2_rx0), //64
 		_ISR(can2_rx1), //65
@@ -223,6 +225,8 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(otg_hs_ep1_in), //75
 		_ISR(otg_hs_wkup), //76
 		_ISR(otg_hs), //77
+		mcu_core_default_isr,
+		mcu_core_default_isr,
 		_ISR(hash_rng), //80
 };
 

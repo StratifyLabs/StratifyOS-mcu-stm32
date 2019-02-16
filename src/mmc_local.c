@@ -128,7 +128,7 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		//initialize using 1B bus
-		local->hal_handle.Init.BusWide = 0;
+		local->hal_handle.Init.BusWide = SDIO_BUS_WIDE_1B;
 
 		//MMC_HARDWARE_FLOW_CONTROL_DISABLE
 		//SDIO_HARDWARE_FLOW_CONTROL_ENABLE
@@ -157,7 +157,6 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EIO);
 		}
 
-
 		//SDIO_BUS_WIDE_1B -- set as default for initialziation
 		//SDIO_BUS_WIDE_4B
 		//SDIO_BUS_WIDE_8B -- not compatible with SDIO
@@ -167,7 +166,12 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 			local->hal_handle.Init.BusWide = SDIO_BUS_WIDE_8B;
 		}
 
-		HAL_MMC_ConfigWideBusOperation(&local->hal_handle, local->hal_handle.Init.BusWide);
+		if( local->hal_handle.Init.BusWide != SDIO_BUS_WIDE_1B ){
+			if( HAL_MMC_ConfigWideBusOperation(&local->hal_handle, local->hal_handle.Init.BusWide) != HAL_OK ){
+				mcu_debug_printf("failed to config bus width");
+				return SYSFS_SET_RETURN(EIO);
+			}
+		}
 	}
 
 	if( o_flags & MMC_FLAG_GET_CARD_STATE ){
