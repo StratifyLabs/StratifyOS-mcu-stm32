@@ -40,14 +40,18 @@ int mcu_core_open(const devfs_handle_t * handle){ return 0; }
 int mcu_core_close(const devfs_handle_t * handle){ return 0; }
 
 int mcu_core_getinfo(const devfs_handle_t * handle, void * arg){
+	MCU_UNUSED_ARGUMENT(handle);
 	core_info_t * info = arg;
 	info->o_flags = 0;
 	info->freq = mcu_board_config.core_cpu_freq;
 	if( mcu_core_reset_source == CORE_FLAG_IS_RESET_SYSTEM ){
 		mcu_core_reset_source = mcu_core_get_reset_src();
 	}
-
 	info->o_flags |= mcu_core_reset_source;
+
+	mcu_core_getserialno(&info->serial);
+
+
 	return 0;
 }
 
