@@ -371,7 +371,8 @@ int external_flash_switch_to_mem_maped(QSPI_HandleTypeDef *hqspi,qspi_local_t * 
     return result;
 }
 
-/* @brief
+/**
+ * @brief
  * sets
  * command.InstructionMode   do sets
  * command.AddressMode       do sets
