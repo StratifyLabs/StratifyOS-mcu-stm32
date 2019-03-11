@@ -50,6 +50,12 @@ u16 stm32_flash_local_get_sector_size(u16 sector){
 }
 #endif
 
+#if 0
+#define STM32_FLASH_SECTIONS_16_16_16_16_64_128_128_128 \
+{ .o_flags = MEM_FLAG_IS_FLASH, .page_count = 4, .address = 0x08000000, .page_size = 16*1024UL  }, \
+{ .o_flags = MEM_FLAG_IS_FLASH, .page_count = 1, .address = 0x08000000 + 16*1024UL, .page_size = 64*1024UL  }, \
+{ .o_flags = MEM_FLAG_IS_FLASH, .page_count = 3, .address = 0x08000000 + 16*1024UL + 64*1024, .page_size = 128*1024UL  }
+#endif
 
 int stm32_flash_write(u32 addr, const void * buf, int nbyte){
 	u32 i;

@@ -25,4 +25,3 @@ const mcu_config_t mcu_config = {
 	.git_hash = SOS_GIT_HASH
 };
 
-u32 mcu_ram_usage_table[APPFS_RAM_USAGE_WORDS(MCU_RAM_PAGES)] MCU_SYS_MEM;
