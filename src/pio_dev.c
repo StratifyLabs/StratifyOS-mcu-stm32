@@ -78,6 +78,10 @@ int mcu_pio_open(const devfs_handle_t * handle){
 			case 6: __HAL_RCC_GPIOG_CLK_ENABLE(); break;
 #endif
 			case 7: __HAL_RCC_GPIOH_CLK_ENABLE(); break;
+#if defined GPIOI
+            case 8: __HAL_RCC_GPIOI_CLK_ENABLE(); break;
+#endif
+
 		}
 	}
 	m_mcu_pio_local[port].ref_count++;

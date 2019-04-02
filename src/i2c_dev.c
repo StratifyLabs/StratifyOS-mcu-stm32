@@ -155,68 +155,54 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 	if( attr == 0 ){
 		return SYSFS_SET_RETURN(EINVAL);
 	}
-
+    freq = attr->freq;
 	u32 o_flags = attr->o_flags;
 
 	if( freq == 0 ){
 		freq = 100000;
-	}
+    }
 
-	if( freq > 400000 ){
-		freq = 400000;
-	}
-
-	if( o_flags & (I2C_FLAG_SET_MASTER | I2C_FLAG_SET_SLAVE) ){
-		//Init init structure with defaults
-		local->hal_handle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-		local->hal_handle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-		local->hal_handle.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
-#if defined I2C_DUTYCYCLE_2
-		local->hal_handle.Init.DutyCycle = I2C_DUTYCYCLE_2;
-#endif
-		local->hal_handle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-		local->hal_handle.Init.OwnAddress1 = 0;
-		local->hal_handle.Init.OwnAddress2 = 0;
-	}
-
-	if( o_flags & I2C_FLAG_SET_MASTER ){
-#if defined STM32F7 || defined STM32L4 || defined STM32H7
-		local->hal_handle.Init.Timing = freq;
-#else
-		local->hal_handle.Init.ClockSpeed = freq;
-#endif
-
-	} else if( o_flags & I2C_FLAG_SET_SLAVE ){
-#if defined STM32F7 || defined STM32L4 || defined STM32H7
-		local->hal_handle.Init.Timing = freq;
-#else
-		local->hal_handle.Init.ClockSpeed = freq;
-#endif
-
-
-		local->hal_handle.Init.OwnAddress1 = (attr->slave_addr[0].addr8[0])<<1;
-		if( o_flags & I2C_FLAG_IS_SLAVE_ADDR1 ){
-			local->hal_handle.Init.DualAddressMode = I2C_DUALADDRESS_ENABLE;
-			local->hal_handle.Init.OwnAddress2 = (attr->slave_addr[1].addr8[0])<<1;
-		}
-
-		if( o_flags & I2C_FLAG_IS_SLAVE_ACK_GENERAL_CALL ){
-			local->hal_handle.Init.GeneralCallMode = I2C_GENERALCALL_ENABLE;
-		}
-
-		//set slave memory location
-		local->slave_memory_offset = 0;
-		local->slave_memory = attr->data;
-		local->slave_memory_size = attr->size;
-	}
 
 	if( o_flags & (I2C_FLAG_SET_MASTER | I2C_FLAG_SET_SLAVE) ){
 #if 0
 		post_configure_pin_t post_configure;
 #endif
 		const i2c_pin_assignment_t * pin_assignment;
-
-		if( o_flags & I2C_FLAG_STRETCH_CLOCK ){
+        local->hal_handle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+        local->hal_handle.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+        local->hal_handle.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
+#if defined I2C_DUTYCYCLE_2
+        local->hal_handle.Init.DutyCycle = I2C_DUTYCYCLE_2;
+#endif
+        local->hal_handle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+        local->hal_handle.Init.OwnAddress1 = 0;
+        local->hal_handle.Init.OwnAddress2 = 0;
+        if( o_flags & I2C_FLAG_SET_MASTER ){
+#if defined STM32F7 || defined STM32L4 || defined STM32H7
+			local->hal_handle.Init.Timing = freq;
+#else
+            local->hal_handle.Init.ClockSpeed = freq;
+#endif
+        } else if( o_flags & I2C_FLAG_SET_SLAVE ){
+#if defined STM32F7 || defined STM32L4 || defined STM32H7
+			local->hal_handle.Init.Timing = freq;
+#else
+            local->hal_handle.Init.ClockSpeed = freq;
+#endif
+            local->hal_handle.Init.OwnAddress1 = (attr->slave_addr[0].addr8[0])<<1;
+            if( o_flags & I2C_FLAG_IS_SLAVE_ADDR1 ){
+                local->hal_handle.Init.DualAddressMode = I2C_DUALADDRESS_ENABLE;
+                local->hal_handle.Init.OwnAddress2 = (attr->slave_addr[1].addr8[0])<<1;
+            }
+            if( o_flags & I2C_FLAG_IS_SLAVE_ACK_GENERAL_CALL ){
+                local->hal_handle.Init.GeneralCallMode = I2C_GENERALCALL_ENABLE;
+            }
+            //set slave memory location
+            local->slave_memory_offset = 0;
+            local->slave_memory = attr->data;
+            local->slave_memory_size = attr->size;
+        }
+        if( o_flags & I2C_FLAG_STRETCH_CLOCK ){
 			local->hal_handle.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
 		}
 
@@ -347,14 +333,19 @@ int mcu_i2c_write(const devfs_handle_t * handle, devfs_async_t * async){
 	}
 
 	if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){
-		ret = HAL_I2C_Mem_Write_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->loc, addr_size, (u8*)async->buf, async->nbyte);
+        ret = HAL_I2C_Mem_Write_IT(&i2c->hal_handle,
+                                   (u16)(i2c->slave_addr[0]<<1),
+                                   (u16)async->loc,
+                                   (u16)addr_size,
+                                   (u8*)async->buf,
+                                   (u16)async->nbyte);
 	} else if( i2c->o_flags & I2C_FLAG_PREPARE_DATA ){
 		ret = HAL_I2C_Master_Transmit_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->buf, async->nbyte);
 	} else {
 		ret = -1;
 	}
 
-	if( ret == HAL_OK ){
+    if( ret == HAL_OK ){
 		return 0;
 	} else {
 		if( ret == HAL_TIMEOUT ){
@@ -376,32 +367,35 @@ int mcu_i2c_read(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_IS_BUSY(i2c->transfer_handler.read, async);
 
 	if( i2c->o_flags & I2C_FLAG_IS_PTR_16 ){
-		addr_size = 2;
+        addr_size = I2C_MEMADD_SIZE_16BIT;
 	} else {
-		addr_size = 1;
+        addr_size = I2C_MEMADD_SIZE_8BIT;
 	}
 
 	if( i2c->o_flags & I2C_FLAG_PREPARE_PTR_DATA ){
-		//ret = HAL_I2C_Mem_Read_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->loc, addr_size, (u8*)async->buf, async->nbyte);
-		//do a no stop here
-		ret = HAL_I2C_Master_Sequential_Transmit_IT(
+        ret = HAL_I2C_Master_Sequential_Transmit_IT(
 					&i2c->hal_handle,
-					i2c->slave_addr[0]<<1,
-				(u8*)&async->loc,
-				addr_size,
-				I2C_FIRST_FRAME);
+                    (u16)i2c->slave_addr[0]<<1,
+                    (u8*)&async->loc,
+                    (u16)addr_size,
+                    I2C_FIRST_FRAME);
 	} else if( i2c->o_flags & I2C_FLAG_PREPARE_DATA ){
 		ret = HAL_I2C_Master_Receive_IT(&i2c->hal_handle, i2c->slave_addr[0]<<1, async->buf, async->nbyte);
 	}
 
-	if( ret == HAL_OK ){
+    if( ret == HAL_OK ){
 		return 0;
 	} else {
 		if( ret == HAL_TIMEOUT ){
 			i2c->err = I2C_ERROR_TIMEOUT;
-		}
-		mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2C Read Error: %d", ret);
+        }
+        mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2C Read Error: %d", ret);
+        
 	}
+    devfs_execute_read_handler(&i2c->transfer_handler,
+                                         0,
+                                         0,
+                                         MCU_EVENT_FLAG_WRITE_COMPLETE);
 
 	i2c->transfer_handler.read = 0;
 	return SYSFS_SET_RETURN(EIO);
@@ -411,7 +405,6 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c){
 	i2c_local_t * local = (i2c_local_t*)hi2c;
 
 	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "Tx complete");
-
 	//is this a read operation to be continued?
 	if( local->transfer_handler.read != 0 ){
 		if( HAL_I2C_Master_Sequential_Receive_IT(&local->hal_handle,
@@ -424,7 +417,6 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c){
 
 
 	} else {
-
 		//TX complete
 		devfs_execute_write_handler(&local->transfer_handler,
 											 0,
@@ -683,15 +675,15 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 											 CORE_PERIPH_I2C,
 											 port,
 											 GPIO_MODE_AF_OD,
-											 GPIO_SPEED_FREQ_LOW,
-											 GPIO_PULLUP);
+                                             GPIO_SPEED_HIGH,
+                                             GPIO_PULLUP);
 
 	hal_set_alternate_pin_function(i2c->pin_assignment.sda,
 											 CORE_PERIPH_I2C,
 											 port,
 											 GPIO_MODE_AF_OD,
-											 GPIO_SPEED_FREQ_LOW,
-											 GPIO_PULLUP);
+                                             GPIO_SPEED_HIGH,
+                                             GPIO_PULLUP);
 
 
 

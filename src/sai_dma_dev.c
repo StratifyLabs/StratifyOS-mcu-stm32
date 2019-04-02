@@ -37,16 +37,16 @@ int mcu_sai_dma_open(const devfs_handle_t * handle){
 int mcu_sai_dma_close(const devfs_handle_t * handle){
 	//same as SPI
 	const u32 port = handle->port;
-
 	if( sai_dma_local[handle->port].sai.ref_count == 1 ){
 		//disable the DMA
 		const stm32_sai_dma_config_t * config;
 		config = handle->config;
 		HAL_SAI_DMAStop(&sai_dma_local[handle->port].sai.hal_handle);
-
-		if( sai_dma_local[port].dma_channel.interrupt_number > 0 ){
-			HAL_DMA_DeInit(&sai_dma_local[port].dma_channel.handle);
-		}
+        if((sai_dma_local[port].sai.o_flags & SAI_LOCAL_IS_DMA )/*||
+           (sai_dma_local[port].dma_channel.interrupt_number > 0 )*/){
+            HAL_DMA_DeInit(&sai_dma_local[port].dma_channel.handle);
+            sai_dma_local[port].sai.o_flags = 0;
+        }
 
 		if( config ){
 			stm32_dma_clear_handle(config->dma_config.dma_number, config->dma_config.stream_number);
@@ -92,22 +92,20 @@ int mcu_sai_dma_unmute(const devfs_handle_t * handle, void * ctl){
 int mcu_sai_dma_setattr(const devfs_handle_t * handle, void * ctl){
 	const u32 port = handle->port;
 	const stm32_sai_dma_config_t * config;
-	const i2s_attr_t * attr = mcu_select_attr(handle, ctl);
+    const sai_attr_t * attr = mcu_select_attr(handle, ctl);
 	if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
-
 	//setup the DMA
 	//BSP *MUST* provide DMA configuration information
 	config = handle->config;
 	if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
+    if( attr->o_flags & SAI_DMA_ENABLE){
 
-	if( attr->o_flags & (I2S_FLAG_SET_MASTER | I2S_FLAG_SET_SLAVE) ){
-
-		sai_dma_local[port].sai.o_flags = SAI_LOCAL_IS_DMA;
-
-		stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config);
+        sai_dma_local[port].sai.o_flags = SAI_LOCAL_IS_DMA ;
+        stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config);
 		if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
-
+        sai_dma_local[port].dma_channel.handle = channel->handle;
 		if( attr->o_flags & I2S_FLAG_IS_RECEIVER ){
+            sai_dma_local[port].sai.o_flags |= SAI_LOCAL_IS_RX ;
 			mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set I2S DMA as receiver %d.%d.%d",
 									 config->dma_config.dma_number,
 									 config->dma_config.stream_number,
@@ -119,6 +117,7 @@ int mcu_sai_dma_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		if( attr->o_flags & I2S_FLAG_IS_TRANSMITTER ){
+            sai_dma_local[port].sai.o_flags |= SAI_LOCAL_IS_TX ;
 
 			mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set I2S DMA as transmitter %d.%d.%d",
 									 config->dma_config.dma_number,
@@ -126,7 +125,8 @@ int mcu_sai_dma_setattr(const devfs_handle_t * handle, void * ctl){
 									 config->dma_config.channel_number
 									 );
 			//setup the DMA for transmitting
-			__HAL_LINKDMA((&sai_dma_local[port].sai.hal_handle), hdmatx, sai_dma_local[port].dma_channel.handle);
+
+            __HAL_LINKDMA((&sai_dma_local[port].sai.hal_handle), hdmatx, channel->handle);
 		}
 	}
 
@@ -135,17 +135,18 @@ int mcu_sai_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
 
 int mcu_sai_dma_setaction(const devfs_handle_t * handle, void * ctl){
-	return mcu_sai_dma_setaction(handle, ctl);
+
+    return sai_local_setaction(&sai_dma_local[handle->port].sai, handle, ctl,9);
 }
 
 int mcu_sai_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int result;
 	int port = handle->port;
 	sai_dma_local_t * local = sai_dma_local + port;
-
 	DEVFS_DRIVER_IS_BUSY(local->sai.transfer_handler.write, async);
 
 	result = HAL_SAI_Transmit_DMA(&local->sai.hal_handle, async->buf,  async->nbyte/local->sai.size_mult);
+
 
 	if( result != HAL_OK ){
 		sai_dma_local[port].sai.transfer_handler.write = 0;
@@ -167,13 +168,11 @@ int mcu_sai_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
 	int port = handle->port;
 	sai_dma_local_t * local = sai_dma_local + port;
-
 	DEVFS_DRIVER_IS_BUSY(local->sai.transfer_handler.read, async);
-
-	mcu_debug_log_info(MCU_DEBUG_DEVICE, "SAI DMA RX: %p %ld %d", async->buf, async->nbyte, local->sai.size_mult);
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "SAI DMA RX: %p %ld %d ", async->buf, async->nbyte, local->sai.size_mult);
 	ret = HAL_SAI_Receive_DMA(&local->sai.hal_handle, async->buf,  async->nbyte/local->sai.size_mult);
 
-	if( ret != HAL_OK ){
+    if( ret != HAL_OK ){
 		mcu_debug_log_error(MCU_DEBUG_DEVICE, "Failed to start I2S DMA Read (%d, %d) %d/%d", ret, local->sai.hal_handle.ErrorCode, async->nbyte, local->sai.size_mult);
 		local->sai.transfer_handler.read = 0;
 		if( ret == HAL_BUSY ){
