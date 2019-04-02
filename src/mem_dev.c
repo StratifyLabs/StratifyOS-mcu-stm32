@@ -18,6 +18,7 @@
  */
 
 #include <cortexm/cortexm.h>
+#include <sos/dev/appfs.h>
 #include <mcu/mem.h>
 #include <mcu/debug.h>
 #include <mcu/core.h>
@@ -26,9 +27,9 @@
 
 #include "stm32_flash.h"
 
+u32 mcu_ram_usage_table[APPFS_RAM_USAGE_WORDS(MCU_RAM_PAGES)] MCU_SYS_MEM;
 
 static int get_last_boot_page();
-
 static int is_ram(int addr, int size);
 static int get_ram_page(int addr);
 static int get_ram_page_size(int page);
@@ -51,6 +52,9 @@ int mcu_mem_getinfo(const devfs_handle_t * handle, void * ctl){
 	info->flash_size = MCU_FLASH_SIZE;
 	info->ram_pages = SRAM_PAGES;
 	info->ram_size = SRAM_SIZE;
+	info->usage = mcu_ram_usage_table;
+	info->usage_size = APPFS_RAM_USAGE_WORDS(MCU_RAM_PAGES)*sizeof(u32);
+	info->system_ram_page = 0;
 	return 0;
 }
 int mcu_mem_setattr(const devfs_handle_t * handle, void * ctl){
@@ -209,7 +213,7 @@ int mcu_mem_writepage(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_mem_write(const devfs_handle_t * cfg, devfs_async_t * wop){
-
+	MCU_UNUSED_ARGUMENT(cfg);
 	if ( is_ram(wop->loc, wop->nbyte) ){
 		memcpy((void*)wop->loc, wop->buf, wop->nbyte);
 		return wop->nbyte;
@@ -219,6 +223,7 @@ int mcu_mem_write(const devfs_handle_t * cfg, devfs_async_t * wop){
 }
 
 int mcu_mem_read(const devfs_handle_t * cfg, devfs_async_t * rop){
+	MCU_UNUSED_ARGUMENT(cfg);
 	if ( (stm32_flash_is_flash(rop->loc, rop->nbyte) ) ||
 		  ( is_ram(rop->loc, rop->nbyte) ) 	){
 		memcpy(rop->buf, (const void*)rop->loc, rop->nbyte);
@@ -257,7 +262,6 @@ int is_ram(int addr, int size){
 
 	return 0;
 }
-
 
 
 int get_last_boot_page(){

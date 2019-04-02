@@ -34,7 +34,7 @@ set(SOURCES
 	${SOURCES_PREFIX}/stm32_dma.c
 	${SOURCES_PREFIX}/stm32_local.c
 	${SOURCES_PREFIX}/mcu_dev.c
-  ${SOURCES_PREFIX}/mem_dev.c
+	${SOURCES_PREFIX}/mem_dev.c
   ${SOURCES_PREFIX}/mpu_dev.c
   ${SOURCES_PREFIX}/pio_dev.c
 	${SOURCES_PREFIX}/rtc_dev.c

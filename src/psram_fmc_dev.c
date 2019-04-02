@@ -1,4 +1,4 @@
-
+﻿
 #include <errno.h>
 #include <fcntl.h>
 #include <mcu/emc.h>
@@ -176,7 +176,7 @@ static int mcu_emc_ram_setattr(const devfs_handle_t * handle, void * ctl){
         local->timing.CLKDivision           = 2;
         local->timing.DataLatency           = 2;
         local->timing.AccessMode            = FMC_ACCESS_MODE_A;
-#ifdef STM32F723xx
+#if defined STM32F723xx
         if(o_flags & EMC_FLAG_IS_PSRAM_BANK1){
             local->lcd_control = (ahb_control_t*)FMC_PSRAM_BANK1_BASE;
             local->hal_handle.Init.NSBank             = FMC_NORSRAM_BANK1;

@@ -1,20 +1,28 @@
 cmake_minimum_required (VERSION 3.6)
 
-#Add sources to the project
-set(SOURCES_PREFIX ${CMAKE_SOURCE_DIR}/src)
-add_subdirectory(src)
-file(GLOB LDSCRIPT_SOURCES "${CMAKE_SOURCE_DIR}/ldscript/*")
-set(SHARED_SOURCELIST ${SOURCES} ${LDSCRIPT_SOURCES} ${CMAKE_SOURCE_DIR}/include/stm32_arch.h ${CMAKE_SOURCE_DIR}/README.md)
-
 if( ${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin" )
   set(SOS_TOOLCHAIN_CMAKE_PATH /Applications/StratifyLabs-SDK/Tools/gcc/arm-none-eabi/cmake)
 endif()
 if( ${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows" )
   set(SOS_TOOLCHAIN_CMAKE_PATH C:/StratifyLabs-SDK/Tools/gcc/arm-none-eabi/cmake)
 endif()
+
+include(${SOS_TOOLCHAIN_CMAKE_PATH}/sos-variables.cmake)
 set(CMAKE_TOOLCHAIN_FILE ${SOS_TOOLCHAIN_CMAKE_PATH}/sos-lib-toolchain.cmake)
-set(SOS_LIB_NAME sos)
-project(${SOS_LIB_NAME} C ASM)
+
+set(SOS_NAME sos)
+project(${SOS_NAME} C ASM)
+
+#Add sources to the project
+set(SOURCES_PREFIX ${CMAKE_SOURCE_DIR}/src)
+add_subdirectory(src)
+set(SHARED_SOURCELIST ${SOURCES} ${CMAKE_SOURCE_DIR}/include/stm32_arch.h ${CMAKE_SOURCE_DIR}/README.md)
+
+file(GLOB STM32F2XX_LDSCRIPT_SOURCES "${CMAKE_SOURCE_DIR}/ldscript/stm32f2*")
+file(GLOB STM32F3XX_LDSCRIPT_SOURCES "${CMAKE_SOURCE_DIR}/ldscript/stm32f3*")
+file(GLOB STM32L4XX_LDSCRIPT_SOURCES "${CMAKE_SOURCE_DIR}/ldscript/stm32l4*")
+file(GLOB STM32F7XX_LDSCRIPT_SOURCES "${CMAKE_SOURCE_DIR}/ldscript/stm32f7*")
+file(GLOB STM32H7XX_LDSCRIPT_SOURCES "${CMAKE_SOURCE_DIR}/ldscript/stm32h7*")
 
 option(BUILD_ALL "Build All configurations" ON)
 
@@ -47,7 +55,7 @@ option(BUILD_STM32H7 "Build All H7 configurations" OFF)
 option(BUILD_STM32H743 "Build H743 configuration" OFF)
 option(BUILD_STM32H750 "Build H750 configuration" OFF)
 
-set(SOS_LIB_BUILD_FLAGS -Wno-strict-aliasing)
+set(SOS_BUILD_FLAGS -Wno-strict-aliasing)
 
 if(BUILD_STM32F205xx OR BUILD_STM32F2 OR BUILD_ALL)
 set(STM32_VARIANT stm32f205xx)

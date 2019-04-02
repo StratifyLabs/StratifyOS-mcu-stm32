@@ -19,15 +19,42 @@
 
 #include <string.h>
 #include <mcu/flash.h>
+#include <mcu/bootloader.h>
 #include "stm32_flash.h"
 
 
-static int get_last_bootloader_page(){
-	return stm32_flash_get_sector(MCU_FLASH_CODE_END);
+static int get_last_boot_page(){
+	if( MCU_FLASH_CODE_START == MCU_FLASH_START ){
+		//this is the bootloader
+		return stm32_flash_get_sector(MCU_FLASH_CODE_END);
+	}
+
+	bootloader_api_t api;
+	mcu_core_get_bootloader_api(&api);
+
+	if( api.code_size > 0 ){ //zero means there is no bootloader installed
+		return stm32_flash_get_sector(api.code_size);
+	}
+
+	return -1;
+
 }
+
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(flash,
+										  FLASH_VERSION,
+										  FLASH_IOC_IDENT_CHAR,
+										  I_MCU_TOTAL + I_FLASH_TOTAL,
+										  mcu_flash_eraseaddr,
+										  mcu_flash_erasepage,
+										  mcu_flash_getpage,
+										  mcu_flash_getsize,
+										  mcu_flash_getpageinfo,
+										  mcu_flash_writepage)
+
 
 int mcu_flash_open(const devfs_handle_t * handle){ return 0; }
 int mcu_flash_close(const devfs_handle_t * handle){ return 0; }
+
 
 int mcu_flash_getinfo(const devfs_handle_t * handle, void * ctl){
 	return 0;
@@ -71,26 +98,26 @@ int mcu_flash_erasepage(const devfs_handle_t * handle, void * ctl){
 	int addr;
 	int page_size;
 	u32 page;
-	page = (u32)ctl;
-	int last_page = get_last_bootloader_page();
 
-	if ( page <= last_page ){
+	MCU_UNUSED_ARGUMENT(handle);
+
+	page = (u32)ctl;
+	int last_boot_page = get_last_boot_page();
+
+	if ( page <= last_boot_page ){
 		//Never erase the bootloader
 		return SYSFS_SET_RETURN(EROFS);
 	}
-
 
 	addr = stm32_flash_get_sector_addr(page);
 	page_size = stm32_flash_get_sector_size(page);
 
 	if( stm32_flash_is_flash(addr, page_size) == 0 ){
-		return SYSFS_SET_RETURN(EINVAL);
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
-
-	//check to see if the page is already blank
-	if ( stm32_flash_blank_check(addr, page_size) == 0 ){
-		return 0;
+	if( stm32_flash_is_code(addr, page_size) ){
+		return SYSFS_SET_RETURN(EROFS);
 	}
 
 	err = stm32_flash_erase_sector(page);

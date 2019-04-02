@@ -117,6 +117,36 @@ int mcu_tmr_open(const devfs_handle_t * handle){
 				__HAL_RCC_TIM8_CLK_ENABLE();
 				break;
 #endif
+#if defined TIM9
+			case 8:
+				__HAL_RCC_TIM9_CLK_ENABLE();
+				break;
+#endif
+#if defined TIM10
+			case 9:
+				__HAL_RCC_TIM10_CLK_ENABLE();
+				break;
+#endif
+#if defined TIM11
+			case 10:
+				__HAL_RCC_TIM11_CLK_ENABLE();
+				break;
+#endif
+#if defined TIM12
+			case 11:
+				__HAL_RCC_TIM12_CLK_ENABLE();
+				break;
+#endif
+#if defined TIM13
+			case 12:
+				__HAL_RCC_TIM13_CLK_ENABLE();
+				break;
+#endif
+#if defined TIM14
+			case 13:
+				__HAL_RCC_TIM14_CLK_ENABLE();
+				break;
+#endif
 		}
 		if( tmr_irqs[port] != (u8)-1 ){
 			cortexm_enable_irq(tmr_irqs[port]);
@@ -173,6 +203,36 @@ int mcu_tmr_close(const devfs_handle_t * handle){
 #if defined TIM8
 				case 7:
 					__HAL_RCC_TIM8_CLK_DISABLE();
+					break;
+#endif
+#if defined TIM9
+				case 8:
+					__HAL_RCC_TIM9_CLK_DISABLE();
+					break;
+#endif
+#if defined TIM10
+				case 9:
+					__HAL_RCC_TIM10_CLK_DISABLE();
+					break;
+#endif
+#if defined TIM11
+				case 10:
+					__HAL_RCC_TIM11_CLK_DISABLE();
+					break;
+#endif
+#if defined TIM12
+				case 11:
+					__HAL_RCC_TIM12_CLK_DISABLE();
+					break;
+#endif
+#if defined TIM13
+				case 12:
+					__HAL_RCC_TIM13_CLK_DISABLE();
+					break;
+#endif
+#if defined TIM14
+				case 13:
+					__HAL_RCC_TIM14_CLK_DISABLE();
 					break;
 #endif
 			}
@@ -634,9 +694,7 @@ void mcu_core_tim2_isr(){ tmr_isr(1); }
 #endif
 
 #if defined TIM3
-void mcu_core_tim3_isr(){
-	tmr_isr(2);
-}
+void mcu_core_tim3_isr(){ tmr_isr(2); }
 #endif
 
 #if defined TIM4
@@ -664,7 +722,31 @@ void mcu_core_tim7_isr(){ tmr_isr(6); }
 #endif
 
 #if defined TIM8
-void mcu_core_tim8_cc_isr(){ tmr_isr(8); }
+void mcu_core_tim8_cc_isr(){ tmr_isr(7); }
+#endif
+
+#if defined TIM9
+void mcu_core_tim1_brk_tim9_isr(){ tmr_isr(8); }
+#endif
+
+#if defined TIM10
+void mcu_core_tim1_up_tim10_isr(){ tmr_isr(9); }
+#endif
+
+#if defined TIM11
+void mcu_core_tim1_trg_com_tim11_isr(){ tmr_isr(10); }
+#endif
+
+#if defined TIM12
+void mcu_core_tim8_brk_tim12_isr(){ tmr_isr(11); }
+#endif
+
+#if defined TIM13
+void mcu_core_tim8_up_tim13_isr(){ tmr_isr(12); }
+#endif
+
+#if defined TIM14
+void mcu_core_tim8_trg_com_tim14_isr(){ tmr_isr(13); }
 #endif
 
 #endif
