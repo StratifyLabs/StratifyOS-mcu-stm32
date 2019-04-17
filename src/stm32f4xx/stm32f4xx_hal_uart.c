@@ -988,7 +988,7 @@ HAL_StatusTypeDef HAL_UART_Receive_DMA(UART_HandleTypeDef *huart, uint8_t *pData
     SET_BIT(huart->Instance->CR1, USART_CR1_PEIE);
 
     /* Enable the UART Error Interrupt: (Frame error, noise error, overrun error) */
-    SET_BIT(huart->Instance->CR3, USART_CR3_EIE);
+	 SET_BIT(huart->Instance->CR3, USART_CR3_EIE);
     
     /* Enable the DMA transfer for the receiver request by setting the DMAR bit 
     in the UART CR3 register */
@@ -1580,7 +1580,7 @@ void HAL_UART_IRQHandler(UART_HandleTypeDef *huart)
       if(((isrflags & USART_SR_RXNE) != RESET) && ((cr1its & USART_CR1_RXNEIE) != RESET))
       {
         UART_Receive_IT(huart);
-      }
+		}
 
       /* If Overrun error occurs, or if any error occurs in DMA mode reception,
          consider error as blocking */
@@ -1612,19 +1612,19 @@ void HAL_UART_IRQHandler(UART_HandleTypeDef *huart)
           else
           {
             /* Call user error callback */
-            HAL_UART_ErrorCallback(huart);
+				HAL_UART_ErrorCallback(huart);
           }
         }
         else
         {
           /* Call user error callback */
-          HAL_UART_ErrorCallback(huart);
+			 HAL_UART_ErrorCallback(huart);
         }
       }
       else
       {
         /* Non Blocking error : transfer could go on. 
-           Error is notified to user through user error callback */
+			  Error is notified to user through user error callback */
         HAL_UART_ErrorCallback(huart);
         huart->ErrorCode = HAL_UART_ERROR_NONE;
       }
@@ -2409,10 +2409,13 @@ static HAL_StatusTypeDef UART_Receive_IT(UART_HandleTypeDef *huart)
     if(--huart->RxXferCount == 0U)
     {
       /* Disable the UART Parity Error Interrupt and RXNE interrupt*/
-      CLEAR_BIT(huart->Instance->CR1, (USART_CR1_RXNEIE | USART_CR1_PEIE));
+#if __StratifyOS__
+		 //added USART_CR1_IDLEIE to clear bit
+#endif
+		CLEAR_BIT(huart->Instance->CR1, (USART_CR1_RXNEIE | USART_CR1_PEIE));
 
       /* Disable the UART Error Interrupt: (Frame error, noise error, overrun error) */
-      CLEAR_BIT(huart->Instance->CR3, USART_CR3_EIE);
+		CLEAR_BIT(huart->Instance->CR3, USART_CR3_EIE);
 
       /* Rx process is completed, restore huart->RxState to Ready */
       huart->RxState = HAL_UART_STATE_READY;
@@ -2420,7 +2423,12 @@ static HAL_StatusTypeDef UART_Receive_IT(UART_HandleTypeDef *huart)
       HAL_UART_RxCpltCallback(huart);
 
       return HAL_OK;
-    }
+	 } else {
+#if __StratifyOS__
+		 //enable idle interrupt after at least one byte arrives
+#endif
+		 //SET_BIT(huart->Instance->CR1, USART_CR1_IDLEIE);
+	 }
     return HAL_OK;
   }
   else

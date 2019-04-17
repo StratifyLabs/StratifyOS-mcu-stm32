@@ -30,23 +30,25 @@
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi_dma, I2S_VERSION, I2S_IOC_IDENT_CHAR, I_MCU_TOTAL + I_I2S_TOTAL, mcu_i2s_spi_dma_mute, mcu_i2s_spi_dma_unmute)
 
 int mcu_i2s_spi_dma_open(const devfs_handle_t * handle){
-	spi_local_t * local = m_spi_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 	local->o_flags = SPI_LOCAL_IS_DMA;
 	return i2s_spi_local_open(handle);
 }
 
 int mcu_i2s_spi_dma_close(const devfs_handle_t * handle){
 	//same as SPI
-	spi_local_t * local = m_spi_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 
 	if( local->ref_count == 1 ){
 		//disable the DMA
 		const stm32_i2s_spi_dma_config_t * config;
+
+		if( local->transfer_handler.read || local->transfer_handler.write ){
+			HAL_I2S_DMAStop(&local->i2s_hal_handle);
+			devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), 0);
+		}
+
 		config = handle->config;
-
-		HAL_I2S_DMAStop(&local->i2s_hal_handle);
-		devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), 0);
-
 		if( config ){
 			stm32_dma_clear_handle(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number);
 			stm32_dma_clear_handle(config->dma_config.tx.dma_number, config->dma_config.tx.stream_number);
@@ -193,12 +195,9 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
 	if( local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
 		//Receive assigns the transfer handler but then blocks until a write happens
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Wait FD");
 		return 0;
 	}
 #endif
-
-	mcu_debug_log_info(MCU_DEBUG_DEVICE, "Read I2S DMA 0x%lX %p %d %d", local->i2s_hal_handle.Init.Mode, async->buf, async->nbyte, local->size_mult);
 
 	i2s_spi_local_wait_for_errata_level(local);
 

@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef SPI_LOCAL_H_
-#define SPI_LOCAL_H_
+#ifndef SDIO_LOCAL_H_
+#define SDIO_LOCAL_H_
 
 #include <mcu/sdio.h>
 
@@ -29,8 +29,8 @@
 typedef struct {
 	SD_HandleTypeDef hal_handle; //must be the first member of the struct
 	devfs_transfer_handler_t transfer_handler;
-	stm32_dma_channel_t dma_rx_channel;
-	stm32_dma_channel_t dma_tx_channel;
+	//stm32_dma_channel_t dma_rx_channel;
+	//stm32_dma_channel_t dma_tx_channel;
 	u32 o_flags;
 	u8 ref_count;
 } sdio_local_t;
@@ -50,4 +50,4 @@ int sdio_local_getstatus(const devfs_handle_t * handle, void * ctl);
 #endif
 
 
-#endif /* SPI_LOCAL_H_ */
+#endif /* SDIO_LOCAL_H_ */

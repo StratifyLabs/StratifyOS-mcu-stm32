@@ -279,6 +279,8 @@ int spi_local_setaction(const devfs_handle_t * handle, void * ctl){
 	//callback = 0 with flags set will cancel an ongoing operation
 	if(action->handler.callback == 0){
 		if (action->o_events & MCU_EVENT_FLAG_DATA_READY){
+			//cancel the action based on interrupt or DMA
+
 			devfs_execute_read_handler(
 						&local->transfer_handler, 0,
 						SYSFS_SET_RETURN(EINTR),
@@ -286,6 +288,8 @@ int spi_local_setaction(const devfs_handle_t * handle, void * ctl){
 		}
 
 		if (action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE){
+			//cancel the action based on interrupt or DMA
+
 			devfs_execute_write_handler(
 						&local->transfer_handler, 0,
 						SYSFS_SET_RETURN(EINTR),

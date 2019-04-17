@@ -25,6 +25,7 @@
 #include <mcu/i2s.h>
 #include <mcu/adc.h>
 #include <mcu/dac.h>
+#include <mcu/uart.h>
 
 #if defined __stm32f205xx
 #define CORE_M4 1
@@ -262,6 +263,11 @@ typedef struct {
 	sdio_config_t sdio_config;
 	stm32_dma_config_t dma_config;
 } stm32_sdio_dma_config_t;
+
+typedef struct {
+	uart_config_t uart_config;
+	stm32_dma_config_t dma_config;
+} stm32_uart_dma_config_t;
 
 typedef struct {
 	mmc_config_t mmc_config;

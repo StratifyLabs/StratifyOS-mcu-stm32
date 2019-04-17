@@ -29,21 +29,24 @@
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi_dma, SPI_VERSION, SPI_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SPI_TOTAL, mcu_spi_dma_swap)
 
 int mcu_spi_dma_open(const devfs_handle_t * handle){
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
+	local->o_flags = SPI_LOCAL_IS_DMA;
 	return spi_local_open(handle);
 }
 
 int mcu_spi_dma_close(const devfs_handle_t * handle){
-	spi_local_t * local = m_spi_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
+
 	if( local->ref_count == 1 ){
 		//disable the DMA
+		const stm32_spi_dma_config_t * config;
 
 		if( local->transfer_handler.read || local->transfer_handler.write ){
-			return SYSFS_SET_RETURN(EBUSY);
+			HAL_SPI_DMAStop(&local->hal_handle);
+			devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), 0);
 		}
 
-		const stm32_spi_dma_config_t * config;
 		config = handle->config;
-
 		if( config ){
 			stm32_dma_clear_handle(config->dma_config.rx.dma_number, config->dma_config.rx.stream_number);
 			stm32_dma_clear_handle(config->dma_config.tx.dma_number, config->dma_config.tx.stream_number);
@@ -76,7 +79,7 @@ int mcu_spi_dma_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
-	spi_local_t * local = m_spi_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 	const stm32_spi_dma_config_t * config;
 
 	//BSP *MUST* provide DMA configuration information

@@ -406,6 +406,7 @@ int mcu_usb_read(const devfs_handle_t * handle, devfs_async_t * rop){
 
 	usb_local[port].read[loc] = rop->handler;
 
+
 	//Synchronous read (only if data is ready) otherwise 0 is returned
 	if ( usb_local[port].read_ready & (1<<loc) ){
 		usb_local[port].read[loc].callback = 0;
@@ -584,7 +585,6 @@ int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num,
 		USB_OTG_GlobalTypeDef * USBx = usb_local[handle->port].hal_handle.Instance;
 		int available = (USBx_INEP(logical_endpoint)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV);
 		if( (available * 4) < size ){
-			//mcu_debug_printf("busy\n");
 			return SYSFS_SET_RETURN(EBUSY);
 		}
 	}
@@ -594,7 +594,6 @@ int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num,
 	if( ret == HAL_OK ){
 #if 0
 		if( type == EP_TYPE_ISOC ){
-			//mcu_debug_printf("iso:%d\n", size);
 			return size;
 		}
 #endif
@@ -653,6 +652,8 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	usb->rx_count[epnum] = count;
 
 	mcu_execute_event_handler(usb->read + epnum, MCU_EVENT_FLAG_DATA_READY, &event);
+	//do mcu_root_read_endpoint() for non-control endpoints
+	//devfs_execute_read_handler(usb->transfer_handlers + epnum, &event, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
 
 	//prepare to receive the next packet in the local buffer
 	if( epnum != 0 ){
@@ -670,6 +671,7 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	usb->write_pending &= ~(1<<logical_ep);
 
 	mcu_execute_event_handler(usb->write + logical_ep, MCU_EVENT_FLAG_WRITE_COMPLETE, &event);
+	//devfs_execute_write_handler(usb->transfer_handlers + logical_ep, &event, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
 
 	if( logical_ep == 0 ){
 		//#if MCU_USB_API == 0
@@ -732,15 +734,14 @@ void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 
 			//Close will disable the endpoint and flush the TX FIFO
 			if( HAL_PCD_EP_Close(hpcd, epnum) != HAL_OK ){
-				//mcu_debug_root_printf("close failed\n");
+
 			}
 
 			if( HAL_PCD_EP_Open(hpcd, epnum, hpcd->IN_ep[logical_ep].maxpacket, EP_TYPE_ISOC) != HAL_OK ){
-				//mcu_debug_root_printf("open failed\n");
+
 			}
 
 			usb_local_t * usb = (usb_local_t *)hpcd;
-			//mcu_debug_printf("Incomplete %p\n", usb->write[logical_ep].callback);
 			mcu_execute_event_handler(usb->write + logical_ep, MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_CANCELED, 0);
 		}
 

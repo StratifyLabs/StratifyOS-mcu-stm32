@@ -54,6 +54,9 @@ set(SOURCES
 	${SOURCES_PREFIX}/psram_fmc_dev.c
 	${SOURCES_PREFIX}/tmr_dev.c
 	${SOURCES_PREFIX}/uart_dev.c
+	${SOURCES_PREFIX}/uart_dma_dev.c
+	${SOURCES_PREFIX}/uart_local.c
+	${SOURCES_PREFIX}/uart_local.h
 	${SOURCES_PREFIX}/usb_otg_fs_dev.c
 	${SOURCES_PREFIX}/wdt.c
 	${SOURCES_PREFIX}/stm32_local.h
