@@ -36,7 +36,6 @@ typedef struct {
 	devfs_transfer_handler_t transfer_handler;
 	fifo_state_t fifo_state;
 	const fifo_config_t * fifo_config;
-	u16 bytes_received;
 	u8 ref_count;
 	u8 o_flags;
 } uart_local_t;

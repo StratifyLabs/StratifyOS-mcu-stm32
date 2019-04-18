@@ -71,7 +71,6 @@ int mcu_uart_flush(const devfs_handle_t * handle, void * ctl){
 	return uart_local_flush(handle, ctl);
 }
 
-
 int mcu_uart_get(const devfs_handle_t * handle, void * ctl){
 	return uart_local_get(handle, ctl);
 }

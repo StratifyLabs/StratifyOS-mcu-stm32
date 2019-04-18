@@ -33,7 +33,7 @@ uart_local_t m_uart_local[MCU_UART_PORTS] MCU_SYS_MEM;
 USART_TypeDef * const uart_regs_table[MCU_UART_PORTS] = MCU_UART_REGS;
 u8 const uart_irqs[MCU_UART_PORTS] = MCU_UART_IRQS;
 
-static void handle_bytes_received(uart_local_t * local);
+static void handle_bytes_received(uart_local_t * local, u16 bytes_received);
 
 int uart_local_open(const devfs_handle_t * handle){
 	DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
@@ -250,7 +250,19 @@ int uart_local_put(const devfs_handle_t * handle, void * ctl){
 
 int uart_local_flush(const devfs_handle_t * handle, void * ctl){
 	DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+
+	/*
+	 * The interrupt and DMA reads rely on the head staying
+	 * in the right place for the incoming data. So the
+	 * head is restored and the tail is assiged to
+	 * the head when the fifo is flushed.
+	 *
+	 */
+	u16 head = local->fifo_state.atomic_position.access.head;
 	fifo_flush(&local->fifo_state);
+	local->fifo_state.atomic_position.access.head = head;
+	local->fifo_state.atomic_position.access.tail = head;
+
 	return SYSFS_RETURN_SUCCESS;
 }
 
@@ -275,31 +287,31 @@ int uart_local_read(const devfs_handle_t * handle, devfs_async_t * async){
 	if( local->fifo_config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
 	//read the fifo, block if no bytes are available
-	return fifo_read_local(local->fifo_config, &local->fifo_state, async, 1);
+	return fifo_read_local(local->fifo_config, &local->fifo_state, async, 0);
 }
 
-void handle_bytes_received(uart_local_t * local){
+void handle_bytes_received(uart_local_t * local, u16 bytes_received){
 
 	//increment the head by the number of bytes received
-	for(u16 i=0; i < local->bytes_received; i++){
+	for(u16 i=0; i < bytes_received; i++){
 		fifo_inc_head(&local->fifo_state, local->fifo_config->size);
 	}
 
+
 	//now tell the fifo the head has been updated so it can return data to the user asynchronously
 	fifo_data_received(local->fifo_config, &local->fifo_state);
-
 }
 
 void HAL_UART_RxIdleCallback(UART_HandleTypeDef *huart){
 	uart_local_t * local = (uart_local_t*)huart;
+	u16 bytes_received;
 	u16 head = local->fifo_state.atomic_position.access.head;
 	if( huart->hdmarx ){
-		local->bytes_received = local->fifo_config->size - __HAL_DMA_GET_COUNTER(huart->hdmarx) - head;
+		bytes_received = local->fifo_config->size - __HAL_DMA_GET_COUNTER(huart->hdmarx) - head;
 	} else {
-		local->bytes_received = (huart->RxXferSize - huart->RxXferCount) - head;
+		bytes_received = (huart->RxXferSize - huart->RxXferCount) - head;
 	}
-	handle_bytes_received(local);
-	mcu_debug_printf("idle %d from %d\n", local->bytes_received, head);
+	handle_bytes_received(local, bytes_received);
 }
 
 void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart){
@@ -309,9 +321,9 @@ void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart){
 //called when RX IT is complete or when DMA does full transfer
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	uart_local_t * local = (uart_local_t*)huart;
-
-	local->bytes_received = local->fifo_config->size - local->fifo_state.atomic_position.access.head;
-	handle_bytes_received(local);
+	u16 bytes_received;
+	bytes_received = local->fifo_config->size - local->fifo_state.atomic_position.access.head;
+	handle_bytes_received(local, bytes_received);
 
 	if( local->hal_handle.hdmarx == 0 ){
 		//if not in circular DMA mode -- start the next interrupt based read
@@ -319,19 +331,17 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 								  (u8*)local->fifo_config->buffer,
 								  local->fifo_config->size);
 	}
-	mcu_debug_printf("cplt\n");
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
 	uart_local_t * local = (uart_local_t*)huart;
 	devfs_execute_read_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_CANCELED);
-
-	mcu_debug_printf("e:0x%X\n", huart->ErrorCode);
+	u16 bytes_received;
 
 	if( local->hal_handle.hdmarx == 0 ){
 
-		local->bytes_received = local->fifo_config->size - huart->RxXferCount - local->fifo_state.atomic_position.access.head;
-		handle_bytes_received(local);
+		bytes_received = local->fifo_config->size - huart->RxXferCount - local->fifo_state.atomic_position.access.head;
+		handle_bytes_received(local, bytes_received);
 
 		//reset the head
 		fifo_flush(&local->fifo_state);
@@ -342,8 +352,8 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
 								  (u8*)local->fifo_config->buffer,
 								  local->fifo_config->size);
 	} else {
-		local->bytes_received = local->fifo_config->size - __HAL_DMA_GET_COUNTER(huart->hdmarx) - local->fifo_state.atomic_position.access.head;
-		handle_bytes_received(local);
+		bytes_received = local->fifo_config->size - __HAL_DMA_GET_COUNTER(huart->hdmarx) - local->fifo_state.atomic_position.access.head;
+		handle_bytes_received(local, bytes_received);
 
 		//reset the head
 		fifo_flush(&local->fifo_state);
@@ -351,9 +361,10 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
 
 		//if not in circular DMA mode -- start the next interrupt based read
 		HAL_UART_Receive_DMA(&local->hal_handle,
-								  (u8*)local->fifo_config->buffer,
-								  local->fifo_config->size);
+									(u8*)local->fifo_config->buffer,
+									local->fifo_config->size);
 	}
+
 }
 
 void HAL_UART_TxHalfCpltCallback(UART_HandleTypeDef *huart){

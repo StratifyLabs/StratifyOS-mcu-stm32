@@ -23,7 +23,7 @@
 #if MCU_UART_PORTS > 0
 
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(uart_dma, UART_VERSION, UART_IOC_IDENT_CHAR, I_MCU_TOTAL + I_UART_TOTAL, mcu_uart_get, mcu_uart_put, mcu_uart_flush)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(uart_dma, UART_VERSION, UART_IOC_IDENT_CHAR, I_MCU_TOTAL + I_UART_TOTAL, mcu_uart_dma_get, mcu_uart_dma_put, mcu_uart_dma_flush)
 
 int mcu_uart_dma_open(const devfs_handle_t * handle){
 	return uart_local_open(handle);
