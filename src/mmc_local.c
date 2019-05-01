@@ -179,18 +179,17 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 	}
 
 	if( o_flags & MMC_FLAG_RESET ){
+		//if the EMMC has a timeout error, this will get it to recover from that
 		u32 width = local->hal_handle.Init.BusWide;
-		mcu_debug_printf("Reset EMMC %d\n", width);
+		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Reset EMMC");
 		HAL_MMC_Abort(&local->hal_handle);
 		HAL_MMC_DeInit(&local->hal_handle);
 		if( HAL_MMC_Init(&local->hal_handle) != HAL_OK ){
-			mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to reset MMC\n");
+			mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to reset MMC");
 			return SYSFS_SET_RETURN(EIO);
 		}
 
 		HAL_MMC_ConfigWideBusOperation(&local->hal_handle, width);
-		mcu_debug_printf("State: %d\n", HAL_MMC_GetCardState(&mmc_local[handle->port].hal_handle));
-
 	}
 
 	if( o_flags & MMC_FLAG_ERASE_BLOCKS ){

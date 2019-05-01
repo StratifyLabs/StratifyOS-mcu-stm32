@@ -1224,8 +1224,6 @@ static uint32_t SDMMC_GetCmdResp1(SDIO_TypeDef *SDIOx, uint8_t SD_CMD, uint32_t 
     return SDMMC_ERROR_NONE;
   }
 
-  mcu_debug_printf("ERROR BITS:0x%lX\n", response_r1);
-
   if((response_r1 & SDMMC_OCR_ADDR_OUT_OF_RANGE) == SDMMC_OCR_ADDR_OUT_OF_RANGE)
   {
     return SDMMC_ERROR_ADDR_OUT_OF_RANGE;
