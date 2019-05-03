@@ -2362,6 +2362,11 @@ static void MMC_DMATxAbort(DMA_HandleTypeDef *hdma)
 		}
 	 }
   }
+#if 1 //__StratifyOS__ need to notify upper layers about the abort
+	 else {
+		 HAL_MMC_AbortCallback(hmmc);
+	 }
+#endif
 }
 
 /**
@@ -2399,6 +2404,11 @@ static void MMC_DMARxAbort(DMA_HandleTypeDef *hdma)
 		}
 	 }
   }
+#if 1 //__StratifyOS__ need to notify upper layers about the abort
+	 else {
+		 HAL_MMC_AbortCallback(hmmc);
+	 }
+#endif
 }
 
 

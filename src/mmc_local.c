@@ -267,7 +267,7 @@ void HAL_MMC_RxCpltCallback(MMC_HandleTypeDef *hmmc){
 
 void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc){
 	mmc_local_t * local = (mmc_local_t *)hmmc;
-	//mcu_debug_log_warning(MCU_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX %ld", hmmc->ErrorCode, hmmc->hdmatx->ErrorCode);
+	//mcu_debug_log_warning(MCU_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX 0x%lX", hmmc->ErrorCode, hmmc->hdmatx->ErrorCode, hmmc->hdmarx->ErrorCode);
 	if( hmmc->ErrorCode ){
 		mcu_debug_log_warning(MCU_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX 0x%lX", hmmc->ErrorCode, hmmc->hdmatx->ErrorCode, hmmc->hdmarx->ErrorCode);
 		devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
@@ -277,7 +277,7 @@ void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc){
 void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc){
 	mmc_local_t * local = (mmc_local_t *)hmmc;
 	//abort read and write
-	mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Abort\n");
+	mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Abort MMC");
 	devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), 0);
 }
 

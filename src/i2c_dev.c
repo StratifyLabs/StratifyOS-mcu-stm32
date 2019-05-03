@@ -545,7 +545,7 @@ void mcu_core_i2c3_ev_isr(){ mcu_i2c_ev_isr(2); }
 void mcu_core_i2c3_er_isr(){ mcu_i2c_er_isr(2); }
 #endif
 
-#define I2C_CLEAR_BUSY_DEBUG_MESSAGES 1
+#define I2C_CLEAR_BUSY_DEBUG_MESSAGES 0
 #define I2C_WAIT_FOR_LINE_CHANGE 0
 
 void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
