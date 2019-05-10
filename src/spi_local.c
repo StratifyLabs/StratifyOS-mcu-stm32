@@ -27,6 +27,8 @@ SPI_TypeDef * const spi_regs[MCU_SPI_PORTS] = MCU_SPI_REGS;
 u8 const spi_irqs[MCU_SPI_PORTS] = MCU_SPI_IRQS;
 spi_local_t m_spi_local[MCU_SPI_PORTS] MCU_SYS_MEM;
 
+static void clear_overrun_state(spi_local_t * spi);
+
 int spi_local_open(const devfs_handle_t * handle){
 	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 	if( port < MCU_SPI_PORTS ){
@@ -265,6 +267,10 @@ int spi_local_swap(const devfs_handle_t * handle, void * ctl){
 	int ret;
 	tx_data = (u32)ctl;
 	ret = HAL_SPI_TransmitReceive(&local->hal_handle, &tx_data, &rx_data, 1, HAL_MAX_DELAY);
+
+	//clear any status or overrun state
+	clear_overrun_state(local);
+
 	if( ret != HAL_OK ){
 		return SYSFS_SET_RETURN(EIO);
 	}
@@ -329,15 +335,13 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
 	spi_local_t * spi = (spi_local_t*)hspi;
 
-	mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI Error:0x%X", hspi->ErrorCode);
+	clear_overrun_state(spi);
 
-	//deal with overrrun errors
-#if defined STM32H7
-	spi->hal_handle.Instance->UDRDR;
-#else
-	spi->hal_handle.Instance->DR;
-#endif
-	spi->hal_handle.Instance->SR;
+	mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI Error:0x%X %p %p",
+							  hspi->ErrorCode,
+							  spi->transfer_handler.read,
+							  spi->transfer_handler.write);
+
 
 	devfs_execute_cancel_handler(&spi->transfer_handler, 0, SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode), MCU_EVENT_FLAG_ERROR);
 }
@@ -347,6 +351,16 @@ void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){
 
 	mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SPI Abort:0x%X", hspi->ErrorCode);
 	devfs_execute_cancel_handler(&spi->transfer_handler,0, SYSFS_SET_RETURN(EAGAIN), 0);
+}
+
+void clear_overrun_state(spi_local_t * spi){
+	//deal with overrrun errors
+#if defined STM32H7
+	spi->hal_handle.Instance->UDRDR;
+#else
+	spi->hal_handle.Instance->DR;
+#endif
+	spi->hal_handle.Instance->SR;
 }
 
 //these handlers need to move to the local file
