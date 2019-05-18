@@ -1,4 +1,4 @@
-
+﻿
 #include <errno.h>
 #include <fcntl.h>
 #include <mcu/emc.h>
@@ -176,7 +176,6 @@ static int mcu_emc_ram_setattr(const devfs_handle_t * handle, void * ctl){
         local->timing.CLKDivision           = 2;
         local->timing.DataLatency           = 2;
         local->timing.AccessMode            = FMC_ACCESS_MODE_A;
-
 #if defined STM32F723xx
         if(o_flags & EMC_FLAG_IS_PSRAM_BANK1){
             local->lcd_control = (ahb_control_t*)FMC_PSRAM_BANK1_BASE;
@@ -194,6 +193,9 @@ static int mcu_emc_ram_setattr(const devfs_handle_t * handle, void * ctl){
             local->lcd_control = (ahb_control_t*)FMC_PSRAM_BANK1_BASE;
             local->hal_handle.Init.NSBank             = FMC_NORSRAM_BANK1;
         }
+#else
+        local->lcd_control = (ahb_control_t*)((uint32_t)(0x60000000));
+        local->hal_handle.Init.NSBank             = FMC_NORSRAM_BANK1;
 #endif
         mcu_debug_printf("lcd pointer %p \n",local->lcd_control);
         local->hal_handle.Init.DataAddressMux     = FMC_DATA_ADDRESS_MUX_DISABLE;
@@ -208,7 +210,6 @@ static int mcu_emc_ram_setattr(const devfs_handle_t * handle, void * ctl){
         local->hal_handle.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
         local->hal_handle.Init.WriteBurst         = FMC_WRITE_BURST_DISABLE;
         local->hal_handle.Init.ContinuousClock    = FMC_CONTINUOUS_CLOCK_SYNC_ONLY;
-
         /* Initialize the SRAM controller */
         if(HAL_SRAM_Init(&local->hal_handle, &local->timing, &local->timing) != HAL_OK){
             mcu_debug_printf("sram init failed %s:%d\n",__FILE__,__LINE__);
@@ -263,8 +264,8 @@ int mcu_emc_psram_read(const devfs_handle_t * handle, devfs_async_t * async){
     ram_local_t * psram = m_ram_local + handle->port * sizeof(ram_local_t);
     const emc_attr_t * config = handle->config;
     if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
-    if( async->loc >= config->size ){
-        mcu_debug_printf("async->loc >= config->size\n");
+    if( async->loc >= (int)config->size ){
+        mcu_debug_printf("async->loc >= config->size %u %u \n",async->loc ,config->size );
         return SYSFS_RETURN_EOF;
     }
     if( async->loc + async->nbyte > config->size ){
@@ -298,14 +299,15 @@ int mcu_emc_psram_write(const devfs_handle_t * handle, devfs_async_t * async){
     DEVFS_DRIVER_DECLARE_LOCAL(ram, MCU_FMC_PORTS);
     const emc_attr_t * config = handle->config;
 	if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
-	if( async->loc >= config->size ){
-        mcu_debug_printf("async->loc >= config->size \n");
+    if( async->loc >= (int)config->size ){
+        mcu_debug_printf("async->loc >= config->size %u %u \n",async->loc ,config->size );
 		return SYSFS_RETURN_EOF;
 	}
-	if( async->loc + async->nbyte > config->size ){
+    if( (async->loc + async->nbyte) > (int)config->size ){
+        mcu_debug_printf("async->loc >= config->size %u %u \n",async->loc ,config->size );
 		async->nbyte = config->size - async->loc;
 	}
-	if( async->loc & 0x03 || async->nbyte & 0x03 ){
+    if( async->loc & 0x03 || async->nbyte & 0x03 ){
         HAL_SRAM_Write_8b(&local->hal_handle, (u32*)(config->base_address + async->loc), async->buf, async->nbyte);
 	} else {
         HAL_SRAM_Write_32b(&local->hal_handle, (u32*)(config->base_address + async->loc), async->buf, async->nbyte/4);

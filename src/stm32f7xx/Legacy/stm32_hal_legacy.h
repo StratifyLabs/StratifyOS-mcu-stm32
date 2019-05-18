@@ -432,7 +432,7 @@
 #define GPIO_AF1_LPTIM                            GPIO_AF1_LPTIM1
 #define GPIO_AF2_LPTIM                            GPIO_AF2_LPTIM1
 
-#if defined(STM32L0) || defined(STM32L4) || defined(STM32F4) || defined(STM32F2) || defined(STM32F7)
+#if defined(STM32L0) || defined(STM32L4) || defined(STM32F4) || defined(STM32F2) || defined(STM32F7)|| defined(STM32H7)
 #define  GPIO_SPEED_LOW                           GPIO_SPEED_FREQ_LOW     
 #define  GPIO_SPEED_MEDIUM                        GPIO_SPEED_FREQ_MEDIUM     
 #define  GPIO_SPEED_FAST                          GPIO_SPEED_FREQ_HIGH     

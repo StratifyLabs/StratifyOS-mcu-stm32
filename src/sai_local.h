@@ -28,6 +28,7 @@
 typedef struct {
 	SAI_HandleTypeDef hal_handle;
 	devfs_transfer_handler_t transfer_handler;
+    mcu_event_handler_t special_event_handler;
 	u16 o_flags;
 	u8 ref_count;
 	u8 size_mult;
@@ -36,7 +37,9 @@ typedef struct {
 enum {
 	SAI_LOCAL_IS_DMA = (1<<0),
 	SAI_LOCAL_IS_I2S = (1<<1),
-	SAI_LOCAL_IS_FULL_DUPLEX = (1<<2)
+    SAI_LOCAL_IS_FULL_DUPLEX = (1<<2),
+    SAI_LOCAL_IS_TX = (1<<3),
+    SAI_LOCAL_IS_RX = (1<<4),
 };
 
 //each SAI block is half duplex -- two blocks (one SAI unit) can be full duplex
@@ -48,8 +51,8 @@ typedef struct {
 extern sai_local_t sai_local[MCU_SAI_PORTS] MCU_SYS_MEM;
 extern sai_dma_local_t sai_dma_local[MCU_SAI_PORTS] MCU_SYS_MEM;
 extern SAI_Block_TypeDef * const sai_regs[MCU_SAI_PORTS];
-extern u8 const sai_irqs[MCU_SAI_PORTS];
-
+extern u8 const sai_irqs[MCU_SAI_PORTS/2];
+extern mcu_callback_t read_cb,send_cb;
 int sai_local_open(sai_local_t * local, const devfs_handle_t * handle);
 int sai_local_close(sai_local_t * local, const devfs_handle_t * handle);
 int sai_local_setattr(sai_local_t * local, const devfs_handle_t * handle, void * ctl);
