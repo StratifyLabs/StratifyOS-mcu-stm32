@@ -66,6 +66,10 @@ int stm32_flash_write(u32 addr, const void * buf, int nbyte){
 		return -1;
 	}
 
+	if( (addr & 0x00200000) != 0 ){
+		addr += 0x07e00000; //map to 0x08000000 for writing
+	}
+
 #if defined STM32L4
 	const u64 * pbuf = buf;
 	u8 empty[8];

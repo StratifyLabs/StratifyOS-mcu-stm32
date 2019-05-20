@@ -51,7 +51,7 @@ typedef struct {
 extern sai_local_t sai_local[MCU_SAI_PORTS] MCU_SYS_MEM;
 extern sai_dma_local_t sai_dma_local[MCU_SAI_PORTS] MCU_SYS_MEM;
 extern SAI_Block_TypeDef * const sai_regs[MCU_SAI_PORTS];
-extern u8 const sai_irqs[MCU_SAI_PORTS/2];
+extern u8 const sai_irqs[MCU_SAI_PORTS];
 extern mcu_callback_t read_cb,send_cb;
 int sai_local_open(sai_local_t * local, const devfs_handle_t * handle);
 int sai_local_close(sai_local_t * local, const devfs_handle_t * handle);

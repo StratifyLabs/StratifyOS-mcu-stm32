@@ -16,7 +16,7 @@
 
 
 //#include "config.h"
-
+#include <mcu/arch.h>
 #include <mcu/bootloader.h>
 #include "stm32_flash.h"
 
@@ -190,39 +190,54 @@ void mcu_set_sleep_mode(int * level){
 
 u32 mcu_core_get_reset_src(){
 	u32 src = CORE_FLAG_IS_RESET_SYSTEM;
-	u32 src_reg = RCC->CSR;
-#if defined RCC_CSR_RMVF
+
+	u32 src_reg;
+#if defined RCC_RSR_PINRSTF
+	src_reg = RCC->RSR;
+	RCC->RSR |= RCC_RSR_RMVF; //clear flags
+#else
+	src_reg = RCC->CSR;
 	RCC->CSR |= RCC_CSR_RMVF; //clear flags
 #endif
 
 #if defined RCC_CSR_BORRSTF
-	if ( src_reg & RCC_CSR_BORRSTF ){
-		return CORE_FLAG_IS_RESET_BOR;
-	}
+	if ( src_reg & RCC_CSR_BORRSTF ){ return CORE_FLAG_IS_RESET_BOR; }
 #endif
 
-#if defined RCC_CSR_IWDGRSTF
-	if ( src_reg & (RCC_CSR_IWDGRSTF|RCC_CSR_WWDGRSTF) ){
-		return CORE_FLAG_IS_RESET_WDT;
-	}
+#if defined RCC_RSR_BORRSTF
+	if ( src_reg & RCC_RSR_BORRSTF ){ return CORE_FLAG_IS_RESET_BOR; }
+#endif
+
+#if defined RCC_RSR_IWDGRSTF
+	if ( src_reg & (RCC_RSR_IWDGRSTF|RCC_RSR_WWDGRSTF) ){ return CORE_FLAG_IS_RESET_WDT; }
+#endif
+
+#if defined RCC_RSR_WWDG1RSTF
+	if ( src_reg & (RCC_RSR_WWDG1RSTF) ){ return CORE_FLAG_IS_RESET_WDT; }
 #endif
 
 #if defined RCC_CSR_PORRSTF
-	if ( src_reg & RCC_CSR_PORRSTF ){
-		return CORE_FLAG_IS_RESET_POR;
-	}
+	if ( src_reg & RCC_CSR_PORRSTF ){ return CORE_FLAG_IS_RESET_POR; }
+#endif
+
+#if defined RCC_RSR_PORRSTF
+	if ( src_reg & RCC_RSR_PORRSTF ){ return CORE_FLAG_IS_RESET_POR; }
 #endif
 
 #if defined RCC_CSR_SFTRSTF
-	if( src_reg & RCC_CSR_SFTRSTF ){
-		return CORE_FLAG_IS_RESET_SOFTWARE;
-	}
+	if( src_reg & RCC_CSR_SFTRSTF ){ return CORE_FLAG_IS_RESET_SOFTWARE; }
+#endif
+
+#if defined RCC_RSR_SFTRSTF
+	if( src_reg & RCC_RSR_SFTRSTF ){ return CORE_FLAG_IS_RESET_SOFTWARE; }
 #endif
 
 #if defined RCC_CSR_PINRSTF
-	if ( src_reg & RCC_CSR_PINRSTF ){
-		return CORE_FLAG_IS_RESET_EXTERNAL;
-	}
+	if ( src_reg & RCC_CSR_PINRSTF ){ return CORE_FLAG_IS_RESET_EXTERNAL; }
+#endif
+
+#if defined RCC_RSR_PINRSTF
+	if ( src_reg & RCC_RSR_PINRSTF ){ return CORE_FLAG_IS_RESET_EXTERNAL; }
 #endif
 
 	return src;
@@ -260,9 +275,10 @@ int mcu_core_read(const devfs_handle_t * cfg, devfs_async_t * async){
 
 //--------------------------------CACHE Operations--------------------------------
 
-#if defined STM32F7
+#if defined STM32F7 || defined STM32H7
 #define USE_CACHE 1
 #endif
+
 
 void mcu_core_enable_cache(){
 #if USE_CACHE
