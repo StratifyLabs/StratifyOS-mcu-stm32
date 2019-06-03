@@ -804,7 +804,7 @@ typedef struct
 {
   __IO uint32_t CR;         /*!< CRYP control register,                                    Address offset: 0x00 */
   __IO uint32_t SR;         /*!< CRYP status register,                                     Address offset: 0x04 */
-  __IO uint32_t DR;         /*!< CRYP data input register,                                 Address offset: 0x08 */
+  __IO uint32_t DIN;         /*!< CRYP data input register,                                 Address offset: 0x08 */
   __IO uint32_t DOUT;       /*!< CRYP data output register,                                Address offset: 0x0C */
   __IO uint32_t DMACR;      /*!< CRYP DMA control register,                                Address offset: 0x10 */
   __IO uint32_t IMSCR;      /*!< CRYP interrupt mask set/clear register,                   Address offset: 0x14 */

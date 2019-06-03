@@ -16,7 +16,13 @@ set(SOURCES
 	${SOURCES_PREFIX}/core_sleep.c
 	${SOURCES_PREFIX}/core_initclock.c
 	${SOURCES_PREFIX}/core_startup.c
-  ${SOURCES_PREFIX}/fault_dev.c
+	${SOURCES_PREFIX}/crypt_dev.c
+	${SOURCES_PREFIX}/crypt_local.c
+	${SOURCES_PREFIX}/crypt_local.h
+	${SOURCES_PREFIX}/hash_dev.c
+	${SOURCES_PREFIX}/hash_local.c
+	${SOURCES_PREFIX}/hash_local.h
+	${SOURCES_PREFIX}/fault_dev.c
 	${SOURCES_PREFIX}/flash_dev.c
 	${SOURCES_PREFIX}/rng_dev.c
 	${SOURCES_PREFIX}/eth_dev.c

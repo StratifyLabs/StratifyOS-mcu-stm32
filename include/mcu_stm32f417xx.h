@@ -84,6 +84,17 @@
 #define MCU_CRC_REGS { CRC }
 #define MCU_CRC_IRQS { -1 }
 
+#define MCU_CRYPT_API 0
+#define MCU_CRYPT_PORTS 1
+#define MCU_CRYPT_REGS { CRYP }
+#define MCU_CRYPT_IRQS { CRYP_IRQn }
+
+#define MCU_HASH_API 0
+#define MCU_HASH_PORTS 1
+#define MCU_HASH_REGS { HASH }
+#define MCU_HASH_IRQS { HASH_RNG_IRQn }
+
+
 #define MCU_RNG_PORTS 1
 #define MCU_RNG_REGS { RNG }
 #define MCU_RNG_IRQS { HASH_RNG_IRQn }

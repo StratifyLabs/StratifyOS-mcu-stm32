@@ -23,6 +23,7 @@
 #include <mcu/debug.h>
 
 #include "stm32_local.h"
+#include "hash_local.h"
 
 #if MCU_RNG_PORTS > 0
 
@@ -132,7 +133,7 @@ void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef* hrng, uint32_t random32bit){
 	rng_local_t * rng = (rng_local_t *)hrng;
 
 	memcpy(rng->transfer_handler.read->buf + rng->bytes_read, &random32bit, sizeof(uint32_t));
-	rng->bytes_read += sizeof(uint32_t);
+	rng->bytes_read += sizeof(u32);
 
 	if( rng->bytes_read == rng->transfer_handler.read->nbyte ){
 		devfs_execute_read_handler(&rng->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
@@ -143,7 +144,10 @@ void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef* hrng, uint32_t random32bit){
 
 void mcu_core_hash_isr(){
 	HAL_RNG_IRQHandler(&rng_local[0].hal_handle);
-	//HAL_HASH_IRQHandler() //to be implemented
+
+#if MCU_HASH_PORTS > 0
+	HAL_HASH_IRQHandler(&m_hash_local[0].hal_handle);
+#endif
 }
 
 

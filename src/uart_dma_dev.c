@@ -88,6 +88,7 @@ int mcu_uart_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
 	__HAL_LINKDMA((&local->hal_handle), hdmatx, channel->handle);
 
+
 	int result = uart_local_setattr(handle, ctl);
 	if( result < 0 ){ return result; }
 

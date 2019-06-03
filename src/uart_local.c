@@ -126,6 +126,7 @@ int uart_local_close(const devfs_handle_t * handle){
 }
 
 int uart_local_getinfo(const devfs_handle_t * handle, void * ctl){
+	DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
 
 	uart_info_t * info = ctl;
 
@@ -135,6 +136,17 @@ int uart_local_getinfo(const devfs_handle_t * handle, void * ctl){
 			UART_FLAG_IS_STOP1 |
 			UART_FLAG_IS_STOP2 |
 			UART_FLAG_IS_RX_FIFO;
+
+	if( local->fifo_config ){
+		fifo_info_t fifo_info;
+		info->o_flags |= UART_FLAG_IS_RX_FIFO;
+		fifo_getinfo(&fifo_info, local->fifo_config, &local->fifo_state);
+		info->size_ready = fifo_info.size_ready;
+		info->size = fifo_info.size;
+	} else {
+		info->size_ready = 0;
+		info->size = 0;
+	}
 
 	return 0;
 }
@@ -200,8 +212,9 @@ int uart_local_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EIO);
 		}
 
-		//enable the idle interrupt
+		//enable the idle interrupt and initialize the fifo
 		if( local->fifo_config ){
+			fifo_ioctl_local(local->fifo_config, &local->fifo_state, I_FIFO_INIT, 0);
 			SET_BIT(local->hal_handle.Instance->CR1, USART_CR1_IDLEIE);
 		}
 
@@ -401,7 +414,7 @@ void mcu_uart_isr(int port){
 		local->hal_handle.Instance->DR; //this will clear the idle bit
 #elif defined USART_ISR_IDLE
 	if(  READ_REG(local->hal_handle.Instance->ISR) & USART_ISR_IDLE ){
-		local->hal_handle.Instance->RDR; //this will clear the idle bit
+		SET_BIT(local->hal_handle.Instance->ICR, USART_ICR_IDLECF); //this will clear the idle bit
 #endif
 		HAL_UART_RxIdleCallback((UART_HandleTypeDef*)local);
 		return;
