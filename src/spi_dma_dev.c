@@ -118,7 +118,7 @@ int mcu_spi_dma_setaction(const devfs_handle_t * handle, void * ctl){
 
 int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
-	spi_local_t * local = m_spi_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
@@ -149,7 +149,7 @@ int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 int mcu_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 	int ret;
-	spi_local_t * local = m_spi_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

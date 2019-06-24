@@ -494,6 +494,7 @@ void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32
 	const stm32_config_t * stm32_config = mcu_board_config.arch_config;
 
 	HAL_PCD_EP_Open(&usb_local[handle->port].hal_handle, endpoint_num, max_packet_size, type & EP_TYPE_MSK);
+	usb_local[handle->port].connected = 1;
 
 	if( (endpoint_num & 0x80) == 0 ){
 		void * dest_buffer;
@@ -510,7 +511,6 @@ void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32
 				max_packet_size;
 
 		HAL_PCD_EP_Receive(&usb_local[port].hal_handle, endpoint_num, dest_buffer, max_packet_size);
-
 	}
 }
 
@@ -719,7 +719,8 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
 }
 
 void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd){
-
+	usb_local_t * usb = (usb_local_t *)hpcd;
+	usb->connected = 1;
 }
 
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
@@ -749,7 +750,7 @@ void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 }
 
 void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
-	//mcu_debug_root_printf("Iso out\n");
+	//mcu_debug_printf("Iso out\n");
 }
 
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd){

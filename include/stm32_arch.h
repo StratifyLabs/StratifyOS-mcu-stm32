@@ -20,6 +20,7 @@
 #include <mcu/types.h>
 #include <mcu/eth.h>
 #include <mcu/spi.h>
+#include <mcu/qspi.h>
 #include <mcu/sdio.h>
 #include <mcu/mmc.h>
 #include <mcu/i2s.h>
@@ -248,6 +249,11 @@ typedef struct {
 	spi_config_t spi_config;
 	stm32_dma_config_t dma_config;
 } stm32_spi_dma_config_t;
+
+typedef struct {
+	qspi_config_t qspi_config;
+	stm32_dma_config_t dma_config;
+} stm32_qspi_dma_config_t;
 
 typedef struct {
 	i2s_config_t i2s_config;

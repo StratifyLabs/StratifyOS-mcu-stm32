@@ -56,6 +56,9 @@ set(SOURCES
 	${SOURCES_PREFIX}/spi_dev.c
 	${SOURCES_PREFIX}/spi_dma_dev.c
 	${SOURCES_PREFIX}/qspi_dev.c
+	${SOURCES_PREFIX}/qspi_dma_dev.c
+	${SOURCES_PREFIX}/qspi_local.c
+	${SOURCES_PREFIX}/qspi_local.h
 	${SOURCES_PREFIX}/sdram_fmc_dev.c
 	${SOURCES_PREFIX}/psram_fmc_dev.c
 	${SOURCES_PREFIX}/tmr_dev.c

@@ -434,7 +434,6 @@ void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai){
 
 void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai){
 	//called on overflow and underrun
-	sai_local_t * local = (sai_local_t *)hsai;
 	volatile u32 status = hsai->Instance->SR;
 	status = hsai->Instance->DR;
 	mcu_debug_log_error(MCU_DEBUG_DEVICE, "SAI Error %d on %p", hsai->ErrorCode, hsai->Instance);
