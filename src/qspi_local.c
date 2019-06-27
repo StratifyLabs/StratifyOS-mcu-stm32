@@ -83,7 +83,7 @@ int qspi_local_setattr(const devfs_handle_t * handle, void * ctl){
 	o_flags = attr->o_flags;
 	local->state = o_flags;
 	if( o_flags & QSPI_FLAG_SET_MASTER ){
-		uint32_t flash_size = 0xffffffff;
+		uint32_t flash_size = 24;
 
 		__HAL_RCC_QSPI_FORCE_RESET();
 		__HAL_RCC_QSPI_RELEASE_RESET();
@@ -96,11 +96,22 @@ int qspi_local_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
-		local->hal_handle.Init.ClockPrescaler = attr->freq; //need to calculate
-		local->hal_handle.Init.FifoThreshold = 16; //not sure how this will be used
+		//prescalar can be between 0 and 255
+		u32 prescalar;
+		if( attr->freq ){
+			prescalar = mcu_board_config.core_cpu_freq / attr->freq;
+			if( prescalar > 255 ){
+				prescalar = 255;
+			}
+		} else {
+			prescalar = 0;
+		}
+
+		local->hal_handle.Init.ClockPrescaler = prescalar; //need to calculate
+		local->hal_handle.Init.FifoThreshold = 16; //interrupt fires when FIFO is half full
 		local->hal_handle.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_HALFCYCLE;
 		local->hal_handle.Init.FlashSize = flash_size; /*attribute size 2^size-1*/
-		local->hal_handle.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_1_CYCLE;
+		local->hal_handle.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_2_CYCLE;
 		if(o_flags & QSPI_FLAG_IS_CLK_HIGH_WHILE_CS ){
 			local->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_3;
 		}else{
@@ -120,11 +131,6 @@ int qspi_local_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EIO);
 		}
 
-		if( o_flags & QSPI_FLAG_IS_COMMAND_DUAL ){
-			//set qspi to dual command mode
-		} else if( o_flags & QSPI_FLAG_IS_COMMAND_QUAD ){
-			//set qspi to quad command mode
-		}
 	}
 
 
@@ -244,12 +250,18 @@ void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi){
 
 void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 	qspi_local_t * local =  (qspi_local_t *)hqspi;
+	mcu_debug_printf("RX complete %d\n", hqspi->RxXferCount);
+	if( local->hal_handle.hdma != 0 && local->transfer_handler.read ){
+		//pull in values from memory to cache if using DMA
+		mcu_core_invalidate_data_cache();
+	}
 	devfs_execute_read_handler(&local->transfer_handler, 0, hqspi->RxXferCount, MCU_EVENT_FLAG_DATA_READY);
 
 }
 
 void HAL_QSPI_TxCpltCallback(QSPI_HandleTypeDef *hqspi){
 	qspi_local_t * qspi =  (qspi_local_t *)hqspi;
+	mcu_debug_printf("TX complete\n");
 	devfs_execute_write_handler(&qspi->transfer_handler, 0, hqspi->TxXferCount, MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
@@ -262,6 +274,7 @@ void HAL_QSPI_TxHalfCpltCallback(QSPI_HandleTypeDef *hqspi){
 }
 
 void mcu_core_quadspi_isr(){
+	mcu_debug_printf("QSPI handler %d\n", m_qspi_local[0].hal_handle.RxXferCount);
 	HAL_QSPI_IRQHandler(&m_qspi_local[0].hal_handle);
 }
 

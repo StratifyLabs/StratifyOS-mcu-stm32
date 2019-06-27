@@ -69,6 +69,7 @@ int mcu_qspi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 	DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
 	const stm32_spi_dma_config_t * config;
 
+	mcu_debug_printf("setup QSPI DMA");
 	//BSP *MUST* provide DMA configuration information
 	config = handle->config;
 	if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
@@ -110,6 +111,7 @@ int mcu_qspi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 	//borrow async to qspi->transfer_handler.read
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
+	mcu_debug_printf("read using DMA %p %d\n", async->buf, (READ_REG(local->hal_handle.Instance->DLR) + 1));
 	if (HAL_QSPI_Receive_DMA(&local->hal_handle, async->buf) != HAL_OK){
 		local->transfer_handler.read = 0;
 		return SYSFS_SET_RETURN(EIO);
@@ -127,7 +129,9 @@ int mcu_qspi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 	//borrow async to qspi->transfer_handler.read
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
-	if (HAL_QSPI_Receive_DMA(&local->hal_handle, async->buf) != HAL_OK){
+	mcu_core_clean_data_cache_block(async->buf, async->nbyte);
+
+	if (HAL_QSPI_Transmit_DMA(&local->hal_handle, async->buf) != HAL_OK){
 		local->transfer_handler.write = 0;
 		return SYSFS_SET_RETURN(EIO);
 	}
