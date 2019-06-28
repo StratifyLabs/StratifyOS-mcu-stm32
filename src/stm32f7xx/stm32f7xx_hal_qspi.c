@@ -407,7 +407,7 @@ HAL_StatusTypeDef HAL_QSPI_DeInit(QSPI_HandleTypeDef *hqspi)
 @endverbatim
   * @{
   */
-
+#include <mcu/debug.h>
 /**
   * @brief This function handles QSPI interrupt request.
   * @param hqspi QSPI handle
@@ -465,8 +465,8 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
       }
     }
     
-    /* FIFO Threshold callback */
-    HAL_QSPI_FifoThresholdCallback(hqspi);
+	 /* FIFO Threshold callback */
+	 HAL_QSPI_FifoThresholdCallback(hqspi);
   }
 
   /* QSPI Transfer Complete interrupt occurred -------------------------------*/

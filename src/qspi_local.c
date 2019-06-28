@@ -108,9 +108,9 @@ int qspi_local_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		local->hal_handle.Init.ClockPrescaler = prescalar; //need to calculate
-		local->hal_handle.Init.FifoThreshold = 16; //interrupt fires when FIFO is half full
+		local->hal_handle.Init.FifoThreshold = 1; //interrupt fires when FIFO is half full
 		local->hal_handle.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_HALFCYCLE;
-		local->hal_handle.Init.FlashSize = flash_size; /*attribute size 2^size-1*/
+		local->hal_handle.Init.FlashSize = 31; /*attribute size 2^size-1*/
 		local->hal_handle.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_2_CYCLE;
 		if(o_flags & QSPI_FLAG_IS_CLK_HIGH_WHILE_CS ){
 			local->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_3;
@@ -167,6 +167,7 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 
 	command.Address = qspi_command->address;
 	command.AddressMode = QSPI_ADDRESS_NONE;
+#if 0
 	if( o_flags & QSPI_FLAG_IS_ADDRESS_8_BITS ){
 		command.AddressMode = QSPI_ADDRESS_8_BITS;
 	} else if( o_flags & QSPI_FLAG_IS_ADDRESS_16_BITS ){
@@ -176,10 +177,11 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 	} else if( o_flags & QSPI_FLAG_IS_ADDRESS_32_BITS ){
 		command.AddressMode = QSPI_ADDRESS_32_BITS;
 	}
+#endif
 
-	command.AlternateBytes = QSPI_ALTERNATE_BYTES_NONE;
 	command.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
-	command.AlternateBytesSize = 0;
+	command.AlternateBytes = qspi_command->address; //up to 32 bits can be sent
+	command.AlternateBytesSize = QSPI_ALTERNATE_BYTES_24_BITS; //8,16,24 or 32 bits
 
 	//setup the data mode
 	command.DataMode = QSPI_DATA_NONE;
@@ -198,6 +200,7 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 	command.DdrMode = QSPI_DDR_MODE_DISABLE;
 	command.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
 	command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
+	//mcu_debug_printf("%s():%d 0x%X 0x%X\n", __FUNCTION__, __LINE__, command.Instruction, local->hal_handle.Instance->SR);
 
 	if( HAL_QSPI_Command(&local->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK ){
 		local->transfer_handler.write = 0;
@@ -221,10 +224,11 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 }
 
 void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi){
-
+	mcu_debug_printf("error 0x%X\n", hqspi->ErrorCode);
 }
 
 void HAL_QSPI_AbortCpltCallback(QSPI_HandleTypeDef *hqspi){
+	mcu_debug_printf("abort\n");
 
 }
 
@@ -250,10 +254,12 @@ void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi){
 
 void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 	qspi_local_t * local =  (qspi_local_t *)hqspi;
-	mcu_debug_printf("RX complete %d\n", hqspi->RxXferCount);
+	//mcu_debug_printf("RX complete %d\n", hqspi->RxXferCount);
 	if( local->hal_handle.hdma != 0 && local->transfer_handler.read ){
 		//pull in values from memory to cache if using DMA
-		mcu_core_invalidate_data_cache();
+		mcu_core_invalidate_data_cache_block(
+					local->transfer_handler.read->buf,
+					local->transfer_handler.read->nbyte);
 	}
 	devfs_execute_read_handler(&local->transfer_handler, 0, hqspi->RxXferCount, MCU_EVENT_FLAG_DATA_READY);
 
@@ -261,7 +267,7 @@ void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 
 void HAL_QSPI_TxCpltCallback(QSPI_HandleTypeDef *hqspi){
 	qspi_local_t * qspi =  (qspi_local_t *)hqspi;
-	mcu_debug_printf("TX complete\n");
+	//mcu_debug_printf("TX complete\n");
 	devfs_execute_write_handler(&qspi->transfer_handler, 0, hqspi->TxXferCount, MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
@@ -274,7 +280,7 @@ void HAL_QSPI_TxHalfCpltCallback(QSPI_HandleTypeDef *hqspi){
 }
 
 void mcu_core_quadspi_isr(){
-	mcu_debug_printf("QSPI handler %d\n", m_qspi_local[0].hal_handle.RxXferCount);
+	//mcu_debug_printf("QSPI handler %d\n", m_qspi_local[0].hal_handle.RxXferCount);
 	HAL_QSPI_IRQHandler(&m_qspi_local[0].hal_handle);
 }
 
