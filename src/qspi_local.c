@@ -112,11 +112,9 @@ int qspi_local_setattr(const devfs_handle_t * handle, void * ctl){
 		local->hal_handle.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_HALFCYCLE;
 		local->hal_handle.Init.FlashSize = 31; /*attribute size 2^size-1*/
 		local->hal_handle.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_2_CYCLE;
-		if(o_flags & QSPI_FLAG_IS_CLK_HIGH_WHILE_CS ){
+		local->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_0;
+		if(o_flags & QSPI_FLAG_IS_CLOCK_MODE_3 ){
 			local->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_3;
-		}else{
-			/*default*/
-			local->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_0;
 		}
 		//Clock mode QSPI_CLOCK_MODE_3 is double data rate
 		if(o_flags & QSPI_FLAG_IS_FLASH_ID_2){
