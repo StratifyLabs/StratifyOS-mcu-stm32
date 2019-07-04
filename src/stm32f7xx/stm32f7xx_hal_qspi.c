@@ -407,7 +407,6 @@ HAL_StatusTypeDef HAL_QSPI_DeInit(QSPI_HandleTypeDef *hqspi)
 @endverbatim
   * @{
   */
-#include <mcu/debug.h>
 /**
   * @brief This function handles QSPI interrupt request.
   * @param hqspi QSPI handle

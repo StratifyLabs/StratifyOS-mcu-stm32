@@ -152,37 +152,47 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 	u32 o_flags = qspi_command->o_flags;
 
 	QSPI_CommandTypeDef command;
-	command.Instruction = qspi_command->opcode;
-	command.NbData = qspi_command->data_size;
-
-	command.Instruction = qspi_command->opcode;
-	command.InstructionMode = QSPI_INSTRUCTION_1_LINE;
-	if( o_flags & QSPI_FLAG_IS_COMMAND_DUAL ){
-		command.InstructionMode = QSPI_INSTRUCTION_2_LINES;
-	} else if( o_flags & QSPI_FLAG_IS_COMMAND_QUAD ){
-		command.InstructionMode = QSPI_INSTRUCTION_4_LINES;
+	if( o_flags & QSPI_FLAG_IS_OPCODE_WRITE ){
+		command.Instruction = qspi_command->opcode;
+		command.InstructionMode = QSPI_INSTRUCTION_1_LINE;
+		if( o_flags & QSPI_FLAG_IS_OPCODE_DUAL ){
+			command.InstructionMode = QSPI_INSTRUCTION_2_LINES;
+		} else if( o_flags & QSPI_FLAG_IS_OPCODE_QUAD ){
+			command.InstructionMode = QSPI_INSTRUCTION_4_LINES;
+		}
+	} else {
+		command.InstructionMode = QSPI_INSTRUCTION_NONE;
 	}
 
-	command.Address = qspi_command->address;
-	command.AddressMode = QSPI_ADDRESS_NONE;
-#if 0
-	if( o_flags & QSPI_FLAG_IS_ADDRESS_8_BITS ){
-		command.AddressMode = QSPI_ADDRESS_8_BITS;
-	} else if( o_flags & QSPI_FLAG_IS_ADDRESS_16_BITS ){
-		command.AddressMode = QSPI_ADDRESS_16_BITS;
-	} else if( o_flags & QSPI_FLAG_IS_ADDRESS_24_BITS ){
-		command.AddressMode = QSPI_ADDRESS_24_BITS;
-	} else if( o_flags & QSPI_FLAG_IS_ADDRESS_32_BITS ){
-		command.AddressMode = QSPI_ADDRESS_32_BITS;
-	}
-#endif
+	if( o_flags & QSPI_FLAG_IS_ADDRESS_WRITE ){
+		command.Address = qspi_command->address;
+		command.AddressSize = QSPI_ADDRESS_8_BITS;
+		command.AddressMode = QSPI_ADDRESS_1_LINE;
+		if( o_flags & QSPI_FLAG_IS_ADDRESS_DUAL ){
+			command.AddressMode = QSPI_ADDRESS_2_LINES;
+		} else if( o_flags & QSPI_FLAG_IS_ADDRESS_QUAD ){
+			command.AddressMode = QSPI_ADDRESS_4_LINES;
+		}
 
+		if( o_flags & QSPI_FLAG_IS_ADDRESS_16_BITS ){
+			command.AddressSize = QSPI_ADDRESS_16_BITS;
+		} else if( o_flags & QSPI_FLAG_IS_ADDRESS_24_BITS ){
+			command.AddressSize = QSPI_ADDRESS_24_BITS;
+		} else if( o_flags & QSPI_FLAG_IS_ADDRESS_32_BITS ){
+			command.AddressSize = QSPI_ADDRESS_32_BITS;
+		}
+	} else {
+		command.AddressMode = QSPI_ADDRESS_NONE;
+	}
+
+	//not using alternate bytes
 	command.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
-	command.AlternateBytes = qspi_command->address; //up to 32 bits can be sent
-	command.AlternateBytesSize = QSPI_ALTERNATE_BYTES_24_BITS; //8,16,24 or 32 bits
+	command.AlternateBytes = 0; //up to 32 bits can be sent
+	command.AlternateBytesSize = QSPI_ALTERNATE_BYTES_8_BITS; //8,16,24 or 32 bits
 
 	//setup the data mode
 	command.DataMode = QSPI_DATA_NONE;
+	command.NbData = qspi_command->data_size;
 	if( qspi_command->data_size > 0 ){
 		command.DataMode = QSPI_DATA_1_LINE;
 		if( o_flags & QSPI_FLAG_IS_DATA_DUAL ){
@@ -192,7 +202,7 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 		}
 	}
 
-	command.DummyCycles = qspi_command->dummy_size;
+	command.DummyCycles = qspi_command->dummy_cycles;
 
 	//no double data rate
 	command.DdrMode = QSPI_DDR_MODE_DISABLE;
@@ -206,12 +216,12 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 	}
 
 	if( command.NbData > 0 ){
-		if( o_flags & QSPI_FLAG_IS_COMMAND_READ ){
+		if( o_flags & QSPI_FLAG_IS_DATA_READ ){
 			if (HAL_QSPI_Receive(&local->hal_handle, qspi_command->data, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK){
 				local->transfer_handler.read = 0;
 				return SYSFS_SET_RETURN(EIO);
 			}
-		} else if( o_flags & QSPI_FLAG_IS_COMMAND_WRITE ){
+		} else if( o_flags & QSPI_FLAG_IS_DATA_WRITE ){
 			if(HAL_QSPI_Transmit(&local->hal_handle, qspi_command->data, HAL_QPSI_TIMEOUT_DEFAULT_VALUE)!=HAL_OK){
 				return SYSFS_SET_RETURN(EIO);
 			}
