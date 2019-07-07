@@ -265,9 +265,15 @@ void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 	//mcu_debug_printf("RX complete %d\n", hqspi->RxXferCount);
 	if( local->hal_handle.hdma != 0 && local->transfer_handler.read ){
 		//pull in values from memory to cache if using DMA
+
+/*
+ * reads must be aligned to cache lines
+ *
+ */
 		mcu_core_invalidate_data_cache_block(
 					local->transfer_handler.read->buf,
-					local->transfer_handler.read->nbyte);
+					local->transfer_handler.read->nbyte + 31);
+
 	}
 	devfs_execute_read_handler(&local->transfer_handler, 0, hqspi->RxXferCount, MCU_EVENT_FLAG_DATA_READY);
 
