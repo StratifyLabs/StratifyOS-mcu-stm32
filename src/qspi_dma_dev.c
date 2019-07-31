@@ -80,7 +80,11 @@ int mcu_qspi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 	stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config.rx);
 	if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
 
+#if MCU_QSPI_API == 1
+	//__HAL_LINKDMA((&local->hal_handle), hmdma, channel->handle);
+#else
 	__HAL_LINKDMA((&local->hal_handle), hdma, channel->handle);
+#endif
 #else
 
 	channel = stm32_dma_setattr(&config->dma_config.tx);

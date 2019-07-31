@@ -85,6 +85,7 @@ int qspi_local_setattr(const devfs_handle_t * handle, void * ctl){
 	if( o_flags & QSPI_FLAG_SET_MASTER ){
 		uint32_t flash_size = 24;
 
+
 		__HAL_RCC_QSPI_FORCE_RESET();
 		__HAL_RCC_QSPI_RELEASE_RESET();
 
@@ -210,7 +211,8 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 	command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
 	//mcu_debug_printf("%s():%d 0x%X 0x%X\n", __FUNCTION__, __LINE__, command.Instruction, local->hal_handle.Instance->SR);
 
-	if( HAL_QSPI_Command(&local->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK ){
+	int result;
+	if( (result = HAL_QSPI_Command(&local->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE)) != HAL_OK ){
 		local->transfer_handler.write = 0;
 		return SYSFS_SET_RETURN(EIO);
 	}
@@ -262,11 +264,17 @@ void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi){
 
 void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 	qspi_local_t * local =  (qspi_local_t *)hqspi;
-	//mcu_debug_printf("RX complete %d\n", hqspi->RxXferCount);
-	if( local->hal_handle.hdma != 0 && local->transfer_handler.read ){
+	//mcu_debug_printf("RX complete %d (%d)\n", hqspi->RxXferCount, hqspi->State);
+	if(
+		#if MCU_QSPI_API == 1
+			local->hal_handle.hmdma != 0 &&
+		#else
+			local->hal_handle.hdma != 0 &&
+		#endif
+			local->transfer_handler.read ){
 		//pull in values from memory to cache if using DMA
 
-/*
+		/*
  * reads must be aligned to cache lines
  *
  */

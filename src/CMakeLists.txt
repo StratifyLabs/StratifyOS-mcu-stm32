@@ -38,6 +38,9 @@ set(SOURCES
 	${SOURCES_PREFIX}/i2s_spi_dma_dev.c
 	${SOURCES_PREFIX}/stm32_flash.c
 	${SOURCES_PREFIX}/stm32_dma.c
+	${SOURCES_PREFIX}/stm32_dma.h
+	${SOURCES_PREFIX}/stm32_mdma.c
+	${SOURCES_PREFIX}/stm32_mdma.h
 	${SOURCES_PREFIX}/stm32_local.c
 	${SOURCES_PREFIX}/mcu_dev.c
 	${SOURCES_PREFIX}/mem_dev.c
@@ -70,7 +73,6 @@ set(SOURCES
 	${SOURCES_PREFIX}/wdt.c
 	${SOURCES_PREFIX}/stm32_local.h
 	${SOURCES_PREFIX}/stm32_flash.h
-	${SOURCES_PREFIX}/stm32_dma.h
 	${SOURCES_PREFIX}/stm32_pin_local.h
 	${SOURCES_PREFIX}/spi_local.h
 

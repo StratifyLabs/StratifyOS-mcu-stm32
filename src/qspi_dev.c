@@ -81,14 +81,17 @@ int mcu_qspi_write(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
 	//can't read and write at the same time
 	if( local->transfer_handler.read != 0 ){
+		MCU_DEBUG_LINE_TRACE();
 		return SYSFS_SET_RETURN(EBUSY);
 	}
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
-
-	if(HAL_QSPI_Transmit_IT(&local->hal_handle, async->buf)!=HAL_OK){
+	int result;
+	if( (result = HAL_QSPI_Transmit_IT(&local->hal_handle, async->buf)) != HAL_OK){
 		local->transfer_handler.write = 0;
+		MCU_DEBUG_LINE_TRACE();
+		mcu_debug_printf("TX result 0x%X 0x%X\n", local->hal_handle.ErrorCode, result);
 		return SYSFS_SET_RETURN(EIO);
 	}
 

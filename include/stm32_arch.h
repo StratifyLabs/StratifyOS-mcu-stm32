@@ -236,6 +236,14 @@ typedef struct {
 } stm32_dma_channel_config_t;
 
 typedef struct {
+	u8 dma_number;
+	u8 stream_number;
+	u8 channel_number;
+	u8 priority;
+	u32 o_flags;
+} stm32_mdma_channel_config_t;
+
+typedef struct {
 	stm32_dma_channel_config_t tx;
 	stm32_dma_channel_config_t rx;
 } stm32_dma_config_t;
