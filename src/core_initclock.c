@@ -20,7 +20,7 @@
 #include "stm32_local.h"
 
 
-void sos_led_root_enable(void * args);
+void sos_led_svcall_enable(void * args);
 
 //requires mcu_core_osc_freq, mcu_board_config.core_cpu_freq, and mcu_board_config.core_periph_freq to be defined ext
 int mcu_core_initclock(int div){
