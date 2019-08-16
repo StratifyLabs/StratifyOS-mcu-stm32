@@ -683,15 +683,13 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	//devfs_execute_write_handler(usb->transfer_handlers + logical_ep, &event, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
 
 	if( logical_ep == 0 ){
-		//#if MCU_USB_API == 0
-
 		mcu_execute_event_handler(&local->control_handler, MCU_EVENT_FLAG_WRITE_COMPLETE, &event);
 
 		//only proceed it DataIn tx'd more than zero bytes
 		if( hpcd->IN_ep[0].xfer_count == 0 ){
 			return;
 		}
-		//#endif
+
 		//ep 0 data in complete
 		//prepare EP0 for next setup packet
 		HAL_PCD_EP_Receive(hpcd, 0, 0, 0);
