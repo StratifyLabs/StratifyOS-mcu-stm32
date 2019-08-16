@@ -644,22 +644,26 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	void * dest_buffer;
 
 	//set read ready flag
-	local->read_ready |= (1<<epnum);
 	count = HAL_PCD_EP_GetRxCount(&local->hal_handle, epnum);
-
 	dest_buffer = stm32_config->usb_rx_buffer + local->rx_buffer_offset[epnum];
 	src_buffer = dest_buffer + hpcd->OUT_ep[epnum].maxpacket;
 
 	local->rx_count[epnum] = count;
 	if( epnum == 0 ){
 		memcpy(dest_buffer, src_buffer, count);
+		local->read_ready |= (1<<epnum);
 		mcu_execute_event_handler(&local->control_handler, MCU_EVENT_FLAG_DATA_READY, &event);
 	} else if( local->transfer_handler[epnum].read ){
 		devfs_async_t * async = local->transfer_handler[epnum].read;
 		if( count > async->nbyte ){ count = async->nbyte; }
+		//copy directly to the async buffer that is waiting for data
 		memcpy(local->transfer_handler[epnum].read->buf, src_buffer, count);
 		local->read_ready &= ~(1<<epnum);
 		devfs_execute_read_handler(local->transfer_handler + epnum, &event, count, 0);
+	} else {
+		//copy to buffer the root read function uses
+		memcpy(dest_buffer, src_buffer, count);
+		local->read_ready |= (1<<epnum);
 	}
 
 	//prepare to receive the next packet in the local buffer for non-control endpoints
