@@ -96,6 +96,11 @@
 #define MCU_ETH_REGS { ETH }
 #define MCU_ETH_IRQS { ETH_IRQn }
 
+#define MCU_HASH_API 0
+#define MCU_HASH_PORTS 1
+#define MCU_HASH_REGS { HASH }
+#define MCU_HASH_IRQS { HASH_RNG_IRQn }
+
 #define MCU_RTC_PORTS 1
 #define MCU_RTC_REGS { RTC }
 #define MCU_RTC_IRQS { RTC_Alarm_IRQn }

@@ -228,18 +228,25 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 																 MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
 																 MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t));
 		memcpy(&local->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
-		if( (local->pin_assignment.scl.port != 0xff) && (local->pin_assignment.sda.port != 0xff) ){
-			if( __HAL_I2C_GET_FLAG((&local->hal_handle), I2C_FLAG_BUSY) ){
+		if( (local->pin_assignment.scl.port != 0xff) &&
+			 (local->pin_assignment.sda.port != 0xff)
+			 ){
+			int count = 0;
+			do {
+				if( __HAL_I2C_GET_FLAG((&local->hal_handle), I2C_FLAG_BUSY) ){
 
-				mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
-			} else {
-				mcu_debug_log_info(MCU_DEBUG_DEVICE, "I2C not busy");
-			}
-			i2c_clear_busy_flag_erratum(port, local);
-			mcu_debug_log_info(MCU_DEBUG_DEVICE, "done");
+					mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
+				} else {
+					mcu_debug_log_info(MCU_DEBUG_DEVICE, "I2C not busy");
+				}
+				i2c_clear_busy_flag_erratum(port, local);
+				mcu_debug_log_info(MCU_DEBUG_DEVICE, "done");
+			} while( (__HAL_I2C_GET_FLAG((&local->hal_handle), I2C_FLAG_BUSY)) && count++ < 5 );
+
 			if( __HAL_I2C_GET_FLAG((&local->hal_handle), I2C_FLAG_BUSY) ){
-				return SYSFS_SET_RETURN(EBUSY);
+				return SYSFS_SET_RETURN(EIO);
 			}
+
 		} else {
 			return SYSFS_SET_RETURN(EINVAL);
 		}
