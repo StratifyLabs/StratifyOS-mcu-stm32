@@ -23,7 +23,7 @@
 #if MCU_SDIO_PORTS > 0 && defined MMC_TypeDef
 
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(sdio, MMC_VERSION, SDIO_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SDIO_TOTAL, mcu_mmc_getcid, mcu_mmc_getcsd, mcu_mmc_getstatus)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(mmc, MMC_VERSION, SDIO_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SDIO_TOTAL, mcu_mmc_getcid, mcu_mmc_getcsd, mcu_mmc_getstatus)
 
 int mcu_mmc_open(const devfs_handle_t * handle){
 	return mmc_local_open(handle);
