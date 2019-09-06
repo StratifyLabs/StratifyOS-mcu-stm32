@@ -626,10 +626,10 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd){
 	mcu_execute_event_handler(&local->control_handler, MCU_EVENT_FLAG_SETUP, &event);
 
 	//prepare EP zero for receiving out data
-
 	if( (setup->bmRequestType.bitmap_t.dir == USBD_REQUEST_TYPE_DIRECTION_HOST_TO_DEVICE) && (setup->wLength > 0) ){
 		HAL_PCD_EP_Receive(hpcd, 0, stm32_config->usb_rx_buffer, setup->wLength);
 	}
+
 
 }
 
@@ -666,7 +666,6 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 			//copy directly to the async buffer that is waiting for data
 			memcpy(local->transfer_handler[epnum].read->buf, dest_buffer, count);
 			local->read_ready &= ~(1<<epnum);
-			//mcu_debug_printf("cb%d\n", count);
 			devfs_execute_read_handler(
 						local->transfer_handler + epnum,
 						&event,
@@ -679,9 +678,6 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 			local->read_ready |= (1<<epnum);
 		}
 	}
-
-
-
 }
 
 void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
@@ -708,7 +704,6 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 	} else {
 		devfs_execute_write_handler(local->transfer_handler + logical_ep, &event, 0, 0);
 	}
-
 }
 
 void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd){
@@ -726,10 +721,10 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 		usb->rx_buffer_offset[i] = 0;
 	}
 
+	HAL_PCD_SetAddress(hpcd, 0);
+
 	HAL_PCD_EP_Open(hpcd, 0x00, mps, EP_TYPE_CTRL);
 	HAL_PCD_EP_Open(hpcd, 0x80, mps, EP_TYPE_CTRL);
-
-
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
@@ -739,6 +734,9 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
 #if MCU_USB_API > 0
 	__HAL_PCD_GATE_PHYCLOCK(hpcd);
 #endif
+
+	HAL_PCD_EP_Close(hpcd, 0x00);
+	HAL_PCD_EP_Close(hpcd, 0x80);
 
 }
 
@@ -774,7 +772,7 @@ void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 }
 
 void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
-	//mcu_debug_printf("Iso out\n");
+
 }
 
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd){
