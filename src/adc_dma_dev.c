@@ -152,7 +152,13 @@ int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 	local->words_read = 0;
 	async->nbyte &= ~0x01; //align to 2 byte boundary
 
-	mcu_debug_log_info(MCU_DEBUG_DEVICE, "%d ADC DMA Read %d on 0x%lX", port, async->nbyte/2, async->loc);
+	mcu_debug_log_info(
+				MCU_DEBUG_DEVICE,
+				"%d ADC DMA Read %d on 0x%lX -> %p",
+				port, async->nbyte/2,
+				async->loc,
+				async->handler.callback
+				);
 
 	if( HAL_ADC_Start_DMA(&local->hal_handle, async->buf, async->nbyte/2) == HAL_OK ){
 		//mcu_debug_root_printf("wait DMA\n");

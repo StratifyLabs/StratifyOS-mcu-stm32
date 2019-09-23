@@ -735,8 +735,11 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){
 	__HAL_PCD_GATE_PHYCLOCK(hpcd);
 #endif
 
+#if 0
+	//this causes problems when USB cable is removed -- don't do it
 	HAL_PCD_EP_Close(hpcd, 0x00);
 	HAL_PCD_EP_Close(hpcd, 0x80);
+#endif
 
 }
 
