@@ -46,6 +46,8 @@ int mcu_i2s_spi_dma_close(const devfs_handle_t * handle){
 		if( local->transfer_handler.read || local->transfer_handler.write ){
 			HAL_I2S_DMAStop(&local->i2s_hal_handle);
 			devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), 0);
+			local->transfer_handler.read = 0;
+			local->transfer_handler.write = 0;
 		}
 
 		config = handle->config;
@@ -103,11 +105,13 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
 		if( attr->o_flags & I2S_FLAG_IS_RECEIVER ){
 
-			mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set I2S DMA as receiver %d.%d.%d",
-									 config->dma_config.rx.dma_number,
-									 config->dma_config.rx.stream_number,
-									 config->dma_config.rx.channel_number
-									 );
+			mcu_debug_log_info(
+						MCU_DEBUG_DEVICE,
+						"Set I2S DMA as receiver %d.%d.%d",
+						config->dma_config.rx.dma_number,
+						config->dma_config.rx.stream_number,
+						config->dma_config.rx.channel_number
+						);
 
 			stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config.rx);
 			if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
@@ -146,7 +150,7 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
-	if( (local->o_flags & SPI_LOCAL_IS_DMA) && local->transfer_handler.read ){
+	if( (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) && local->transfer_handler.read ){
 
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
 		if( local->transfer_handler.read->nbyte < async->nbyte ){
@@ -164,10 +168,21 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 #endif
 
 	} else {
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Write I2S DMA 0x%lX %p %d %d 0x%lX", local->i2s_hal_handle.Init.Mode, async->buf, async->nbyte, local->size_mult, local->o_flags);
+		mcu_debug_log_info(
+					MCU_DEBUG_DEVICE,
+					"Write I2S DMA 0x%lX %p %d %d 0x%lX",
+					local->i2s_hal_handle.Init.Mode,
+					async->buf, async->nbyte,
+					local->size_mult,
+					local->o_flags
+					);
 		i2s_spi_local_wait_for_errata_level(local);
 
-		result = HAL_I2S_Transmit_DMA(&local->i2s_hal_handle, async->buf,  (async->nbyte/local->size_mult));
+		result = HAL_I2S_Transmit_DMA(
+					&local->i2s_hal_handle,
+					async->buf,
+					(async->nbyte/local->size_mult)
+					);
 	}
 
 	if( result != HAL_OK ){

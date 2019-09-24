@@ -27,6 +27,8 @@
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(spi, SPI_VERSION, SPI_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SPI_TOTAL, mcu_spi_swap)
 
 int mcu_spi_open(const devfs_handle_t * handle){
+	spi_local_t * local = m_spi_local + handle->port;
+	local->o_flags = 0;
 	return spi_local_open(handle);
 }
 

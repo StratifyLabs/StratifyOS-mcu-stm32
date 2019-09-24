@@ -26,7 +26,7 @@
 
 int i2s_spi_local_open(const devfs_handle_t * handle){
 	spi_local_t * local = m_spi_local + handle->port;
-	local->o_flags = SPI_LOCAL_IS_I2S;
+	local->o_flags |= SPI_LOCAL_IS_I2S;
 	return spi_local_open(handle);
 }
 
@@ -213,13 +213,13 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 void i2s_spi_local_wait_for_errata_level(spi_local_t * local){
 
 	if( local->o_flags & SPI_LOCAL_IS_ERRATA_REQUIRED ){
-		devfs_handle_t pio_handle;
 		u32 pio_level;
-		u32 pio_value;
 		u32 pio_mask;
 		u32 target_level;
-		pio_handle.port = local->ws_pin.port;
 		pio_mask = 1 << local->ws_pin.pin;
+
+		GPIO_TypeDef * gpio = hal_get_pio_regs(local->ws_pin.port);
+
 
 		mcu_debug_log_info(MCU_DEBUG_DEVICE, "execute I2S slave errata on %d.%d", local->ws_pin.port, local->ws_pin.pin);
 
@@ -230,19 +230,20 @@ void i2s_spi_local_wait_for_errata_level(spi_local_t * local){
 
 		target_level = (local->o_flags & SPI_LOCAL_IS_ERRATA_I2S) == 0; //MSB : 1, I2S: 0
 		do {
-			mcu_pio_get(&pio_handle, &pio_value);
-			pio_level = (pio_value & pio_mask) != 0; //1 for set, 0 for not
+			pio_level = (HAL_GPIO_ReadPin(gpio, pio_mask) == GPIO_PIN_SET);
 		} while( pio_level != target_level );
 
 		target_level = !target_level; //MSB : 0, I2S: 1
 		do {
-			mcu_pio_get(&pio_handle, &pio_value);
-			pio_level = (pio_value & pio_mask) != 0; //1 for set, 0 for not
+			pio_level = (HAL_GPIO_ReadPin(gpio, pio_mask) == GPIO_PIN_SET);
 		} while( pio_level != target_level );
 	}
 }
 
-//where is the half callback??
+void HAL_I2SEx_TxRxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
+
+}
+
 void HAL_I2SEx_TxRxCpltCallback(I2S_HandleTypeDef *hi2s){
 	//spi_local_t * spi = (spi_local_t *)hi2s;
 
@@ -251,87 +252,100 @@ void HAL_I2SEx_TxRxCpltCallback(I2S_HandleTypeDef *hi2s){
 
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 	//no action when half complete -- could fire an event
-	spi_local_t * spi = (spi_local_t *)hi2s;
+	spi_local_t * local = (spi_local_t *)hi2s;
 	int result;
 	devfs_async_t * async;
-	async = spi->transfer_handler.write;
+	async = local->transfer_handler.write;
 	result = devfs_execute_write_handler(
-				&spi->transfer_handler,
+				&local->transfer_handler,
 				0,
 				0,
 				MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW);
 	if( result ){
-		spi->transfer_handler.write = async;
+		local->transfer_handler.write = async;
 	} else {
 		//stop -- half transfer only happens on DMA
-		if( spi->o_flags & SPI_LOCAL_IS_DMA ){
-			HAL_I2S_DMAStop(hi2s);
+		if( local->o_flags & SPI_LOCAL_IS_DMA ){
+			mcu_debug_printf(
+						"stop TX I2S DMA %d\n",
+						__HAL_DMA_GET_COUNTER(hi2s->hdmatx)
+						);
+			HAL_I2S_DMAPause(hi2s);
 		}
 	}
 }
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
-	spi_local_t * spi = (spi_local_t *)hi2s;
+	spi_local_t * local = (spi_local_t *)hi2s;
 	int result;
 	devfs_async_t * async;
 
-	async = spi->transfer_handler.write;
+	async = local->transfer_handler.write;
 	result = devfs_execute_write_handler(
-				&spi->transfer_handler,
+				&local->transfer_handler,
 				0,
 				0, //zero means leave nbyte value alone
 				MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
 
 	if( result ){
-		spi->transfer_handler.write = async;
+		local->transfer_handler.write = async;
 	} else {
 		//stop -- half transfer only happens on DMA
-		if( spi->o_flags & SPI_LOCAL_IS_DMA ){
-			HAL_I2S_DMAStop(hi2s);
+		if( local->o_flags & SPI_LOCAL_IS_DMA ){
+			mcu_debug_printf(
+						"stop TX I2S DMA %d\n",
+						__HAL_DMA_GET_COUNTER(hi2s->hdmatx)
+						);
+			HAL_I2S_DMAPause(hi2s);
 		}
 	}
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 	//no action when half complete -- could fire an event
-	spi_local_t * spi = (spi_local_t *)hi2s;
+	spi_local_t * local = (spi_local_t *)hi2s;
 	int result;
 	devfs_async_t * async;
 
-	async = spi->transfer_handler.read;
+	async = local->transfer_handler.read;
 	result = devfs_execute_read_handler(
-				&spi->transfer_handler,
+				&local->transfer_handler,
 				0,
 				0,
 				MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_LOW);
 
 	if( result ){
-		spi->transfer_handler.read = async;
+		local->transfer_handler.read = async;
 	} else {
 		//stop -- half transfer only happens on DMA
-		HAL_I2S_DMAStop(hi2s);
+		mcu_debug_printf("stop RX I2S DMA\n");
+		HAL_I2S_DMAPause(hi2s);
 	}
 }
 
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
-	spi_local_t * spi = (spi_local_t *)hi2s;
+	spi_local_t * local = (spi_local_t *)hi2s;
 	int result;
 	devfs_async_t * async;
 
-	async = spi->transfer_handler.read;
+	async = local->transfer_handler.read;
 	result = devfs_execute_read_handler(
-				&spi->transfer_handler,
+				&local->transfer_handler,
 				0,
 				0,
 				MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_HIGH);
 
 	if( result ){
-		//restore the callback if the callback requests it -- good for DMA only
-		spi->transfer_handler.read = async;
-	} else if( spi->o_flags & SPI_LOCAL_IS_DMA ){
-		if( spi->o_flags & SPI_LOCAL_IS_DMA ){
-			HAL_I2S_DMAStop(hi2s);
+		//restore the callback if the callback requests it -- good for circular DMA only
+		local->transfer_handler.read = async;
+	} else if( local->o_flags & SPI_LOCAL_IS_DMA ){
+		if( local->o_flags & SPI_LOCAL_IS_DMA ){
+			mcu_debug_printf(
+						"stop RX I2S DMA %d\n",
+						__HAL_DMA_GET_COUNTER(hi2s->hdmarx)
+						);
+			HAL_I2S_DMAPause(hi2s);
 		}
 	}
 }
