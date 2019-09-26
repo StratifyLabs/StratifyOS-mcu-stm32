@@ -82,17 +82,27 @@ int mcu_crypt_write(const devfs_handle_t * handle, devfs_async_t * async){
 		return SYSFS_SET_RETURN(EINVAL);
 	}
 
+	//blocks are always 128-bit (or 16 bytes)
+	if( (local->transfer_handler.write->nbyte % 16) != 0 ){
+		local->transfer_handler.write = 0;
+		return SYSFS_SET_RETURN(EINVAL);
+	}
+
 	int result;
 	if( local->o_flags & CRYPT_FLAG_IS_ENCRYPT ){
 		//nbyte is /4 based on DataWidthUnit
-		result = HAL_CRYP_Encrypt_IT(&local->hal_handle,
-											  async->buf, async->nbyte/4,
-											  local->transfer_handler.read->buf);
+		result = HAL_CRYP_Encrypt_IT(
+					&local->hal_handle,
+					async->buf, async->nbyte/4,
+					local->transfer_handler.read->buf
+					);
 	} else if( local->o_flags & CRYPT_FLAG_IS_DECRYPT ){
 		//nbyte is /4 based on DataWidthUnit
-		result = HAL_CRYP_Decrypt_IT(&local->hal_handle,
-											  async->buf, async->nbyte/4,
-											  local->transfer_handler.read->buf);
+		result = HAL_CRYP_Decrypt_IT(
+					&local->hal_handle,
+					async->buf, async->nbyte/4,
+					local->transfer_handler.read->buf
+					);
 	} else {
 		//must set either encrypt or decrypt
 		local->transfer_handler.write = 0;
