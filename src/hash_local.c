@@ -117,8 +117,7 @@ int hash_local_setaction(const devfs_handle_t * handle, void * ctl){
 
 
 void HAL_HASH_InCpltCallback(HASH_HandleTypeDef *hhash){
-	hash_local_t * local = m_hash_local + 0;
-
+	//hash_local_t * local = m_hash_local + 0;
 	//execute the callbacks
 	//devfs_execute_read_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
 	//devfs_execute_write_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
@@ -140,7 +139,7 @@ void HAL_HASH_ErrorCallback(HASH_HandleTypeDef *hhash){
 	devfs_execute_cancel_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_ERROR);
 }
 
-#if 0
+#if 0 //must use the random driver when using hash
 void mcu_core_hash_rng_isr(){
 	hash_local_t * local = m_hash_local + 0;
 	HAL_HASH_IRQHandler(&local->hal_handle);

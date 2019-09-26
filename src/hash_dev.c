@@ -75,24 +75,32 @@ int mcu_hash_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int result;
 	if( local->o_flags & HASH_FLAG_IS_SHA1 ){
 		//nbyte is /4 based on DataWidthUnit
-		result = HAL_HASH_SHA1_Start_IT(&local->hal_handle,
-											  async->buf, async->nbyte,
-											  local->transfer_handler.read->buf);
+		result = HAL_HASH_SHA1_Start_IT(
+					&local->hal_handle,
+					async->buf, async->nbyte,
+					local->transfer_handler.read->buf
+					);
 	} else if( local->o_flags & HASH_FLAG_IS_MD5 ){
 		//nbyte is /4 based on DataWidthUnit
-		result = HAL_HASH_MD5_Start_IT(&local->hal_handle,
-											  async->buf, async->nbyte,
-											  local->transfer_handler.read->buf);
+		result = HAL_HASH_MD5_Start_IT(
+					&local->hal_handle,
+					async->buf, async->nbyte,
+					local->transfer_handler.read->buf
+					);
 	} else if( local->o_flags & HASH_FLAG_IS_SHA224 ){
 		//nbyte is /4 based on DataWidthUnit
-		result = HAL_HASHEx_SHA224_Start_IT(&local->hal_handle,
-											  async->buf, async->nbyte,
-											  local->transfer_handler.read->buf);
+		result = HAL_HASHEx_SHA224_Start_IT(
+					&local->hal_handle,
+					async->buf, async->nbyte,
+					local->transfer_handler.read->buf
+					);
 	} else if( local->o_flags & HASH_FLAG_IS_SHA256 ){
 		//nbyte is /4 based on DataWidthUnit
-		result = HAL_HASHEx_SHA256_Start_IT(&local->hal_handle,
-											  async->buf, async->nbyte,
-											  local->transfer_handler.read->buf);
+		result = HAL_HASHEx_SHA256_Start_IT(
+					&local->hal_handle,
+					async->buf, async->nbyte,
+					local->transfer_handler.read->buf
+					);
 	} else {
 		//must set either encrypt or decrypt
 		local->transfer_handler.write = 0;

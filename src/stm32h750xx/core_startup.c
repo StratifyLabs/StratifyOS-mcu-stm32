@@ -123,7 +123,7 @@ _DECLARE_ISR(otg_hs_wkup);
 _DECLARE_ISR(otg_hs);
 _DECLARE_ISR(dcmi); //78
 _DECLARE_ISR(cryp); //79
-_DECLARE_ISR(rng); //80
+_DECLARE_ISR(hash); //80
 _DECLARE_ISR(fpu); //81
 _DECLARE_ISR(uart7); //82
 _DECLARE_ISR(uart8); //83
@@ -289,7 +289,7 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(otg_hs),
 		_ISR(dcmi), //78
 		_ISR(cryp),
-		_ISR(rng), //80
+		_ISR(hash), //80
 		_ISR(fpu), //81
 		_ISR(uart7), //82
 		_ISR(uart8), //83

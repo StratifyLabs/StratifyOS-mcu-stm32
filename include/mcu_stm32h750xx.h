@@ -101,6 +101,11 @@
 #define MCU_HASH_REGS { HASH }
 #define MCU_HASH_IRQS { HASH_RNG_IRQn }
 
+#define MCU_RNG_API 0
+#define MCU_RNG_PORTS 1
+#define MCU_RNG_REGS { RNG }
+#define MCU_RNG_IRQS { HASH_RNG_IRQn }
+
 #define MCU_RTC_PORTS 1
 #define MCU_RTC_REGS { RTC }
 #define MCU_RTC_IRQS { RTC_Alarm_IRQn }
