@@ -17,8 +17,8 @@
  *
  */
 
-#include "crypt_local.h"
 #include <mcu/crypt.h>
+#include "crypt_local.h"
 
 #if MCU_CRYPT_PORTS > 0
 
@@ -99,8 +99,8 @@ int crypt_local_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		//Key and initialization vector
-		memcpy(local->key, attr->key, 32);
-		memcpy(local->iv, attr->iv, 32);
+		memcpy(local->key, attr->key, MAX_KEY_SIZE);
+		memcpy(local->iv, attr->iv, MAX_IV_SIZE);
 		local->hal_handle.Init.pKey = (u32*)local->key;
 		local->hal_handle.Init.pInitVect = (u32*)local->iv;
 
@@ -174,22 +174,28 @@ int crypt_local_setaction(const devfs_handle_t * handle, void * ctl){
 
 
 void HAL_CRYP_InCpltCallback(CRYP_HandleTypeDef *hcryp){
-	crypt_local_t * local = m_crypt_local + 0;
+	crypt_local_t * local = (crypt_local_t *)hcryp;
 
 	//execute the callbacks
-	devfs_execute_read_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
+	//devfs_execute_read_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
 	devfs_execute_write_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
+
 }
 
 void HAL_CRYP_OutCpltCallback(CRYP_HandleTypeDef *hcryp){
-	crypt_local_t * local = m_crypt_local + 0;
+	crypt_local_t * local = (crypt_local_t *)hcryp;
 	//execute the callbacks
 	devfs_execute_read_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
-	devfs_execute_write_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
+	//devfs_execute_write_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
+	//update the IV once writing is complete
+	*(uint32_t*)(hcryp->Init.pInitVect) = hcryp->Instance->IV0LR;
+	*(uint32_t*)(hcryp->Init.pInitVect+1) = hcryp->Instance->IV0RR;
+	*(uint32_t*)(hcryp->Init.pInitVect+2) = hcryp->Instance->IV1LR;
+	*(uint32_t*)(hcryp->Init.pInitVect+3) = hcryp->Instance->IV1RR;
 }
 
 void HAL_CRYP_ErrorCallback(CRYP_HandleTypeDef *hcryp){
-	crypt_local_t * local = m_crypt_local + 0;
+	crypt_local_t * local = (crypt_local_t *)hcryp;
 	devfs_execute_cancel_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_ERROR);
 }
 

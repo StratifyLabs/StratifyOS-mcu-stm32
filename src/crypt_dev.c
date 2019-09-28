@@ -38,7 +38,21 @@ int mcu_crypt_getinfo(const devfs_handle_t * handle, void * ctl){
 	info->o_flags = CRYPT_FLAG_SET_CIPHER |
 			CRYPT_FLAG_IS_AES_128 |
 			CRYPT_FLAG_IS_AES_192 |
-			CRYPT_FLAG_IS_AES_256;
+			CRYPT_FLAG_IS_AES_256 |
+			CRYPT_FLAG_IS_AES_ECB |
+			CRYPT_FLAG_IS_AES_CBC |
+			CRYPT_FLAG_IS_AES_CTR |
+#if defined CRYP_CR_ALGOMODE_AES_GCM
+			CRYPT_FLAG_IS_AES_GCM |
+			CRYPT_FLAG_IS_AES_CCM |
+#endif
+			CRYPT_FLAG_IS_DATA_1 |
+			CRYPT_FLAG_IS_DATA_8 |
+			CRYPT_FLAG_IS_DATA_16 |
+			CRYPT_FLAG_IS_DATA_32 |
+			CRYPT_FLAG_SET_MODE |
+			CRYPT_FLAG_IS_ENCRYPT |
+			CRYPT_FLAG_IS_DECRYPT;
 
 	return SYSFS_RETURN_SUCCESS;
 
@@ -57,8 +71,6 @@ int mcu_crypt_setaction(const devfs_handle_t * handle, void * ctl){
 int mcu_crypt_read(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
-
-
 	//read just sets up the buffer - the action starts when the device is written
 
 	return SYSFS_RETURN_SUCCESS;
@@ -81,6 +93,8 @@ int mcu_crypt_write(const devfs_handle_t * handle, devfs_async_t * async){
 		local->transfer_handler.write = 0;
 		return SYSFS_SET_RETURN(EINVAL);
 	}
+
+	local->transfer_handler.read->nbyte = local->transfer_handler.write->nbyte;
 
 	//blocks are always 128-bit (or 16 bytes)
 	if( (local->transfer_handler.write->nbyte % 16) != 0 ){
