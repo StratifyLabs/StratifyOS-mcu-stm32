@@ -209,7 +209,6 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 	command.DdrMode = QSPI_DDR_MODE_DISABLE;
 	command.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
 	command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
-	//mcu_debug_printf("%s():%d 0x%X 0x%X\n", __FUNCTION__, __LINE__, command.Instruction, local->hal_handle.Instance->SR);
 
 	int result;
 	if( (result = HAL_QSPI_Command(&local->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE)) != HAL_OK ){
@@ -264,7 +263,6 @@ void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi){
 
 void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 	qspi_local_t * local =  (qspi_local_t *)hqspi;
-	//mcu_debug_printf("RX complete %d (%d)\n", hqspi->RxXferCount, hqspi->State);
 	if(
 		#if MCU_QSPI_API == 1
 			local->hal_handle.hmdma != 0 &&
@@ -289,7 +287,6 @@ void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 
 void HAL_QSPI_TxCpltCallback(QSPI_HandleTypeDef *hqspi){
 	qspi_local_t * qspi =  (qspi_local_t *)hqspi;
-	//mcu_debug_printf("TX complete\n");
 	devfs_execute_write_handler(&qspi->transfer_handler, 0, hqspi->TxXferCount, MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 

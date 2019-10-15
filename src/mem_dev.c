@@ -152,8 +152,13 @@ int mcu_mem_erasepage(const devfs_handle_t * handle, void * ctl){
 		return SYSFS_SET_RETURN(EROFS);
 	}
 
-
-	err = stm32_flash_erase_sector(page);
+	int count = 0;
+	do {
+		err = stm32_flash_erase_sector(page);
+		if( err < 0 ){
+			cortexm_delay_ms(1);
+		}
+	} while( count++ < 5 && err < 0 );
 	if( err < 0 ){
 		err = SYSFS_SET_RETURN(EIO);
 	}

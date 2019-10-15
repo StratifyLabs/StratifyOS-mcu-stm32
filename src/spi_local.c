@@ -373,7 +373,6 @@ void mcu_core_spi1_isr(){
 		HAL_SPI_IRQHandler(&m_spi_local[0].hal_handle);
 	}
 #else
-	//mcu_debug_printf("SPI1 IRQ\n");
 	HAL_SPI_IRQHandler(&m_spi_local[0].hal_handle);
 #endif
 }

@@ -38,7 +38,6 @@ int mcu_mmc_dma_close(const devfs_handle_t * handle){
 	if( local->ref_count == 1 ){
 		//disable the DMA
 		if( local->transfer_handler.read || local->transfer_handler.write ){
-			mcu_debug_printf("Can't close -- busy\n");
 			return SYSFS_SET_RETURN(EBUSY);
 		}
 

@@ -150,12 +150,10 @@ static int mcu_emc_ram_setattr(const devfs_handle_t * handle, void * ctl){
     DEVFS_DRIVER_DECLARE_LOCAL(ram, MCU_FMC_PORTS);
 	const emc_attr_t * attr = mcu_select_attr(handle, ctl);
 	if( attr == 0 ){
-        mcu_debug_printf("mcu_emc_psram_setattr attr nll \n");
 		return SYSFS_SET_RETURN(ENOSYS);
 	}
 	u32 o_flags = attr->o_flags;
     if( o_flags & EMC_FLAG_ENABLE ){
-        mcu_debug_printf("mcu_emc_psram_setattr enable \n");
         if( mcu_set_pin_assignment(
                  &(attr->pin_assignment),
                  MCU_CONFIG_PIN_ASSIGNMENT(emc_config_t, handle),

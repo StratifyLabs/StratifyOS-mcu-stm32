@@ -128,9 +128,6 @@ int stm32_flash_erase_sector(u32 sector){
 	int err;
 	u32 erase_error;
 
-	cortexm_disable_interrupts();
-	HAL_FLASH_Unlock();
-
 #if defined FLASH_TYPEERASE_PAGES
 	hal_erase_attr.TypeErase = FLASH_TYPEERASE_PAGES;
 	hal_erase_attr.Banks = FLASH_BANK_1;
@@ -155,10 +152,22 @@ int stm32_flash_erase_sector(u32 sector){
 #endif
 
 	hal_erase_attr.NbSectors = 1;
-	hal_erase_attr.VoltageRange = FLASH_VOLTAGE_RANGE_1;  //! \todo This needs to be added to mcu_board_config
 
+	const stm32_config_t * stm32_config = mcu_board_config.arch_config;
+
+	hal_erase_attr.VoltageRange = FLASH_VOLTAGE_RANGE_1;
+	if( stm32_config->flash_program_millivolts > 5000 ){
+		hal_erase_attr.VoltageRange = FLASH_VOLTAGE_RANGE_4;
+	} else if( stm32_config->flash_program_millivolts > 2700 ){
+		hal_erase_attr.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+	} else if( stm32_config->flash_program_millivolts > 2100 ){
+		hal_erase_attr.VoltageRange = FLASH_VOLTAGE_RANGE_2;
+	}
 
 #endif
+
+	cortexm_disable_interrupts();
+	HAL_FLASH_Unlock();
 	err = HAL_FLASHEx_Erase(&hal_erase_attr, &erase_error);
 	HAL_FLASH_Lock();
 	cortexm_enable_interrupts();

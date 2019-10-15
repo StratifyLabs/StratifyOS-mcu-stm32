@@ -461,7 +461,7 @@ void HAL_I2C_AddrCallback(I2C_HandleTypeDef *hi2c, uint8_t TransferDirection, ui
 	HAL_StatusTypeDef hal_status;
 	hal_status = HAL_I2C_Slave_Sequential_Transmit_IT(hi2c, i2c->slave_memory, i2c->slave_memory_size, I2C_LAST_FRAME);
 	if (hal_status != HAL_OK){
-		mcu_debug_printf("slave addr call back error %u %u\n",hal_status,hi2c->State);
+		//mcu_debug_printf("slave addr call back error %u %u\n",hal_status,hi2c->State);
 	}
 
 }
@@ -506,7 +506,15 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c){
 		i2c->err = I2C_ERROR_OVERFLOW;
 	}
 
-	mcu_debug_log_info(MCU_DEBUG_DEVICE, "Error %d (%d)", hi2c->Mode, hi2c->ErrorCode);
+	if( i2c->err != I2C_ERROR_ACK ){
+		mcu_debug_log_info(
+					MCU_DEBUG_DEVICE,
+					"Error %d (%d)",
+					hi2c->Mode,
+					hi2c->ErrorCode
+					);
+	}
+
 	devfs_execute_cancel_handler(&i2c->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 
 }

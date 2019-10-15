@@ -39,7 +39,6 @@ int hash_local_open(const devfs_handle_t * handle){
 			local->transfer_handler.read = NULL;
 			local->transfer_handler.write = NULL;
 			//local->hal_handle.Instance = hash_regs[port];
-			mcu_debug_printf("enable irq %d\n", hash_irqs[port]);
 			cortexm_enable_irq(hash_irqs[port]);
 		}
 		local->ref_count++;

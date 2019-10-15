@@ -168,7 +168,6 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 		if( local->hal_handle.Init.BusWide != SDIO_BUS_WIDE_1B ){
 			if( HAL_MMC_ConfigWideBusOperation(&local->hal_handle, local->hal_handle.Init.BusWide) != HAL_OK ){
-				mcu_debug_printf("failed to config bus width");
 				return SYSFS_SET_RETURN(EIO);
 			}
 		}

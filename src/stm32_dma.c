@@ -89,7 +89,10 @@ DMA_Stream_TypeDef * stm32_dma_get_stream_instance(u32 dma_number, u32 stream_nu
 	return stm32_dma0_regs[stream_number];
 }
 
-void stm32_dma_set_interrupt_priority(const stm32_dma_channel_config_t * config, const mcu_action_t * action){
+void stm32_dma_set_interrupt_priority(
+		const stm32_dma_channel_config_t * config,
+		const mcu_action_t * action
+		){
 	u32 dma_number = config->dma_number;
 	u32 stream_number = config->stream_number;
 	if( (dma_number < MCU_DMA_PORTS) && (stream_number < MCU_DMA_STREAM_COUNT) ){
@@ -101,7 +104,10 @@ void stm32_dma_set_interrupt_priority(const stm32_dma_channel_config_t * config,
 }
 
 
-stm32_dma_channel_t * stm32_dma_set_handle(u32 dma_number, u32 stream_number){
+stm32_dma_channel_t * stm32_dma_set_handle(
+		u32 dma_number,
+		u32 stream_number
+		){
 	if( (dma_number < MCU_DMA_PORTS) && (stream_number < MCU_DMA_STREAM_COUNT) ){
 
 		int interrupt_number;
@@ -128,7 +134,10 @@ stm32_dma_channel_t * stm32_dma_set_handle(u32 dma_number, u32 stream_number){
 	return 0;
 }
 
-int stm32_dma_get_interrupt_number(u32 dma_number, u32 stream_number){
+int stm32_dma_get_interrupt_number(
+		u32 dma_number,
+		u32 stream_number
+		){
 	if( stream_number < 8 ){
 		if( dma_number == 0 ){
 			return stm32_dma0_irqs[stream_number];
@@ -139,7 +148,10 @@ int stm32_dma_get_interrupt_number(u32 dma_number, u32 stream_number){
 	return -1;
 }
 
-void stm32_dma_clear_handle(u32 dma_number, u32 stream_number){
+void stm32_dma_clear_handle(
+		u32 dma_number,
+		u32 stream_number
+		){
 	//remove a handle that is in the list
 	if( (dma_number < MCU_DMA_PORTS) && (stream_number < MCU_DMA_STREAM_COUNT) ){
 
@@ -156,20 +168,27 @@ void stm32_dma_clear_handle(u32 dma_number, u32 stream_number){
 	}
 }
 
-stm32_dma_channel_t * stm32_dma_setattr(const stm32_dma_channel_config_t * config){
+stm32_dma_channel_t * stm32_dma_setattr(
+		const stm32_dma_channel_config_t * config
+		){
 
 	stm32_dma_channel_t * channel;
 	u32 o_flags = config->o_flags;
-	channel = stm32_dma_set_handle(config->dma_number, config->stream_number);
+	channel = stm32_dma_set_handle(
+				config->dma_number,
+				config->stream_number
+				);
 	if( channel == 0 ){ return 0; }
-	channel->handle.Instance = stm32_dma_get_stream_instance(config->dma_number, config->stream_number);
+	channel->handle.Instance =
+			stm32_dma_get_stream_instance(
+				config->dma_number,
+				config->stream_number
+				);
 
-#if defined DMA_REQUEST_0
+#if defined DMA_REQUEST_0 || defined DMA_REQUEST_MEM2MEM
 	channel->handle.Init.Request = stm32_dma_decode_channel(config->channel_number);
 #elif defined DMA_CHANNEL_0
 	channel->handle.Init.Channel = stm32_dma_decode_channel(config->channel_number);
-#else
-
 #endif
 
 	channel->handle.Init.Direction = DMA_PERIPH_TO_MEMORY; //read is always periph to memory
@@ -231,8 +250,15 @@ stm32_dma_channel_t * stm32_dma_setattr(const stm32_dma_channel_config_t * confi
 }
 
 
-static void mcu_core_dma_handler(int dma_number, int stream_number){
-	HAL_DMA_IRQHandler(&stm32_dma_handle[dma_number].stream[stream_number].handle);
+static void mcu_core_dma_handler(
+		int dma_number,
+		int stream_number
+		){
+	HAL_DMA_IRQHandler(
+				&stm32_dma_handle[dma_number]
+				.stream[stream_number]
+				.handle
+				);
 }
 
 void mcu_core_dma1_stream0_isr(){ mcu_core_dma_handler(0, 0); }
@@ -248,7 +274,6 @@ void mcu_core_dma1_stream7_isr(){ mcu_core_dma_handler(0, 7); }
 
 
 #if MCU_DMA_PORTS > 1
-
 void mcu_core_dma2_stream0_isr(){ mcu_core_dma_handler(1, 0); }
 void mcu_core_dma2_stream1_isr(){ mcu_core_dma_handler(1, 1); }
 void mcu_core_dma2_stream2_isr(){ mcu_core_dma_handler(1, 2); }

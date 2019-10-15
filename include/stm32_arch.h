@@ -189,19 +189,7 @@
 #endif
 
 typedef struct MCU_PACK {
-	u32 o_flags;
-	u16 clock_pllm;
-	u16 clock_plln;
-	u16 clock_pllp;
-	u16 clock_pllq;
-	u16 clock_pllr;
-	u16 clock_ahb_clock_divider;
-	u16 clock_apb1_clock_divider;
-	u16 clock_apb2_clock_divider;
-	u16 clock_voltage_scale;
-	u16 clock_flash_latency;
-	u16 clock_i2s_plln;
-	u16 clock_i2s_pllr;
+	u16 flash_program_millivolts;
 	u16 usb_rx_buffer_size;
 	void * usb_rx_buffer;
 } stm32_config_t;

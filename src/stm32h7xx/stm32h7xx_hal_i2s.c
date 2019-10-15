@@ -333,11 +333,11 @@ HAL_StatusTypeDef HAL_I2S_Init(I2S_HandleTypeDef *hi2s)
   if((i2sdiv < 2U) || (i2sdiv > 0xFFU))
   {
     /* Set the default values */
-    i2sdiv = 2U;
+	 i2sdiv = 2U;
     i2sodd = 0U;
     /* Set the error code */
     SET_BIT(hi2s->ErrorCode, HAL_I2S_ERROR_PRESCALER);
-    return  HAL_ERROR;
+	 return  HAL_ERROR;
   }
 
   /* Check if the SPI2S is disabled to edit I2SCFGR and CFG1 register */
@@ -869,7 +869,7 @@ HAL_StatusTypeDef HAL_I2S_Transmit_IT(I2S_HandleTypeDef *hi2s, uint16_t *pData, 
     return  HAL_ERROR;
   }
 
-  if (hi2s->State == HAL_I2S_STATE_READY)
+  if (hi2s->State != HAL_I2S_STATE_READY)
   {
     __HAL_UNLOCK(hi2s);
     return  HAL_BUSY;

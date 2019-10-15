@@ -69,6 +69,11 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 				if( o_flags & I2S_FLAG_IS_RECEIVER ){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
 					local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
+#endif
+#if defined I2S_MODE_MASTER_FD
+					local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_FD;
+#endif
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
 					local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
 #endif
 				}
@@ -82,6 +87,11 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 				if( o_flags & I2S_FLAG_IS_RECEIVER ){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
 					local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
+#endif
+#if defined I2S_MODE_MASTER_FD
+					local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_FD;
+#endif
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
 					local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
 #endif
 				}
@@ -139,47 +149,23 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 		local->i2s_hal_handle.Init.ClockSource = I2S_CLOCK_PLL;
 #endif
 
-#if 0
-		//this might be better implemented in the "core" driver for controlling the clocks
-#if defined RCC_PERIPHCLK_I2S
-		RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
-		PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
-		//PeriphClkInitStruct.PLLI2S.PLLI2SM = 4;
-		PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
-		PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
-		int result;
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Start I2S Clock");
-		if ( (result = HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct)) != HAL_OK){
-			mcu_debug_log_error(MCU_DEBUG_DEVICE, "PERIPH CLOCK SET FAILED %d", result);
-			return SYSFS_SET_RETURN(EIO);
-		}
+#if defined I2S_FIRSTBIT_MSB
+		local->i2s_hal_handle.Init.FirstBit = I2S_FIRSTBIT_MSB;
 #endif
 
-#if defined RCC_PERIPHCLK_I2S_APB1 && defined RCC_PERIPHCLK_I2S_APB2
-		RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
-
-		PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S_APB1|RCC_PERIPHCLK_I2S_APB2|RCC_PERIPHCLK_CLK48;
-		PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
-#if defined RCC_PLLI2SP_DIV2
-		//PeriphClkInitStruct.PLLI2S.PLLI2SP = RCC_PLLI2SP_DIV2;
-#endif
-		PeriphClkInitStruct.PLLI2S.PLLI2SM = 4;
-		PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
-		PeriphClkInitStruct.PLLI2S.PLLI2SQ = 2;
-		//PeriphClkInitStruct.PLLI2SDivQ = 1;
-		PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48CLKSOURCE_PLLQ;
-		PeriphClkInitStruct.I2sApb2ClockSelection = RCC_I2SAPB2CLKSOURCE_PLLI2S;
-		PeriphClkInitStruct.I2sApb1ClockSelection = RCC_I2SAPB1CLKSOURCE_PLLI2S;
-		int result;
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Start I2S Clock APB1/2");
-		if ( (result = HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct)) != HAL_OK){
-			mcu_debug_log_error(MCU_DEBUG_DEVICE, "PERIPH CLOCK SET FAILED %d", result);
-			return SYSFS_SET_RETURN(EIO);
-		}
+#if defined I2S_WS_INVERSION_DISABLE
+		local->i2s_hal_handle.Init.FirstBit = I2S_WS_INVERSION_DISABLE;
 #endif
 
+#if defined I2S_DATA_24BIT_ALIGNMENT_RIGHT
+		local->i2s_hal_handle.Init.Data24BitAlignment = I2S_DATA_24BIT_ALIGNMENT_RIGHT;
 #endif
 
+#if defined I2S_MASTER_KEEP_IO_STATE_DISABLE
+		local->i2s_hal_handle.Init.MasterKeepIOState = I2S_MASTER_KEEP_IO_STATE_DISABLE;
+#endif
+
+#if !defined STM32H7
 		//errata: http://www.st.com/content/ccc/resource/technical/document/errata_sheet/0a/98/58/84/86/b6/47/a2/DM00037591.pdf/files/DM00037591.pdf/jcr:content/translations/en.DM00037591.pdf
 		if( local->o_flags & SPI_LOCAL_IS_ERRATA_REQUIRED ){
 			local->ws_pin = attr->pin_assignment.ws;
@@ -191,6 +177,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 				}
 			}
 		}
+#endif
 
 		if( mcu_set_pin_assignment(
 				 &(attr->pin_assignment),
@@ -240,14 +227,15 @@ void i2s_spi_local_wait_for_errata_level(spi_local_t * local){
 	}
 }
 
-void HAL_I2SEx_TxRxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 
+void HAL_I2SEx_TxRxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
+	HAL_I2S_TxHalfCpltCallback(hi2s);
+	HAL_I2S_RxHalfCpltCallback(hi2s);
 }
 
 void HAL_I2SEx_TxRxCpltCallback(I2S_HandleTypeDef *hi2s){
-	//spi_local_t * spi = (spi_local_t *)hi2s;
-
-
+	HAL_I2S_TxCpltCallback(hi2s);
+	HAL_I2S_RxCpltCallback(hi2s);
 }
 
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
@@ -266,10 +254,6 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 	} else {
 		//stop -- half transfer only happens on DMA
 		if( local->o_flags & SPI_LOCAL_IS_DMA ){
-			mcu_debug_printf(
-						"stop TX I2S DMA %d\n",
-						__HAL_DMA_GET_COUNTER(hi2s->hdmatx)
-						);
 			HAL_I2S_DMAPause(hi2s);
 		}
 	}
@@ -292,17 +276,12 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
 	} else {
 		//stop -- half transfer only happens on DMA
 		if( local->o_flags & SPI_LOCAL_IS_DMA ){
-			mcu_debug_printf(
-						"stop TX I2S DMA %d\n",
-						__HAL_DMA_GET_COUNTER(hi2s->hdmatx)
-						);
 			HAL_I2S_DMAPause(hi2s);
 		}
 	}
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
-	//no action when half complete -- could fire an event
 	spi_local_t * local = (spi_local_t *)hi2s;
 	int result;
 	devfs_async_t * async;
@@ -318,7 +297,6 @@ void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 		local->transfer_handler.read = async;
 	} else {
 		//stop -- half transfer only happens on DMA
-		mcu_debug_printf("stop RX I2S DMA\n");
 		HAL_I2S_DMAPause(hi2s);
 	}
 }
@@ -341,10 +319,6 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
 		local->transfer_handler.read = async;
 	} else if( local->o_flags & SPI_LOCAL_IS_DMA ){
 		if( local->o_flags & SPI_LOCAL_IS_DMA ){
-			mcu_debug_printf(
-						"stop RX I2S DMA %d\n",
-						__HAL_DMA_GET_COUNTER(hi2s->hdmarx)
-						);
 			HAL_I2S_DMAPause(hi2s);
 		}
 	}
@@ -359,7 +333,12 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s){
 #else
 	status = hi2s->Instance->DR;
 #endif
-	mcu_debug_log_error(MCU_DEBUG_DEVICE, " I2S Error %d on %p", hi2s->ErrorCode, hi2s->Instance);
+	mcu_debug_log_error(
+				MCU_DEBUG_DEVICE,
+				"I2S Error %d on %p",
+				hi2s->ErrorCode,
+				hi2s->Instance
+				);
 	devfs_execute_cancel_handler(&spi->transfer_handler, (void*)&status, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 }
 

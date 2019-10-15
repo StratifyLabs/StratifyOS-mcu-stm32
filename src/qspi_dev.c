@@ -68,8 +68,6 @@ int mcu_qspi_read(const devfs_handle_t * handle, devfs_async_t * async){
 	//borrow async to qspi->transfer_handler.read
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
-	//mcu_debug_printf("%s():%d 0x%X\n", __FUNCTION__, __LINE__, local->hal_handle.Instance->SR);
-
 	if (HAL_QSPI_Receive_IT(&local->hal_handle, async->buf) != HAL_OK){
 		local->transfer_handler.read = 0;
 		return SYSFS_SET_RETURN(EIO);
@@ -90,8 +88,6 @@ int mcu_qspi_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int result;
 	if( (result = HAL_QSPI_Transmit_IT(&local->hal_handle, async->buf)) != HAL_OK){
 		local->transfer_handler.write = 0;
-		MCU_DEBUG_LINE_TRACE();
-		mcu_debug_printf("TX result 0x%X 0x%X\n", local->hal_handle.ErrorCode, result);
 		return SYSFS_SET_RETURN(EIO);
 	}
 

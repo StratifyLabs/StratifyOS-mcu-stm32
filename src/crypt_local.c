@@ -39,7 +39,6 @@ int crypt_local_open(const devfs_handle_t * handle){
 			local->transfer_handler.read = NULL;
 			local->transfer_handler.write = NULL;
 			local->hal_handle.Instance = crypt_regs[port];
-			mcu_debug_printf("enable irq %d\n", crypt_irqs[port]);
 			cortexm_enable_irq(crypt_irqs[port]);
 		}
 		local->ref_count++;
@@ -175,19 +174,15 @@ int crypt_local_setaction(const devfs_handle_t * handle, void * ctl){
 
 void HAL_CRYP_InCpltCallback(CRYP_HandleTypeDef *hcryp){
 	crypt_local_t * local = (crypt_local_t *)hcryp;
-
 	//execute the callbacks
-	//devfs_execute_read_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
 	devfs_execute_write_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
-
 }
 
 void HAL_CRYP_OutCpltCallback(CRYP_HandleTypeDef *hcryp){
 	crypt_local_t * local = (crypt_local_t *)hcryp;
 	//execute the callbacks
 	devfs_execute_read_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
-	//devfs_execute_write_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_WRITE_COMPLETE);
-	//update the IV once writing is complete
+	//update the IV once reading is complete
 	*(uint32_t*)(hcryp->Init.pInitVect) = hcryp->Instance->IV0LR;
 	*(uint32_t*)(hcryp->Init.pInitVect+1) = hcryp->Instance->IV0RR;
 	*(uint32_t*)(hcryp->Init.pInitVect+2) = hcryp->Instance->IV1LR;

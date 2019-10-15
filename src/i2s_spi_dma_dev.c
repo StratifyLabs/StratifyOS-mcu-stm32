@@ -119,13 +119,16 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 			__HAL_LINKDMA((&local->i2s_hal_handle), hdmarx, channel->handle);
 
 		}
+
 		if( attr->o_flags & I2S_FLAG_IS_TRANSMITTER ){
 
-			mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set I2S DMA as transmitter %d.%d.%d",
-									 config->dma_config.tx.dma_number,
-									 config->dma_config.tx.stream_number,
-									 config->dma_config.tx.channel_number
-									 );
+			mcu_debug_log_info(
+						MCU_DEBUG_DEVICE,
+						"Set I2S DMA as transmitter %d.%d.%d",
+						config->dma_config.tx.dma_number,
+						config->dma_config.tx.stream_number,
+						config->dma_config.tx.channel_number
+						);
 
 			stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config.tx);
 
@@ -152,7 +155,7 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 	if( (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) && local->transfer_handler.read ){
 
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
 		if( local->transfer_handler.read->nbyte < async->nbyte ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
@@ -170,13 +173,17 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 	} else {
 		mcu_debug_log_info(
 					MCU_DEBUG_DEVICE,
-					"Write I2S DMA 0x%lX %p %d %d 0x%lX",
+					"Write->I2S DMA 0x%lX %p %d %d 0x%lX",
 					local->i2s_hal_handle.Init.Mode,
-					async->buf, async->nbyte,
+					async->buf,
+					async->nbyte,
 					local->size_mult,
 					local->o_flags
 					);
+
+#if !defined STM32H7
 		i2s_spi_local_wait_for_errata_level(local);
+#endif
 
 		result = HAL_I2S_Transmit_DMA(
 					&local->i2s_hal_handle,
@@ -207,7 +214,7 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
 	if( local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
 		//Receive assigns the transfer handler but then blocks until a write happens
 		return 0;
@@ -219,7 +226,14 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 	ret = HAL_I2S_Receive_DMA(&local->i2s_hal_handle, async->buf,  (async->nbyte/local->size_mult));
 
 	if( ret != HAL_OK ){
-		mcu_debug_log_error(MCU_DEBUG_DEVICE, "Failed to start I2S DMA Read (%d, %d) %d/%d", ret, local->i2s_hal_handle.ErrorCode, async->nbyte, local->size_mult);
+		mcu_debug_log_error(
+					MCU_DEBUG_DEVICE,
+					"Failed to start I2S DMA Read (%d, %d) %d/%d",
+					ret,
+					local->i2s_hal_handle.ErrorCode,
+					async->nbyte,
+					local->size_mult
+					);
 		local->transfer_handler.read = 0;
 		if( ret == HAL_BUSY ){
 			return SYSFS_SET_RETURN(EIO);
