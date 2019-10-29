@@ -116,7 +116,11 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 			stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config.rx);
 			if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
 
-			__HAL_LINKDMA((&local->i2s_hal_handle), hdmarx, channel->handle);
+			__HAL_LINKDMA(
+						(&local->i2s_hal_handle),
+						hdmarx,
+						channel->handle
+						);
 
 		}
 
@@ -130,11 +134,18 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 						config->dma_config.tx.channel_number
 						);
 
-			stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config.tx);
+			stm32_dma_channel_t * channel =
+					stm32_dma_setattr(
+						&config->dma_config.tx
+						);
 
 			if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
 
-			__HAL_LINKDMA((&local->i2s_hal_handle), hdmatx, channel->handle);
+			__HAL_LINKDMA(
+						(&local->i2s_hal_handle),
+						hdmatx,
+						channel->handle
+						);
 
 		}
 	}
@@ -155,7 +166,7 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 	if( (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) && local->transfer_handler.read ){
 
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
 		if( local->transfer_handler.read->nbyte < async->nbyte ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
@@ -214,7 +225,7 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
 	if( local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
 		//Receive assigns the transfer handler but then blocks until a write happens
 		return 0;

@@ -73,19 +73,38 @@ int mcu_qspi_dma_setattr(const devfs_handle_t * handle, void * ctl){
 	config = handle->config;
 	if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
-
 	//setup the DMA for receiving
+#if MCU_QSPI_API == 1
 
-#if 1
+	__HAL_RCC_MDMA_CLK_ENABLE();
+
+	cortexm_enable_irq(MDMA_IRQn);
+
+	//API 1 uses the MDMA which has a fixed configuration
+	stm32_dma_mdma_handle.Instance = MDMA_Channel0;
+	stm32_dma_mdma_handle.Init.Request = MDMA_REQUEST_QUADSPI_FIFO_TH;
+	stm32_dma_mdma_handle.Init.TransferTriggerMode = MDMA_BUFFER_TRANSFER;
+	stm32_dma_mdma_handle.Init.Priority = MDMA_PRIORITY_LOW;
+	stm32_dma_mdma_handle.Init.Endianness = MDMA_LITTLE_ENDIANNESS_PRESERVE;
+	stm32_dma_mdma_handle.Init.SourceInc = MDMA_SRC_INC_BYTE;
+	stm32_dma_mdma_handle.Init.DestinationInc = MDMA_DEST_INC_DISABLE;
+	stm32_dma_mdma_handle.Init.SourceDataSize = MDMA_SRC_DATASIZE_BYTE;
+	stm32_dma_mdma_handle.Init.DestDataSize = MDMA_DEST_DATASIZE_BYTE;
+	stm32_dma_mdma_handle.Init.DataAlignment = MDMA_DATAALIGN_PACKENABLE;
+	stm32_dma_mdma_handle.Init.BufferTransferLength = 1;
+	stm32_dma_mdma_handle.Init.SourceBurst = MDMA_SOURCE_BURST_SINGLE;
+	stm32_dma_mdma_handle.Init.DestBurst = MDMA_DEST_BURST_SINGLE;
+	stm32_dma_mdma_handle.Init.SourceBlockAddressOffset = 0;
+	stm32_dma_mdma_handle.Init.DestBlockAddressOffset = 0;
+	if (HAL_MDMA_Init(&stm32_dma_mdma_handle) != HAL_OK){
+		return SYSFS_SET_RETURN(EIO);
+	}
+
+	__HAL_LINKDMA(&local->hal_handle,hmdma,stm32_dma_mdma_handle);
+#else
 	stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config.rx);
 	if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
-
-#if MCU_QSPI_API == 1
-	//__HAL_LINKDMA((&local->hal_handle), hmdma, channel->handle);
-#else
 	__HAL_LINKDMA((&local->hal_handle), hdma, channel->handle);
-#endif
-#else
 
 	channel = stm32_dma_setattr(&config->dma_config.tx);
 	if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }

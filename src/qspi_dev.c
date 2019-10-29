@@ -79,7 +79,6 @@ int mcu_qspi_write(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
 	//can't read and write at the same time
 	if( local->transfer_handler.read != 0 ){
-		MCU_DEBUG_LINE_TRACE();
 		return SYSFS_SET_RETURN(EBUSY);
 	}
 

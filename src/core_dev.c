@@ -16,9 +16,9 @@
 
 
 //#include "config.h"
+#include "stm32_flash.h"
 #include <mcu/arch.h>
 #include <mcu/bootloader.h>
-#include "stm32_flash.h"
 
 
 static u32 mcu_core_get_reset_src();

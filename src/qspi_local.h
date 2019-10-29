@@ -29,6 +29,9 @@ typedef struct {
 	devfs_transfer_handler_t transfer_handler;
 	u32 state;
 	u32 ref_count;
+#if MCU_QSPI_API == 1
+	MDMA_HandleTypeDef hmdma;
+#endif
 } qspi_local_t;
 
 

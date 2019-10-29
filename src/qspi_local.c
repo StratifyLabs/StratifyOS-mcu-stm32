@@ -83,7 +83,7 @@ int qspi_local_setattr(const devfs_handle_t * handle, void * ctl){
 	o_flags = attr->o_flags;
 	local->state = o_flags;
 	if( o_flags & QSPI_FLAG_SET_MASTER ){
-		uint32_t flash_size = 24;
+		//uint32_t flash_size = 24;
 
 
 		__HAL_RCC_QSPI_FORCE_RESET();
@@ -234,10 +234,24 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 
 void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi){
 	mcu_debug_printf("error 0x%X\n", hqspi->ErrorCode);
+	qspi_local_t * local =  (qspi_local_t *)hqspi;
+	devfs_execute_cancel_handler(
+				&local->transfer_handler,
+				0,
+				SYSFS_SET_RETURN(EIO),
+				MCU_EVENT_FLAG_ERROR
+				);
 }
 
 void HAL_QSPI_AbortCpltCallback(QSPI_HandleTypeDef *hqspi){
 	mcu_debug_printf("abort\n");
+	qspi_local_t * local =  (qspi_local_t *)hqspi;
+	devfs_execute_cancel_handler(
+				&local->transfer_handler,
+				0,
+				SYSFS_SET_RETURN(ECANCELED),
+				MCU_EVENT_FLAG_CANCELED
+				);
 
 }
 
@@ -273,21 +287,31 @@ void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 		//pull in values from memory to cache if using DMA
 
 		/*
- * reads must be aligned to cache lines
- *
- */
+		 * reads must be aligned to cache lines
+		 *
+		 */
 		mcu_core_invalidate_data_cache_block(
 					local->transfer_handler.read->buf,
 					local->transfer_handler.read->nbyte + 31);
 
 	}
-	devfs_execute_read_handler(&local->transfer_handler, 0, hqspi->RxXferCount, MCU_EVENT_FLAG_DATA_READY);
+	devfs_execute_read_handler(
+				&local->transfer_handler,
+				0,
+				hqspi->RxXferCount,
+				MCU_EVENT_FLAG_DATA_READY
+				);
 
 }
 
 void HAL_QSPI_TxCpltCallback(QSPI_HandleTypeDef *hqspi){
-	qspi_local_t * qspi =  (qspi_local_t *)hqspi;
-	devfs_execute_write_handler(&qspi->transfer_handler, 0, hqspi->TxXferCount, MCU_EVENT_FLAG_WRITE_COMPLETE);
+	qspi_local_t * local =  (qspi_local_t *)hqspi;
+	devfs_execute_write_handler(
+				&local->transfer_handler,
+				0,
+				hqspi->TxXferCount,
+				MCU_EVENT_FLAG_WRITE_COMPLETE
+				);
 }
 
 void HAL_QSPI_RxHalfCpltCallback(QSPI_HandleTypeDef *hqspi){
@@ -299,7 +323,6 @@ void HAL_QSPI_TxHalfCpltCallback(QSPI_HandleTypeDef *hqspi){
 }
 
 void mcu_core_quadspi_isr(){
-	//mcu_debug_printf("QSPI handler %d\n", m_qspi_local[0].hal_handle.RxXferCount);
 	HAL_QSPI_IRQHandler(&m_qspi_local[0].hal_handle);
 }
 

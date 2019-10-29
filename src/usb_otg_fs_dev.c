@@ -452,7 +452,6 @@ int mcu_usb_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 	int bytes_written;
 
-
 	if( cortexm_validate_callback(async->handler.callback) < 0 ){
 		return SYSFS_SET_RETURN(EPERM);
 	}
@@ -584,11 +583,13 @@ int mcu_usb_root_write_endpoint(const devfs_handle_t * handle, u32 endpoint_num,
 	if( type == EP_TYPE_ISOC ){
 		//check to see if the packet will fit in the FIFO
 		//if the packet won't fit, return EBUSY
+#if !defined STM32H7
 		USB_OTG_GlobalTypeDef * USBx = m_usb_local[handle->port].hal_handle.Instance;
 		int available = (USBx_INEP(logical_endpoint)->DTXFSTS & USB_OTG_DTXFSTS_INEPTFSAV);
 		if( (available * 4) < size ){
 			return SYSFS_SET_RETURN(EBUSY);
 		}
+#endif
 	}
 #endif
 

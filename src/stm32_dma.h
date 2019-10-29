@@ -27,6 +27,10 @@ typedef struct {
 	int interrupt_number;
 } stm32_dma_channel_t;
 
+#if defined STM32H7
+extern MDMA_HandleTypeDef stm32_dma_mdma_handle;
+#endif
+
 
 void stm32_dma_set_interrupt_priority(const stm32_dma_channel_config_t * config, const mcu_action_t * action);
 u32 stm32_dma_decode_priority(u8 priority);

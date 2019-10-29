@@ -58,7 +58,9 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 	if( o_flags & (I2S_FLAG_SET_MASTER|I2S_FLAG_SET_SLAVE) ){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
+#if defined I2S_FULLDUPLEXMODE_DISABLE
 		local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
+#endif
 #endif
 
 
@@ -67,13 +69,13 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 			if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
 				local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_TX;
 				if( o_flags & I2S_FLAG_IS_RECEIVER ){
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT && defined I2S_FULLDUPLEXMODE_ENABLE
 					local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
 #endif
-#if defined I2S_MODE_MASTER_FD
-					local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_FD;
+#if defined I2S_MODE_SLAVE_FULLDUPLEX
+					local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_FULLDUPLEX;
 #endif
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
 					local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
 #endif
 				}
@@ -85,11 +87,11 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 			if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
 				local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_TX;
 				if( o_flags & I2S_FLAG_IS_RECEIVER ){
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT && defined I2S_FULLDUPLEXMODE_ENABLE
 					local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
 #endif
-#if defined I2S_MODE_MASTER_FD
-					local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_FD;
+#if defined I2S_MODE_MASTER_FULLDUPLEX
+					local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_FULLDUPLEX;
 #endif
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
 					local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
@@ -183,9 +185,21 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 				 &(attr->pin_assignment),
 				 MCU_CONFIG_PIN_ASSIGNMENT(i2s_config_t, handle),
 				 MCU_PIN_ASSIGNMENT_COUNT(i2s_pin_assignment_t),
-				 CORE_PERIPH_SPI, port, 0, 0, 0) < 0 ){
+				 CORE_PERIPH_SPI,
+				 port,
+				 0,
+				 0,
+				 0) < 0 ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
+
+		//cancel any ongoing transfers (if available)
+		devfs_execute_cancel_handler(
+					&local->transfer_handler,
+					0,
+					SYSFS_SET_RETURN(ECANCELED),
+					0
+					);
 
 		int hal_result;
 		if( (hal_result = HAL_I2S_Init(&local->i2s_hal_handle)) != HAL_OK ){
@@ -197,7 +211,9 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 	return 0;
 }
 
-void i2s_spi_local_wait_for_errata_level(spi_local_t * local){
+void i2s_spi_local_wait_for_errata_level(
+		spi_local_t * local
+		){
 
 	if( local->o_flags & SPI_LOCAL_IS_ERRATA_REQUIRED ){
 		u32 pio_level;
@@ -243,6 +259,7 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 	spi_local_t * local = (spi_local_t *)hi2s;
 	int result;
 	devfs_async_t * async;
+
 	async = local->transfer_handler.write;
 	result = devfs_execute_write_handler(
 				&local->transfer_handler,

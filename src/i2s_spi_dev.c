@@ -72,7 +72,7 @@ int mcu_i2s_spi_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 	if( local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
 
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
 		if( local->transfer_handler.read->nbyte < async->nbyte ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}

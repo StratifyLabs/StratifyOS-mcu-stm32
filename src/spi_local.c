@@ -343,7 +343,12 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi){
 							  spi->transfer_handler.write);
 
 
-	devfs_execute_cancel_handler(&spi->transfer_handler, 0, SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode), MCU_EVENT_FLAG_ERROR);
+	devfs_execute_cancel_handler(
+				&spi->transfer_handler,
+				0,
+				SYSFS_SET_RETURN_WITH_VALUE(EIO, hspi->ErrorCode),
+				MCU_EVENT_FLAG_ERROR
+				);
 }
 
 void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi){

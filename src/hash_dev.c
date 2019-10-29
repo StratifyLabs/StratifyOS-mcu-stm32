@@ -83,7 +83,6 @@ int mcu_hash_write(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(hash, MCU_HASH_PORTS);
 
 	if( async->nbyte == 0 ){
-		MCU_DEBUG_LINE_TRACE();
 		HAL_HASHEx_SHA256_Finish(
 					&local->hal_handle,
 					local->transfer_handler.read->buf,
@@ -125,7 +124,6 @@ int mcu_hash_write(const devfs_handle_t * handle, devfs_async_t * async){
 					);
 	} else if( local->o_flags & HASH_FLAG_IS_SHA256 ){
 		//nbyte is /4 based on DataWidthUnit
-		MCU_DEBUG_LINE_TRACE();
 		result = HAL_HASHEx_SHA256_Start_IT(
 					&local->hal_handle,
 					async->buf,
