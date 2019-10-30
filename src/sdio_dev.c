@@ -34,8 +34,9 @@ int mcu_sdio_close(const devfs_handle_t * handle){
 
 int mcu_sdio_getinfo(const devfs_handle_t * handle, void * ctl){
 
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
+
 	sdio_info_t * info = ctl;
-	sdio_local_t * local = sdio_local + handle->port;
 
 	//set flags that are supported by this driver
 	info->o_flags = SDIO_FLAG_SET_INTERFACE;
@@ -59,7 +60,7 @@ int mcu_sdio_setattr(const devfs_handle_t * handle, void * ctl){
 	if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
 	u32 o_flags = attr->o_flags;
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 
 	if( o_flags & SDIO_FLAG_SET_INTERFACE ){
 
@@ -143,8 +144,7 @@ int mcu_sdio_setattr(const devfs_handle_t * handle, void * ctl){
 
 int mcu_sdio_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = ctl;
-	const u32 port = handle->port;
-	sdio_local_t * local = sdio_local + port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 
 	if( action->handler.callback == 0 ){
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
@@ -163,7 +163,7 @@ int mcu_sdio_setaction(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_sdio_getcid(const devfs_handle_t * handle, void * ctl){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	if( HAL_SD_GetCardCID(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
@@ -172,7 +172,7 @@ int mcu_sdio_getcid(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_sdio_getcsd(const devfs_handle_t * handle, void * ctl){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	if( HAL_SD_GetCardCSD(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
@@ -181,7 +181,7 @@ int mcu_sdio_getcsd(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_sdio_getstatus(const devfs_handle_t * handle, void * ctl){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	if( HAL_SD_GetCardStatus(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
@@ -190,7 +190,7 @@ int mcu_sdio_getstatus(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_sdio_write(const devfs_handle_t * handle, devfs_async_t * async){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
 	if( (HAL_SD_WriteBlocks_IT(&local->hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
@@ -202,7 +202,7 @@ int mcu_sdio_write(const devfs_handle_t * handle, devfs_async_t * async){
 }
 
 int mcu_sdio_read(const devfs_handle_t * handle, devfs_async_t * async){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	int hal_result;
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

@@ -37,7 +37,7 @@ typedef struct {
 
 extern SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS];
 extern const int sdio_irqs[MCU_SDIO_PORTS];
-extern sdio_local_t sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
+extern sdio_local_t m_sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 
 int sdio_local_open(const devfs_handle_t * handle);
 int sdio_local_close(const devfs_handle_t * handle);

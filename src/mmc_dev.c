@@ -44,8 +44,8 @@ int mcu_mmc_setattr(const devfs_handle_t * handle, void * ctl){
 
 int mcu_mmc_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = ctl;
-	u32 port = handle->port;
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
+
 
 	if( action->handler.callback == 0 ){
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
@@ -76,8 +76,7 @@ int mcu_mmc_getstatus(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_mmc_write(const devfs_handle_t * handle, devfs_async_t * async){
-	mmc_local_t * local = mmc_local + handle->port;
-
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
 	int loc;
@@ -95,7 +94,7 @@ int mcu_mmc_write(const devfs_handle_t * handle, devfs_async_t * async){
 }
 
 int mcu_mmc_read(const devfs_handle_t * handle, devfs_async_t * async){
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 	int hal_result;
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

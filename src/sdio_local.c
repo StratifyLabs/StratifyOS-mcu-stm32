@@ -23,18 +23,28 @@
 
 SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS] = MCU_SDIO_REGS;
 const int sdio_irqs[MCU_SDIO_PORTS] = MCU_SDIO_IRQS;
-sdio_local_t sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
+sdio_local_t m_sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 
 int sdio_local_open(const devfs_handle_t * handle){
-	const u32 port = handle->port;
-	sdio_local_t * local = sdio_local + port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	if( port < MCU_SDIO_PORTS ){
 		if ( local->ref_count == 0 ){
 			//turn on RCC clock
 			switch(port){
 				case 0:
+#if defined __HAL_RCC_SDIO_CLK_ENABLE
 					__HAL_RCC_SDIO_CLK_ENABLE();
+#endif
+#if defined __HAL_RCC_SDMMC1_CLK_ENABLE
+					__HAL_RCC_SDMMC1_CLK_ENABLE();
+#endif
 					break;
+				case 1:
+#if defined __HAL_RCC_SDMMC2_CLK_ENABLE
+					__HAL_RCC_SDMMC2_CLK_ENABLE();
+#endif
+					break;
+
 			}
 			local->transfer_handler.read = NULL;
 			local->transfer_handler.write = NULL;
@@ -47,15 +57,50 @@ int sdio_local_open(const devfs_handle_t * handle){
 }
 
 int sdio_local_close(const devfs_handle_t * handle){
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
+	if( local->ref_count > 0 ){
+		//do the opposite of mmc_local_open() -- ref_count is zero -- turn off interrupt
+		if( local->ref_count == 1 ){
+			HAL_SD_DeInit(&local->hal_handle);
 
-	//do the opposite of sdio_local_open() -- ref_count is zero -- turn off interrupt
+			devfs_execute_cancel_handler(
+						&local->transfer_handler,
+						0,
+						SYSFS_SET_RETURN(ECANCELED),
+						MCU_EVENT_FLAG_CANCELED
+						);
+
+			switch(port){
+				case 0:
+#if defined __HAL_RCC_SDIO_CLK_DISABLE
+					__HAL_RCC_SDIO_CLK_DISABLE();
+#endif
+#if defined __HAL_RCC_SDMMC1_CLK_DISABLE
+					__HAL_RCC_SDMMC1_CLK_DISABLE();
+#endif
+					break;
+				case 1:
+#if defined __HAL_RCC_SDMMC2_CLK_DISABLE
+					__HAL_RCC_SDMMC2_CLK_DISABLE();
+#endif
+					break;
+			}
+
+			local->transfer_handler.read = NULL;
+			local->transfer_handler.write = NULL;
+			local->hal_handle.Instance = 0;
+			cortexm_disable_irq(sdio_irqs[port]);
+		}
+		local->ref_count--;
+	}
+
 	return 0;
 }
 
 int sdio_local_getinfo(const devfs_handle_t * handle, void * ctl){
 	sdio_info_t * info = ctl;
 	//const u32 port = handle->port;
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 
 	//set flags that are supported by this driver
 	info->o_flags = SDIO_FLAG_SET_INTERFACE;
@@ -75,7 +120,7 @@ int sdio_local_getinfo(const devfs_handle_t * handle, void * ctl){
 }
 
 int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	const sdio_attr_t * attr = mcu_select_attr(handle, ctl);
 	if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
@@ -162,8 +207,7 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 int sdio_local_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = ctl;
-	u32 port = handle->port;
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 
 	if( action->handler.callback == 0 ){
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
@@ -182,7 +226,7 @@ int sdio_local_setaction(const devfs_handle_t * handle, void * ctl){
 }
 
 int sdio_local_getcid(const devfs_handle_t * handle, void * ctl){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	if( HAL_SD_GetCardCID(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
@@ -191,7 +235,7 @@ int sdio_local_getcid(const devfs_handle_t * handle, void * ctl){
 }
 
 int sdio_local_getcsd(const devfs_handle_t * handle, void * ctl){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	if( HAL_SD_GetCardCSD(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
@@ -200,7 +244,7 @@ int sdio_local_getcsd(const devfs_handle_t * handle, void * ctl){
 }
 
 int sdio_local_getstatus(const devfs_handle_t * handle, void * ctl){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	if( HAL_SD_GetCardStatus(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
@@ -236,10 +280,32 @@ void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd){
 	devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), 0);
 }
 
+
+
+#if defined STM32F7 || defined STM32H7
+
+#if MCU_SDIO_PORTS > 1
+void mcu_core_sdmmc1_isr(){
+	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX", sd_handle[0]->Instance->STA);
+	HAL_SD_IRQHandler(&m_sdio_local[0].hal_handle);
+}
+
+void mcu_core_sdmmc2_isr(){
+	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX", sd_handle[0]->Instance->STA);
+	HAL_SD_IRQHandler(&m_sdio_local[1].hal_handle);
+}
+#else
+void mcu_core_sdmmc_isr(){
+	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX", sd_handle[0]->Instance->STA);
+	HAL_SD_IRQHandler(&m_sdio_local[0].hal_handle);
+}
+#endif
+#else
 void mcu_core_sdio_isr(){
 	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX", sd_handle[0]->Instance->STA);
-	HAL_SD_IRQHandler(&sdio_local[0].hal_handle);
+	HAL_SD_IRQHandler(&m_sdio_local[0].hal_handle);
 }
+#endif
 
 
 

@@ -31,7 +31,7 @@ int mcu_sdio_dma_open(const devfs_handle_t * handle){
 int mcu_sdio_dma_close(const devfs_handle_t * handle){
 
 	//do the opposite of mcu_sdio_dma_open() -- ref_count is zero -- turn off interrupt
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 
 	if( local->ref_count == 1 ){
 		//disable the DMA
@@ -62,12 +62,11 @@ int mcu_sdio_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
 	int result;
 	const sdio_attr_t * attr = mcu_select_attr(handle, ctl);
-	if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
-
 	u32 o_flags = attr->o_flags;
-	sdio_local_t * local = sdio_local + handle->port;
-
+	if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
+#if MCU_SDIO_API == 0 //API 1 has built-in DMA
 	if( o_flags & SDIO_FLAG_SET_INTERFACE ){
+		DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 
 		const stm32_sdio_dma_config_t * config = handle->config;
 		if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
@@ -85,21 +84,20 @@ int mcu_sdio_dma_setattr(const devfs_handle_t * handle, void * ctl){
 		__HAL_LINKDMA((&local->hal_handle), hdmatx, tx_channel->handle);
 		__HAL_LINKDMA((&local->hal_handle), hdmarx, rx_channel->handle);
 	}
+#endif
 
 	result = sdio_local_setattr(handle, ctl);
 	if( (result < 0) || (o_flags & SDIO_FLAG_GET_CARD_STATE) ){
 		return result;
 	}
 
-
 	return SYSFS_RETURN_SUCCESS;
 }
 
 
 int mcu_sdio_dma_setaction(const devfs_handle_t * handle, void * ctl){
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	mcu_action_t * action = ctl;
-	const u32 port = handle->port;
-	sdio_local_t * local = sdio_local + port;
 
 	if( action->handler.callback == 0 ){
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
@@ -130,7 +128,7 @@ int mcu_sdio_dma_getstatus(const devfs_handle_t * handle, void * ctl){
 }
 
 int mcu_sdio_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
 	local->hal_handle.TxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_WriteBlocks_DMA
@@ -143,7 +141,7 @@ int mcu_sdio_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 }
 
 int mcu_sdio_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
-	sdio_local_t * local = sdio_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
 	local->hal_handle.RxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_ReadBlocks_DMA

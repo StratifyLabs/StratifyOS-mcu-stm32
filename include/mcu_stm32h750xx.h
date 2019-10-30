@@ -70,8 +70,8 @@
 #define MCU_QSPI_REGS { QUADSPI }
 #define MCU_QSPI_IRQS { QUADSPI_IRQn }
 
-#define MCU_SDIO_API 0
-#define MCU_SDIO_PORTS 0
+#define MCU_SDIO_API 1
+#define MCU_SDIO_PORTS 2
 #define MCU_SDIO_REGS { SDMMC1, SDMMC2 }
 #define MCU_SDIO_IRQS { SDMMC1_IRQn, SDMMC2_IRQn }
 

@@ -20,6 +20,7 @@
 #include <mcu/mmc.h>
 #include "mmc_local.h"
 
+//STM32H7 has built in DMA inside the MMC -- DMA is automatic
 #if MCU_SDIO_PORTS > 0 && defined MMC_TypeDef
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(mmc_dma, MMC_VERSION, MMC_IOC_IDENT_CHAR, I_MCU_TOTAL + I_SDIO_TOTAL, mcu_mmc_dma_getcid, mcu_mmc_dma_getcsd, mcu_mmc_dma_getstatus)
@@ -33,7 +34,7 @@ int mcu_mmc_dma_open(const devfs_handle_t * handle){
 
 int mcu_mmc_dma_close(const devfs_handle_t * handle){
 
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 
 	if( local->ref_count == 1 ){
 		//disable the DMA
@@ -61,7 +62,7 @@ int mcu_mmc_dma_getinfo(const devfs_handle_t * handle, void * ctl){
 
 
 int configure_dma(const devfs_handle_t * handle){
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 
 	const stm32_mmc_dma_config_t * config = handle->config;
 	if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
@@ -87,7 +88,7 @@ int mcu_mmc_dma_setattr(const devfs_handle_t * handle, void * ctl){
 	if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
 	u32 o_flags = attr->o_flags;
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 
 	if( o_flags & MMC_FLAG_SET_INTERFACE ){
 
@@ -99,23 +100,6 @@ int mcu_mmc_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
 		}
 
-#if 0
-		const stm32_mmc_dma_config_t * config = handle->config;
-		if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
-
-		stm32_dma_channel_t * rx_channel = stm32_dma_setattr(&config->dma_config.rx);
-		if( rx_channel == 0 ){
-			return SYSFS_SET_RETURN(EIO);
-		}
-
-		stm32_dma_channel_t * tx_channel = stm32_dma_setattr(&config->dma_config.tx);
-		if( tx_channel == 0 ){
-			return SYSFS_SET_RETURN(EIO);
-		}
-
-		__HAL_LINKDMA((&local->hal_handle), hdmatx, tx_channel->handle);
-		__HAL_LINKDMA((&local->hal_handle), hdmarx, rx_channel->handle);
-#endif
 	}
 
 	return mmc_local_setattr(handle, ctl);
@@ -140,7 +124,7 @@ int mcu_mmc_dma_getstatus(const devfs_handle_t * handle, void * ctl){
 
 
 int mcu_mmc_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
 	int result;
@@ -174,7 +158,7 @@ int mcu_mmc_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 }
 
 int mcu_mmc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 	int hal_result;
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

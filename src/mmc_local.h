@@ -42,7 +42,7 @@ enum {
 
 extern SDIO_TypeDef * const mmc_regs[MCU_SDIO_PORTS];
 extern const int mmc_irqs[MCU_SDIO_PORTS];
-extern mmc_local_t mmc_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
+extern mmc_local_t m_mmc_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 
 int mmc_local_open(const devfs_handle_t * handle);
 int mmc_local_close(const devfs_handle_t * handle);

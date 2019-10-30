@@ -23,18 +23,29 @@
 
 SDIO_TypeDef * const mmc_regs[MCU_SDIO_PORTS] = MCU_SDIO_REGS;
 const int mmc_irqs[MCU_SDIO_PORTS] = MCU_SDIO_IRQS;
-mmc_local_t mmc_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
+mmc_local_t m_mmc_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
 
 int mmc_local_open(const devfs_handle_t * handle){
-	const u32 port = handle->port;
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
+
 	if( port < MCU_SDIO_PORTS ){
 		if ( local->ref_count == 0 ){
 			//turn on RCC clock
 			switch(port){
 				case 0:
+#if defined __HAL_RCC_SDIO_CLK_ENABLE
 					__HAL_RCC_SDIO_CLK_ENABLE();
+#endif
+#if defined __HAL_RCC_SDMMC1_CLK_ENABLE
+					__HAL_RCC_SDMMC1_CLK_ENABLE();
+#endif
 					break;
+				case 1:
+#if defined __HAL_RCC_SDMMC2_CLK_ENABLE
+					__HAL_RCC_SDMMC2_CLK_ENABLE();
+#endif
+					break;
+
 			}
 			local->transfer_handler.read = NULL;
 			local->transfer_handler.write = NULL;
@@ -47,18 +58,28 @@ int mmc_local_open(const devfs_handle_t * handle){
 }
 
 int mmc_local_close(const devfs_handle_t * handle){
-	const u32 port = handle->port;
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
+
 	if( local->ref_count > 0 ){
 		//do the opposite of mmc_local_open() -- ref_count is zero -- turn off interrupt
 		if( local->ref_count == 1 ){
 			HAL_MMC_DeInit(&local->hal_handle);
-
 			switch(port){
 				case 0:
+#if defined __HAL_RCC_SDIO_CLK_DISABLE
 					__HAL_RCC_SDIO_CLK_DISABLE();
+#endif
+#if defined __HAL_RCC_SDMMC1_CLK_DISABLE
+					__HAL_RCC_SDMMC1_CLK_DISABLE();
+#endif
+					break;
+				case 1:
+#if defined __HAL_RCC_SDMMC2_CLK_DISABLE
+					__HAL_RCC_SDMMC2_CLK_DISABLE();
+#endif
 					break;
 			}
+
 			local->transfer_handler.read = NULL;
 			local->transfer_handler.write = NULL;
 			local->hal_handle.Instance = 0;
@@ -72,7 +93,7 @@ int mmc_local_close(const devfs_handle_t * handle){
 
 int mmc_local_getinfo(const devfs_handle_t * handle, void * ctl){
 	mmc_info_t * info = ctl;
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 	//const u32 port = handle->port;
 
 	//set flags that are supported by this driver
@@ -96,7 +117,7 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 	const mmc_attr_t * attr = mcu_select_attr(handle, ctl);
 	if( attr == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 
 	u32 o_flags = attr->o_flags;
 
@@ -115,10 +136,12 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 		//SDIO_CLOCK_BYPASS_DISABLE
 		//SDIO_CLOCK_BYPASS_ENABLE
+#if defined SDIO_CLOCK_BYPASS_DISABLE
 		local->hal_handle.Init.ClockBypass = SDIO_CLOCK_BYPASS_DISABLE;
 		if( o_flags & MMC_FLAG_IS_CLOCK_BYPASS_ENABLED ){
 			local->hal_handle.Init.ClockBypass = SDIO_CLOCK_BYPASS_ENABLE;
 		}
+#endif
 
 		//SDIO_CLOCK_POWER_SAVE_DISABLE
 		//SDIO_CLOCK_POWER_SAVE_ENABLE
@@ -204,7 +227,7 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 int mmc_local_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = ctl;
 	const u32 port = handle->port;
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 
 	if( action->handler.callback == 0 ){
 		if( action->o_events & (MCU_EVENT_FLAG_DATA_READY|MCU_EVENT_FLAG_WRITE_COMPLETE) ){
@@ -229,7 +252,7 @@ int mmc_local_setaction(const devfs_handle_t * handle, void * ctl){
 }
 
 int mmc_local_getcid(const devfs_handle_t * handle, void * ctl){
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 	if( HAL_MMC_GetCardCID(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
@@ -239,7 +262,7 @@ int mmc_local_getcid(const devfs_handle_t * handle, void * ctl){
 }
 
 int mmc_local_getcsd(const devfs_handle_t * handle, void * ctl){
-	mmc_local_t * local = mmc_local + handle->port;
+	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 	if( HAL_MMC_GetCardCSD(&local->hal_handle, ctl) == HAL_OK ){
 		return SYSFS_RETURN_SUCCESS;
 	}
@@ -268,7 +291,11 @@ void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc){
 	mmc_local_t * local = (mmc_local_t *)hmmc;
 	//mcu_debug_log_warning(MCU_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX 0x%lX", hmmc->ErrorCode, hmmc->hdmatx->ErrorCode, hmmc->hdmarx->ErrorCode);
 	if( hmmc->ErrorCode ){
-		mcu_debug_log_warning(MCU_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX 0x%lX", hmmc->ErrorCode, hmmc->hdmatx->ErrorCode, hmmc->hdmarx->ErrorCode);
+		mcu_debug_log_warning(
+					MCU_DEBUG_DEVICE,
+					"MMC Error? 0x%lX",
+					hmmc->ErrorCode
+					);
 		devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR);
 	}
 }
