@@ -226,7 +226,6 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 int mmc_local_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = ctl;
-	const u32 port = handle->port;
 	DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 
 	if( action->handler.callback == 0 ){
@@ -310,7 +309,7 @@ void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc){
 //mmc actually uses the SDIO -- doesn't have it's own interrupt
 void mcu_core_sdio_isr(){
 	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "MMC IRQ");
-	HAL_MMC_IRQHandler(&mmc_local[0].hal_handle);
+	HAL_MMC_IRQHandler(&m_mmc_local[0].hal_handle);
 }
 
 
