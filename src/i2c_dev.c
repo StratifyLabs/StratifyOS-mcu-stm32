@@ -224,9 +224,12 @@ int mcu_i2c_setattr(const devfs_handle_t * handle, void * ctl){
 
 
 		//force a start and stop condition to clear the busy bit
-		pin_assignment = mcu_select_pin_assignment(&attr->pin_assignment,
-																 MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
-																 MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t));
+		pin_assignment = mcu_select_pin_assignment(
+					&attr->pin_assignment,
+					MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
+					MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t)
+					);
+
 		memcpy(&local->pin_assignment, pin_assignment, sizeof(i2c_pin_assignment_t));
 		if( (local->pin_assignment.scl.port != 0xff) &&
 			 (local->pin_assignment.sda.port != 0xff)
@@ -682,19 +685,23 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t * i2c){
 	// 12. Configure the SCL and SDA I/Os as Alternate function Open-Drain.
 
 
-	hal_set_alternate_pin_function(i2c->pin_assignment.scl,
-											 CORE_PERIPH_I2C,
-											 port,
-											 GPIO_MODE_AF_OD,
-											 GPIO_SPEED_FREQ_HIGH,
-											 GPIO_PULLUP);
+	hal_set_alternate_pin_function(
+				i2c->pin_assignment.scl,
+				CORE_PERIPH_I2C,
+				port,
+				GPIO_MODE_AF_OD,
+				GPIO_SPEED_FREQ_HIGH,
+				GPIO_PULLUP
+				);
 
-	hal_set_alternate_pin_function(i2c->pin_assignment.sda,
-											 CORE_PERIPH_I2C,
-											 port,
-											 GPIO_MODE_AF_OD,
-											 GPIO_SPEED_FREQ_HIGH,
-											 GPIO_PULLUP);
+	hal_set_alternate_pin_function(
+				i2c->pin_assignment.sda,
+				CORE_PERIPH_I2C,
+				port,
+				GPIO_MODE_AF_OD,
+				GPIO_SPEED_FREQ_HIGH,
+				GPIO_PULLUP
+				);
 
 
 

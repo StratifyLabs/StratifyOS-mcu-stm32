@@ -73,7 +73,7 @@ int hal_set_alternate_pin_function(mcu_pin_t pin, core_periph_t function, int pe
 	GPIO_InitStruct.Mode = mode;
 	GPIO_InitStruct.Pull = pull;
 	GPIO_InitStruct.Speed = speed;
-    GPIO_InitStruct.Alternate = alternate_function;
+	GPIO_InitStruct.Alternate = alternate_function;
 	HAL_GPIO_Init(gpio_regs, &GPIO_InitStruct);
 	return 0;
 }
