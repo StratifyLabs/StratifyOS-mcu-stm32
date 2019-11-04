@@ -695,13 +695,13 @@ typedef struct
                                              SDMMC_CMD_CPSMEN   | SDMMC_CMD_CMDSUSPEND))
 
 /* SDMMC Initialization Frequency (400KHz max) for Peripheral CLK 200MHz*/
-#define SDMMC_INIT_CLK_DIV ((uint8_t)0xFA)
+#define SDMMC_INIT_CLK_DIV (HAL_RCC_GetHCLKFreq()/400000UL-1)
 
 /* SDMMC Default Speed Frequency (25Mhz max) for Peripheral CLK 200MHz*/
-#define SDMMC_NSpeed_CLK_DIV ((uint8_t)0x4)
+#define SDMMC_NSpeed_CLK_DIV (HAL_RCC_GetHCLKFreq()/25000000UL-1)
 
 /* SDMMC High Speed Frequency (50Mhz max) for Peripheral CLK 200MHz*/
-#define SDMMC_HSpeed_CLK_DIV ((uint8_t)0x2)
+#define SDMMC_HSpeed_CLK_DIV (HAL_RCC_GetHCLKFreq()/50000000UL-1)
 /**
   * @}
   */

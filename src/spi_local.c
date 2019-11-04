@@ -237,6 +237,18 @@ int spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 		local->hal_handle.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
 		local->hal_handle.Init.CRCPolynomial = 10;
 
+#if MCU_SPI_API > 0
+		local->hal_handle.Init.CRCLength = 0;
+		local->hal_handle.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+		local->hal_handle.Init.NSSPolarity = SPI_NSS_POLARITY_LOW;
+		local->hal_handle.Init.FifoThreshold = SPI_FIFO_THRESHOLD_08DATA;
+		local->hal_handle.Init.MasterSSIdleness = SPI_MASTER_SS_IDLENESS_01CYCLE;
+		local->hal_handle.Init.MasterInterDataIdleness = SPI_MASTER_INTERDATA_IDLENESS_01CYCLE;
+		local->hal_handle.Init.MasterReceiverAutoSusp = SPI_MASTER_RX_AUTOSUSP_DISABLE;
+		local->hal_handle.Init.MasterKeepIOState = SPI_MASTER_KEEP_IO_STATE_ENABLE;
+		local->hal_handle.Init.IOSwap = SPI_IO_SWAP_DISABLE;
+#endif
+
 		if( mcu_set_pin_assignment(
 				 &(attr->pin_assignment),
 				 MCU_CONFIG_PIN_ASSIGNMENT(spi_config_t, handle),
@@ -248,13 +260,15 @@ int spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 		if( HAL_SPI_Init(&local->hal_handle) != HAL_OK ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
+
 	}
 
-	if( o_flags & SPI_FLAG_IS_FULL_DUPLEX ){
+	if( o_flags & (SPI_FLAG_SET_FULL_DUPLEX) ){
 		local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
-	} else {
+	} else if( o_flags & SPI_FLAG_SET_HALF_DUPLEX){
 		local->o_flags &= ~SPI_LOCAL_IS_FULL_DUPLEX;
 	}
+
 
 	return 0;
 }

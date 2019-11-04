@@ -164,9 +164,18 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 		//must be <= 255
 		local->hal_handle.Init.ClockDiv = 0;
 		if( attr->freq && (attr->freq < 25000000UL) ){
+#if defined STM32H7
+			u32 divider_value = HAL_RCC_GetHCLKFreq() / attr->freq;
+			if( divider_value > 0 ){
+				local->hal_handle.Init.ClockDiv = divider_value-1;
+			}
+#else
+			//this is probably wrong -- should be HCLK like above, need to verify
 			u32 divider_value = 25000000UL / attr->freq;
 			local->hal_handle.Init.ClockDiv = divider_value-1;
+#endif
 		}
+
 
 		//pin assignments
 		if( mcu_set_pin_assignment(
@@ -185,9 +194,16 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 		//SDIO_BUS_WIDE_4B
 		//SDIO_BUS_WIDE_8B -- not compatible with SDIO
 		if( o_flags & SDIO_FLAG_IS_BUS_WIDTH_4 ){
-			HAL_SD_ConfigWideBusOperation(&local->hal_handle, SDIO_BUS_WIDE_4B);
+			if( HAL_SD_ConfigWideBusOperation(
+					 &local->hal_handle,
+					 SDIO_BUS_WIDE_4B
+					 ) != HAL_OK ){
+				mcu_debug_log_error(
+							MCU_DEBUG_DEVICE,
+							"failed to config 4 bit width"
+							);
+			}
 		}
-
 	}
 
 	if( o_flags & SDIO_FLAG_GET_CARD_STATE ){

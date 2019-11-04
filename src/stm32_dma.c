@@ -183,7 +183,9 @@ stm32_dma_channel_t * stm32_dma_setattr(
 				config->stream_number
 				);
 
-	if( channel == 0 ){ return 0; }
+	if( channel == 0 ){
+		return 0;
+	}
 	channel->handle.Instance =
 			stm32_dma_get_stream_instance(
 				config->dma_number,
@@ -193,7 +195,6 @@ stm32_dma_channel_t * stm32_dma_setattr(
 #if defined DMA_REQUEST_0 || defined DMA_REQUEST_MEM2MEM
 	channel->handle.Init.Request =
 			stm32_dma_decode_channel(config->channel_number);
-	mcu_debug_printf("Init.request is %d\n", channel->handle.Init.Request);
 #elif defined DMA_CHANNEL_0
 	channel->handle.Init.Channel =
 			stm32_dma_decode_channel(config->channel_number);

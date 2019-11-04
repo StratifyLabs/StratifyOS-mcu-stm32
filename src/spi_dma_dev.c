@@ -133,7 +133,8 @@ int mcu_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 					&local->hal_handle,
 					async->buf,
 					local->transfer_handler.read->buf,
-					async->nbyte);
+					async->nbyte
+					);
 
 	} else {
 		ret = HAL_SPI_Transmit_DMA(&local->hal_handle, async->buf, async->nbyte);

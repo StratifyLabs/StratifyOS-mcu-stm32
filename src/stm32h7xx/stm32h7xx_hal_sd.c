@@ -473,7 +473,7 @@ HAL_StatusTypeDef HAL_SD_InitCard(SD_HandleTypeDef *hsd)
   Init.ClockPowerSave      = SDMMC_CLOCK_POWER_SAVE_DISABLE;
   Init.BusWide             = SDMMC_BUS_WIDE_1B;
   Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-  Init.ClockDiv            = SDMMC_INIT_CLK_DIV;
+  Init.ClockDiv            = SDMMC_INIT_CLK_DIV; //needs to be AHB1 / 400000
 
 #if (USE_SD_TRANSCEIVER != 0U) || defined (USE_SD_DIRPOL)
   if (hsd->Init.TranceiverPresent == SDMMC_TRANSCEIVER_PRESENT)
@@ -2491,6 +2491,7 @@ HAL_StatusTypeDef HAL_SD_ConfigWideBusOperation(SD_HandleTypeDef *hsd, uint32_t 
       /* No High speed SD card, Max Frequency = 25Mhz */
       Init.ClockDiv = SDMMC_NSpeed_CLK_DIV;
     }
+
 
     (void)SDMMC_Init(hsd->Instance, Init);
   }
