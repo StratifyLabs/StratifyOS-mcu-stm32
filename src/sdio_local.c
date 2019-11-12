@@ -171,8 +171,13 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 			}
 #else
 			//this is probably wrong -- should be HCLK like above, need to verify
-			u32 divider_value = 25000000UL / attr->freq;
-			local->hal_handle.Init.ClockDiv = divider_value-1;
+			u32 divider_value = 48000000UL / attr->freq;
+			if( divider_value > 2 ){
+				divider_value -= 2;
+			} else {
+				divider_value = 0;
+			}
+			local->hal_handle.Init.ClockDiv = divider_value;
 #endif
 		}
 

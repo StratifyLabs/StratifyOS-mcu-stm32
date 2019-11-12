@@ -24,11 +24,17 @@
 
 #define MCU_NO_HARD_FAULT 1
 
-#define MCU_ADC_API 0
-#define MCU_ADC_PORTS 0
+#define MCU_ADC_API 1
+#define MCU_ADC_PORTS 3
 #define MCU_ADC_REGS { ADC1, ADC2, ADC3 }
-#define MCU_ADC_IRQS { ADC_IRQn, ADC_IRQn, ADC_IRQn }
+#define MCU_ADC_IRQS { ADC_IRQn, ADC_IRQn, ADC3_IRQn }
 #define MCU_ADC_CHANNELS 21
+
+#define MCU_DAC_API 1
+#define MCU_DAC_PORTS 1
+#define MCU_DAC_REGS { DAC1 }
+#define MCU_DAC_IRQS { TIM6_DAC_IRQn }
+#define MCU_DAC_CHANNELS 2
 
 #define MCU_ENET_PORTS 1
 #define MCU_FLASH_PORTS 1

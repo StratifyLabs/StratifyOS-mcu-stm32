@@ -34,8 +34,7 @@
 #define MCU_DAC_PORTS 2
 #define MCU_DAC_REGS { DAC, DAC }
 #define MCU_DAC_IRQS { TIM6_DAC_IRQn, TIM6_DAC_IRQn }
-#define MCU_DAC_PORTS 2
-
+#define MCU_DAC_CHANNELS 2
 
 #define MCU_ENET_PORTS 1
 #define MCU_FLASH_PORTS 1

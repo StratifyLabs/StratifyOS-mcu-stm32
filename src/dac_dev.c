@@ -26,13 +26,13 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(dac, DAC_VERSION, DAC_IOC_IDENT_CHAR, I_MCU_TOTA
 
 int mcu_dac_open(const devfs_handle_t * handle){
     int result;
-    dac_local[handle->port].o_flags = 0;
+    m_dac_local[handle->port].o_flags = 0;
 
 
     result = dac_local_open(handle);
     if( result < 0 ){ return result; }
 
-    cortexm_enable_irq(dac_irqs[handle->port]);
+    cortexm_enable_irq(m_dac_irqs[handle->port]);
 
     return SYSFS_RETURN_SUCCESS;
 }
@@ -43,8 +43,8 @@ int mcu_dac_close(const devfs_handle_t * handle){
     result = dac_local_close(handle);
     if( result < 0 ){ return result; }
 
-    if( dac_local[handle->port].ref_count == 0 ){
-        cortexm_enable_irq(dac_irqs[handle->port]);
+    if( m_dac_local[handle->port].ref_count == 0 ){
+        cortexm_enable_irq(m_dac_irqs[handle->port]);
     }
 
     return SYSFS_RETURN_SUCCESS;
@@ -63,7 +63,7 @@ int mcu_dac_setattr(const devfs_handle_t * handle, void * ctl){
 int mcu_dac_setaction(const devfs_handle_t * handle, void * ctl){
     mcu_action_t * action = (mcu_action_t*)ctl;
     int port = handle->port;
-    dac_local_t * adc = dac_local + port;
+    dac_local_t * adc = m_dac_local + port;
 
     if( action->handler.callback == 0 ){
         //if there is an ongoing operation -- cancel it
@@ -73,7 +73,7 @@ int mcu_dac_setaction(const devfs_handle_t * handle, void * ctl){
         }
     }
 
-    cortexm_set_irq_priority(dac_irqs[port], action->prio, action->o_events);
+    cortexm_set_irq_priority(m_dac_irqs[port], action->prio, action->o_events);
     return 0;
 }
 

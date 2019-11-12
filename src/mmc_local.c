@@ -163,8 +163,13 @@ int mmc_local_setattr(const devfs_handle_t * handle, void * ctl){
 		//must be <= 255
 		local->hal_handle.Init.ClockDiv = 0;
 		if( attr->freq && (attr->freq < 25000000UL) ){
-			u32 divider_value = 25000000UL / attr->freq;
-			local->hal_handle.Init.ClockDiv = divider_value-1;
+			u32 divider_value = 48000000UL / attr->freq;
+			if( divider_value > 2 ){
+				divider_value -= 2;
+			} else {
+				divider_value = 0;
+			}
+			local->hal_handle.Init.ClockDiv = divider_value;
 		}
 
 		//pin assignments

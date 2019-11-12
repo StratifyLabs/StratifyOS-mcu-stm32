@@ -55,6 +55,8 @@ int adc_local_open(const devfs_handle_t * handle){
 				__HAL_RCC_ADC1_CLK_ENABLE();
 #elif defined __HAL_RCC_ADC_CLK_ENABLE
 				__HAL_RCC_ADC_CLK_ENABLE();
+#elif defined __HAL_RCC_ADC12_CLK_ENABLE
+				__HAL_RCC_ADC12_CLK_ENABLE();
 #else
 #error("__HAL_RCC_ADC_CLK_ENABLE is not defined")
 #endif
@@ -62,8 +64,11 @@ int adc_local_open(const devfs_handle_t * handle){
 #if defined __HAL_RCC_ADC2_CLK_ENABLE
 			case 1:
 				__HAL_RCC_ADC2_CLK_ENABLE();
-				break;
+#elif defined __HAL_RCC_ADC12_CLK_ENABLE
+				__HAL_RCC_ADC12_CLK_ENABLE();
+#else
 #endif
+				break;
 #if defined __HAL_RCC_ADC3_CLK_ENABLE
 			case 2:
 				__HAL_RCC_ADC3_CLK_ENABLE();
@@ -95,20 +100,24 @@ int adc_local_close(const devfs_handle_t * handle){
 					__HAL_RCC_ADC1_CLK_DISABLE();
 #elif defined __HAL_RCC_ADC_CLK_DISABLE
 					__HAL_RCC_ADC_CLK_DISABLE();
+#elif defined __HAL_RCC_ADC12_CLK_DISABLE
+					__HAL_RCC_ADC12_CLK_DISABLE();
 #else
 #error("__HAL_RCC_ADC_CLK_DISABLE not defined")
 #endif
 					break;
-#if defined __HAL_RCC_ADC2_CLK_DISABLE
 				case 1:
+#if defined __HAL_RCC_ADC2_CLK_DISABLE
 					__HAL_RCC_ADC2_CLK_DISABLE();
-					break;
+#elif defined __HAL_RCC_ADC12_CLK_DISABLE
+					__HAL_RCC_ADC12_CLK_DISABLE();
 #endif
+					break;
 #if defined __HAL_RCC_ADC3_CLK_DISABLE
 				case 2:
 					__HAL_RCC_ADC3_CLK_DISABLE();
-					break;
 #endif
+					break;
 #if defined __HAL_RCC_ADC4_CLK_DISABLE
 				case 3:
 					__HAL_RCC_ADC4_CLK_DISABLE();
@@ -180,7 +189,11 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 	if( o_flags & ADC_FLAG_SET_CONVERTER ){
 
+#if MCU_ADC_API == 0
 		local->hal_handle.Init.DMAContinuousRequests = DISABLE;
+#else
+
+#endif
 		local->hal_handle.Init.ContinuousConvMode = DISABLE;
 		local->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
 		//scan mode only works with DMA (see adc_dma_dev.c for options)
@@ -196,11 +209,21 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 			config = handle->config;
 			if( config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
 
+#if MCU_ADC_API == 0
 			//ENABLE or DISABLE (if ENABLE DMA must be in circular buffer mode)
 			if( config->dma_config.o_flags & STM32_DMA_FLAG_IS_CIRCULAR ){
 				local->hal_handle.Init.DMAContinuousRequests = ENABLE;
 			}
 
+			//ADC_DATAALIGN_RIGHT
+			//ADC_DATAALIGN_LEFT
+			local->hal_handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+			if( o_flags & ADC_FLAG_IS_LEFT_JUSTIFIED ){
+				local->hal_handle.Init.DataAlign = ADC_DATAALIGN_LEFT;
+			}
+#else
+
+#endif
 			if( o_flags & ADC_FLAG_IS_SCAN_MODE ){
 				//up to 1 to 16 conversions
 				if( attr->channel_count && attr->channel_count <= 16 ){
@@ -233,20 +256,26 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 		//ADC_RESOLUTION_8B
 		//ADC_RESOLUTION_6B
 		local->hal_handle.Init.Resolution = ADC_RESOLUTION_12B; //default is max resolution
+#if defined ADC_RESOLUTION_6B
 		if( attr->width == 6 ){
 			local->hal_handle.Init.Resolution = ADC_RESOLUTION_6B;
-		} else if( attr->width == 8 ){
-			local->hal_handle.Init.Resolution = ADC_RESOLUTION_8B;
-		} else if( attr->width == 10 ){
-			local->hal_handle.Init.Resolution = ADC_RESOLUTION_10B;
-		}
-
-		//ADC_DATAALIGN_RIGHT
-		//ADC_DATAALIGN_LEFT
-		local->hal_handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-		if( o_flags & ADC_FLAG_IS_LEFT_JUSTIFIED ){
-			local->hal_handle.Init.DataAlign = ADC_DATAALIGN_LEFT;
-		}
+		} else
+#endif
+			if( attr->width == 8 ){
+				local->hal_handle.Init.Resolution = ADC_RESOLUTION_8B;
+			} else if( attr->width == 10 ){
+				local->hal_handle.Init.Resolution = ADC_RESOLUTION_10B;
+			}
+#if defined ADC_RESOLUTION_14B
+			else if( attr->width == 14 ){
+				local->hal_handle.Init.Resolution = ADC_RESOLUTION_14B;
+			}
+#endif
+#if defined ADC_RESOLUTION_16B
+			else if( attr->width == 16 ){
+				local->hal_handle.Init.Resolution = ADC_RESOLUTION_16B;
+			}
+#endif
 
 		//ADC_SOFTWARE_START
 		//ADC_EXTERNALTRIGCONV_T1_CC1 0.0
@@ -273,9 +302,15 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 			local->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
 			if( attr->trigger.port == 0 ){
 				switch(attr->trigger.pin){
+#if defined ADC_EXTERNALTRIGCONV_T1_CC1
 					case 1: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC1; break;
+#endif
+#if defined ADC_EXTERNALTRIGCONV_T1_CC2
 					case 2: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC2; break;
+#endif
+#if defined ADC_EXTERNALTRIGCONV_T1_CC3
 					case 3: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC3; break;
+#endif
 					default: return SYSFS_SET_RETURN(EINVAL);
 				}
 #if defined ADC_EXTERNALTRIGCONV_T2_TRGO
@@ -302,7 +337,9 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 			} else if( attr->trigger.port == 3 ){
 				switch(attr->trigger.pin){
+#if defined ADC_EXTERNALTRIGCONV_T4_CC4
 					case 4: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T4_CC4; break;
+#endif
 					default: return SYSFS_SET_RETURN(EINVAL);
 				}
 #if defined ADC_EXTERNALTRIGCONV_T5_CC1
@@ -316,7 +353,9 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 			} else if( attr->trigger.port == 7 ){
 				switch(attr->trigger.pin){
+#if defined ADC_EXTERNALTRIGCONV_T8_TRGO
 					case 0: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T8_TRGO; break;
+#endif
 #if defined ADC_EXTERNALTRIGCONV_T8_CC1
 					case 1: local->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T8_CC1; break;
 #endif
@@ -372,6 +411,7 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 #if defined STM32L4
 
 #else
+#if MCU_ADC_API == 0
 		channel_config.SamplingTime = ADC_SAMPLETIME_3CYCLES;
 		if( attr->sampling_time >= 480 ){
 			channel_config.SamplingTime = ADC_SAMPLETIME_480CYCLES;
@@ -388,6 +428,24 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 		} else if( attr->sampling_time >= 15 ){
 			channel_config.SamplingTime = ADC_SAMPLETIME_15CYCLES;
 		}
+#else
+		channel_config.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+		if( attr->sampling_time >= 810 ){
+			channel_config.SamplingTime = ADC_SAMPLETIME_810CYCLES_5;
+		} else if( attr->sampling_time >= 387 ){
+			channel_config.SamplingTime = ADC_SAMPLETIME_387CYCLES_5;
+		} else if( attr->sampling_time >= 64 ){
+			channel_config.SamplingTime = ADC_SAMPLETIME_64CYCLES_5;
+		} else if( attr->sampling_time >= 32 ){
+			channel_config.SamplingTime = ADC_SAMPLETIME_32CYCLES_5;
+		} else if( attr->sampling_time >= 16 ){
+			channel_config.SamplingTime = ADC_SAMPLETIME_16CYCLES_5;
+		} else if( attr->sampling_time >= 8 ){
+			channel_config.SamplingTime = ADC_SAMPLETIME_8CYCLES_5;
+		} else if( attr->sampling_time >= 2 ){
+			channel_config.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+		}
+#endif
 #endif
 
 		if( HAL_ADC_ConfigChannel(&local->hal_handle, &channel_config) != HAL_OK ){

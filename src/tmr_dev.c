@@ -147,6 +147,21 @@ int mcu_tmr_open(const devfs_handle_t * handle){
 				__HAL_RCC_TIM14_CLK_ENABLE();
 				break;
 #endif
+#if defined TIM15
+			case 14:
+				__HAL_RCC_TIM15_CLK_ENABLE();
+				break;
+#endif
+#if defined TIM16
+			case 15:
+				__HAL_RCC_TIM16_CLK_ENABLE();
+				break;
+#endif
+#if defined TIM17
+			case 16:
+				__HAL_RCC_TIM17_CLK_ENABLE();
+				break;
+#endif
 		}
 		if( tmr_irqs[port] != (u8)-1 ){
 			cortexm_enable_irq(tmr_irqs[port]);
@@ -235,6 +250,21 @@ int mcu_tmr_close(const devfs_handle_t * handle){
 					__HAL_RCC_TIM14_CLK_DISABLE();
 					break;
 #endif
+#if defined TIM15
+				case 14:
+					__HAL_RCC_TIM15_CLK_DISABLE();
+					break;
+#endif
+#if defined TIM16
+				case 15:
+					__HAL_RCC_TIM16_CLK_DISABLE();
+					break;
+#endif
+#if defined TIM17
+				case 16:
+					__HAL_RCC_TIM17_CLK_DISABLE();
+					break;
+#endif
 			}
 			m_tmr_local[port].ref_count--;
 		}
@@ -300,12 +330,13 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 
 			u32 pclk;
 			if( (((u32)m_tmr_local[port].hal_handle.Instance) & ~0xFFFF) == APB1PERIPH_BASE ){
-				pclk = HAL_RCC_GetPCLK1Freq(); //timer clocks are double pclks
+				pclk = HAL_RCC_GetPCLK1Freq();
 			} else {
 				pclk = HAL_RCC_GetPCLK2Freq();
 			}
 
 			if( pclk <= mcu_board_config.core_cpu_freq/2 ){
+				//timer clocks are double pclks
 				pclk = pclk * 2;
 			}
 
@@ -330,6 +361,11 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 				m_tmr_local[port].hal_handle.Init.Period = (u32)-1; //set to the max
 			}
 			m_tmr_local[port].hal_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+
+#if defined TIM_AUTORELOAD_PRELOAD_DISABLE
+			m_tmr_local[port].hal_handle.Init.RepetitionCounter = 0x00;
+			m_tmr_local[port].hal_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+#endif
 
 			if( HAL_TIM_Base_Init(&m_tmr_local[port].hal_handle) != HAL_OK ){
 				return SYSFS_SET_RETURN(EIO);
@@ -452,6 +488,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 				if( ret != HAL_OK ){ return SYSFS_SET_RETURN(EIO); }
 				ret = HAL_TIM_IC_Start(&m_tmr_local[port].hal_handle, tim_channel);
 				break;
+
 			case CHANNEL_TYPE_NONE:
 				HAL_TIM_OC_Stop(&m_tmr_local[port].hal_handle, tim_channel);
 				HAL_TIM_PWM_Stop(&m_tmr_local[port].hal_handle, tim_channel);
@@ -707,9 +744,9 @@ void mcu_core_tim5_isr(){ tmr_isr(4); }
 
 void mcu_core_dac_isr() MCU_WEAK;
 void mcu_core_dac_isr(){}
-//TIM6 is shared with the DAC -- how is that handled?
 #if defined TIM6
 void mcu_core_tim6_dac_isr(){
+	//TIM6 is shared with the DAC
 	mcu_core_dac_isr();
 	if( m_tmr_local[5].hal_handle.Instance != 0 ){
 		tmr_isr(5);
@@ -747,6 +784,18 @@ void mcu_core_tim8_up_tim13_isr(){ tmr_isr(12); }
 
 #if defined TIM14
 void mcu_core_tim8_trg_com_tim14_isr(){ tmr_isr(13); }
+#endif
+
+#if defined TIM15
+void mcu_core_tim15_isr(){ tmr_isr(14); }
+#endif
+
+#if defined TIM16
+void mcu_core_tim16_isr(){ tmr_isr(15); }
+#endif
+
+#if defined TIM17
+void mcu_core_tim17_isr(){ tmr_isr(16); }
 #endif
 
 #endif
