@@ -160,7 +160,8 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 					&(attr->pin_assignment),
 					MCU_CONFIG_PIN_ASSIGNMENT(usb_config_t, handle),
 					MCU_PIN_ASSIGNMENT_COUNT(usb_pin_assignment_t),
-					CORE_PERIPH_USB, port, 0, 0, 0);
+					CORE_PERIPH_USB, port, 0, 0, 0
+					);
 
 		if( result < 0 ){ return result; }
 
@@ -309,7 +310,11 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 
 void usb_connect(u32 port, u32 con){
 	if( con ){
+		//what is this delay waiting for
+		//seems to be needed on STM32H7 between setattr and start
+		cortexm_delay_ms(1);
 		HAL_PCD_Start(&m_usb_local[port].hal_handle);
+
 #if defined STM32H7
 		HAL_PWREx_EnableUSBVoltageDetector();
 #endif
@@ -716,7 +721,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 	usb_local_t * usb = (usb_local_t *)hpcd;
 	u32 mps = mcu_board_config.usb_max_packet_zero;
 	usb->connected = 1;
-
+	//MCU_DEBUG_LINE_TRACE();
 	usb->rx_buffer_used = mps;
 	for(i=0; i < DEV_USB_LOGICAL_ENDPOINT_COUNT; i++){
 		usb->rx_buffer_offset[i] = 0;

@@ -17,32 +17,19 @@
  *
  */
 
-#include <mcu/debug.h>
-#include <stdbool.h>
-#include "stm32_local.h"
-#include "cortexm/cortexm.h"
-#include "mcu/tmr.h"
-#include "mcu/core.h"
+#include "tmr_local.h"
 
 
-#define NUM_TMRS MCU_TMR_PORTS
-#define NUM_OCS 4
-#define NUM_ICS 4
+#define NUM_OCS MCU_TMR_CHANNELS
+#define NUM_ICS MCU_TMR_CHANNELS
 
-enum {
-	CHANNEL_TYPE_NONE,
-	CHANNEL_TYPE_OUTPUT_COMPARE,
-	CHANNEL_TYPE_INPUT_CAPTURE,
-	CHANNEL_TYPE_PWM
-};
+
 
 #if MCU_TMR_PORTS > 0
 
-static TIM_TypeDef * const tmr_regs_table[NUM_TMRS] = MCU_TMR_REGS;
-static u8 const tmr_irqs[MCU_TMR_PORTS] = MCU_TMR_IRQS;
-static u32 const tmr_channels[4] = {
-	TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4
-};
+TIM_TypeDef * const tmr_regs_table[MCU_TMR_PORTS] = MCU_TMR_REGS;
+u8 const tmr_irqs[MCU_TMR_PORTS] = MCU_TMR_IRQS;
+u32 const tmr_channels[MCU_TMR_CHANNELS] = MCU_TMR_CHANNEL_NAMES;
 
 static u8 decode_hal_channel(u8 channel){
 	switch(channel){
@@ -50,25 +37,23 @@ static u8 decode_hal_channel(u8 channel){
 		case HAL_TIM_ACTIVE_CHANNEL_2: return 1;
 		case HAL_TIM_ACTIVE_CHANNEL_3: return 2;
 		case HAL_TIM_ACTIVE_CHANNEL_4: return 3;
+#if MCU_TMR_API > 0
+		case HAL_TIM_ACTIVE_CHANNEL_5: return 4;
+		case HAL_TIM_ACTIVE_CHANNEL_6: return 5;
+#endif
 	}
 	return 0;
 }
 
-typedef struct MCU_PACK {
-	TIM_HandleTypeDef hal_handle; //must be first
-	mcu_event_handler_t handler[NUM_OCS+NUM_ICS];
-	mcu_event_handler_t period_handler;
-	u8 ref_count;
-} tmr_local_t;
 
-static tmr_local_t m_tmr_local[NUM_TMRS];
+tmr_local_t m_tmr_local[MCU_TMR_PORTS];
 
 static void clear_actions(int port);
 
 static int execute_handler(mcu_event_handler_t * handler, u32 o_events, u32 channel, u32 value);
 
 void clear_actions(int port){
-	memset(m_tmr_local[port].handler, 0, (NUM_OCS+NUM_ICS)*sizeof(mcu_event_handler_t));
+	memset(m_tmr_local[port].handler, 0, sizeof(m_tmr_local[port].handler));
 }
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(tmr, TMR_VERSION, TMR_IOC_IDENT_CHAR, I_MCU_TOTAL + I_TMR_TOTAL, mcu_tmr_setchannel, mcu_tmr_getchannel, mcu_tmr_set, mcu_tmr_get, mcu_tmr_enable, mcu_tmr_disable)
@@ -79,89 +64,26 @@ int mcu_tmr_open(const devfs_handle_t * handle){
 		clear_actions(port);
 		m_tmr_local[port].hal_handle.Instance = tmr_regs_table[port];
 		switch(port){
-			case 0:
-				__HAL_RCC_TIM1_CLK_ENABLE();
-				break;
-#if defined TIM2
-			case 1:
-				__HAL_RCC_TIM2_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM3
-			case 2:
-				__HAL_RCC_TIM3_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM4
-			case 3:
-				__HAL_RCC_TIM4_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM5
-			case 4:
-				__HAL_RCC_TIM5_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM6
-			case 5:
-				__HAL_RCC_TIM6_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM7
-			case 6:
-				__HAL_RCC_TIM7_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM8
-			case 7:
-				__HAL_RCC_TIM8_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM9
-			case 8:
-				__HAL_RCC_TIM9_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM10
-			case 9:
-				__HAL_RCC_TIM10_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM11
-			case 10:
-				__HAL_RCC_TIM11_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM12
-			case 11:
-				__HAL_RCC_TIM12_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM13
-			case 12:
-				__HAL_RCC_TIM13_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM14
-			case 13:
-				__HAL_RCC_TIM14_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM15
-			case 14:
-				__HAL_RCC_TIM15_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM16
-			case 15:
-				__HAL_RCC_TIM16_CLK_ENABLE();
-				break;
-#endif
-#if defined TIM17
-			case 16:
-				__HAL_RCC_TIM17_CLK_ENABLE();
-				break;
-#endif
+			default:
+				return SYSFS_SET_RETURN(EINVAL);
+				TIM1_CASE_CLOCK_ENABLE()
+						TIM2_CASE_CLOCK_ENABLE()
+						TIM3_CASE_CLOCK_ENABLE()
+						TIM4_CASE_CLOCK_ENABLE()
+						TIM5_CASE_CLOCK_ENABLE()
+						TIM6_CASE_CLOCK_ENABLE()
+						TIM7_CASE_CLOCK_ENABLE()
+						TIM8_CASE_CLOCK_ENABLE()
+						TIM9_CASE_CLOCK_ENABLE()
+						TIM10_CASE_CLOCK_ENABLE()
+						TIM11_CASE_CLOCK_ENABLE()
+						TIM12_CASE_CLOCK_ENABLE()
+						TIM13_CASE_CLOCK_ENABLE()
+						TIM14_CASE_CLOCK_ENABLE()
+						TIM15_CASE_CLOCK_ENABLE()
+						TIM16_CASE_CLOCK_ENABLE()
+						TIM17_CASE_CLOCK_ENABLE()
+
 		}
 		if( tmr_irqs[port] != (u8)-1 ){
 			cortexm_enable_irq(tmr_irqs[port]);
@@ -182,89 +104,25 @@ int mcu_tmr_close(const devfs_handle_t * handle){
 				cortexm_disable_irq(tmr_irqs[port]);
 			}
 			switch(port){
-				case 0:
-					__HAL_RCC_TIM1_CLK_DISABLE();
-					break;
-#if defined TIM2
-				case 1:
-					__HAL_RCC_TIM2_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM3
-				case 2:
-					__HAL_RCC_TIM3_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM4
-				case 3:
-					__HAL_RCC_TIM4_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM5
-				case 4:
-					__HAL_RCC_TIM5_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM6
-				case 5:
-					__HAL_RCC_TIM6_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM7
-				case 6:
-					__HAL_RCC_TIM7_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM8
-				case 7:
-					__HAL_RCC_TIM8_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM9
-				case 8:
-					__HAL_RCC_TIM9_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM10
-				case 9:
-					__HAL_RCC_TIM10_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM11
-				case 10:
-					__HAL_RCC_TIM11_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM12
-				case 11:
-					__HAL_RCC_TIM12_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM13
-				case 12:
-					__HAL_RCC_TIM13_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM14
-				case 13:
-					__HAL_RCC_TIM14_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM15
-				case 14:
-					__HAL_RCC_TIM15_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM16
-				case 15:
-					__HAL_RCC_TIM16_CLK_DISABLE();
-					break;
-#endif
-#if defined TIM17
-				case 16:
-					__HAL_RCC_TIM17_CLK_DISABLE();
-					break;
-#endif
+				default:
+					return SYSFS_SET_RETURN(EINVAL);
+					TIM1_CASE_CLOCK_DISABLE()
+							TIM2_CASE_CLOCK_DISABLE()
+							TIM3_CASE_CLOCK_DISABLE()
+							TIM4_CASE_CLOCK_DISABLE()
+							TIM5_CASE_CLOCK_DISABLE()
+							TIM6_CASE_CLOCK_DISABLE()
+							TIM7_CASE_CLOCK_DISABLE()
+							TIM8_CASE_CLOCK_DISABLE()
+							TIM9_CASE_CLOCK_DISABLE()
+							TIM10_CASE_CLOCK_DISABLE()
+							TIM11_CASE_CLOCK_DISABLE()
+							TIM12_CASE_CLOCK_DISABLE()
+							TIM13_CASE_CLOCK_DISABLE()
+							TIM14_CASE_CLOCK_DISABLE()
+							TIM15_CASE_CLOCK_DISABLE()
+							TIM16_CASE_CLOCK_DISABLE()
+							TIM17_CASE_CLOCK_DISABLE()
 			}
 			m_tmr_local[port].ref_count--;
 		}
@@ -422,7 +280,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 		TIM_OC_InitTypeDef init_oc;
 		TIM_IC_InitTypeDef init_ic;
 
-		if( chan >= NUM_OCS ){
+		if( chan >= MCU_TMR_CHANNELS ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
@@ -576,7 +434,7 @@ int mcu_tmr_getchannel(const devfs_handle_t * handle, void * ctl){
 		}
 	} else {
 		chan = req->loc;
-		if ( chan >= NUM_OCS ){
+		if ( chan >= MCU_TMR_CHANNELS ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 	}
@@ -601,7 +459,7 @@ int mcu_tmr_setaction(const devfs_handle_t * handle, void * ctl){
 	o_events = action->o_events;
 	chan = action->channel & ~MCU_CHANNEL_FLAG_IS_INPUT;
 
-	if( chan >= NUM_OCS ){
+	if( chan >= MCU_TMR_CHANNELS ){
 		return SYSFS_SET_RETURN(EINVAL);
 	}
 

@@ -1,4 +1,4 @@
-/* Copyright 2011-2018 Tyler Gilbert;
+/* Copyright 2011-2019 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify

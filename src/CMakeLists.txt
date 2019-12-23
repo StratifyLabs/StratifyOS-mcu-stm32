@@ -65,6 +65,7 @@ set(SOURCES
 	${SOURCES_PREFIX}/sdram_fmc_dev.c
 	${SOURCES_PREFIX}/psram_fmc_dev.c
 	${SOURCES_PREFIX}/tmr_dev.c
+	${SOURCES_PREFIX}/tmr_local.h
 	${SOURCES_PREFIX}/uart_dev.c
 	${SOURCES_PREFIX}/uart_dma_dev.c
 	${SOURCES_PREFIX}/uart_local.c
