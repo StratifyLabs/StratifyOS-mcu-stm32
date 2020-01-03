@@ -341,8 +341,8 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi){
 	//execute the handler
 	spi_local_t * spi = (spi_local_t*)hspi;
 	//mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD DONE %d", hspi->TxXferSize);
-	devfs_execute_write_handler(&spi->transfer_handler, 0, hspi->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
 	devfs_execute_read_handler(&spi->transfer_handler, 0, hspi->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
+	devfs_execute_write_handler(&spi->transfer_handler, 0, hspi->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
 
 }
 
