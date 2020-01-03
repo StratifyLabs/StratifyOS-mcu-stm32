@@ -114,7 +114,6 @@ int mcu_spi_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 	if( local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
 		ret = HAL_OK;
-		local->transfer_handler.read = 0;
 	} else {
 		ret = HAL_SPI_Receive_IT(&local->hal_handle, async->buf, async->nbyte);
 	}
