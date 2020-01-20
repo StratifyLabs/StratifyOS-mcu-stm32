@@ -65,10 +65,9 @@
 #define MCU_I2S_ON_SPI6 0
 
 #define MCU_SAI_API 0
-#define MCU_SAI_PORTS 0
-#define MCU_SAI_REGS { SAI1 }
-#define MCU_SAI_IRQS { SAI1_IRQn }
-
+#define MCU_SAI_PORTS 8
+#define MCU_SAI_REGS { SAI1_Block_A, SAI1_Block_B, SAI2_Block_A, SAI2_Block_B, SAI3_Block_A, SAI3_Block_B, SAI4_Block_A, SAI4_Block_B }
+#define MCU_SAI_IRQS { SAI1_IRQn, SAI2_IRQn, SAI3_IRQn, SAI4_IRQn }
 
 //API 0 uses DMA for SPI API 1 uses MDMA
 #define MCU_QSPI_API 1

@@ -332,12 +332,9 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
 				MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_HIGH);
 
 	if( result ){
-		//restore the callback if the callback requests it -- good for circular DMA only
 		local->transfer_handler.read = async;
 	} else if( local->o_flags & SPI_LOCAL_IS_DMA ){
-		if( local->o_flags & SPI_LOCAL_IS_DMA ){
-			HAL_I2S_DMAPause(hi2s);
-		}
+		HAL_I2S_DMAPause(hi2s);
 	}
 }
 
