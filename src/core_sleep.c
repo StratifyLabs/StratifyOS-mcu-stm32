@@ -24,9 +24,6 @@
 
 
 extern void mcu_set_sleep_mode(int * level);
-#ifdef __lpc17xx__
-extern LPC_GPDMACH_Type * mcu_dma_get_channel(uint32_t chan);
-#endif
 
 int mcu_core_user_sleep(core_sleep_t level){
 
@@ -45,5 +42,5 @@ void mcu_core_prepare_deepsleep(int level){
 }
 
 void mcu_core_recover_deepsleep(int level){
-	
+	mcu_core_initclock(0);
 }

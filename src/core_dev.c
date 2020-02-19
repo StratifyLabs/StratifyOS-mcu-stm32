@@ -25,6 +25,9 @@ static u32 mcu_core_get_reset_src();
 static int enable_clock_out(int o_flags, int div);
 static u32 mcu_core_reset_source = CORE_FLAG_IS_RESET_SYSTEM;
 
+static void set_deep_sleep_registers();
+static void set_deep_sleep_stop_registers();
+static void set_deep_sleep_standby_registers();
 
 
 int mcu_core_setpinfunc(const devfs_handle_t * handle, void * arg){
@@ -165,27 +168,46 @@ int mcu_core_getmcuboardconfig(const devfs_handle_t * handle, void * arg){
 void mcu_set_sleep_mode(int * level){
 	SCB->SCR &= ~(1<<SCB_SCR_SLEEPDEEP_Pos);
 
-#if defined LPC_SC
-	LPC_SC->PCON = 0;
+
 	switch(*level){
 		case CORE_DEEPSLEEP_STOP:
-			LPC_SC->PCON = 1; //turn off the flash as well
-			//no break
+			//turn off the flash as well
+			set_deep_sleep_stop_registers();
+			break;
 		case CORE_DEEPSLEEP:
-			SCB->SCR |= (1<<SCB_SCR_SLEEPDEEP_Pos);
+			set_deep_sleep_registers();
 			break;
 		case CORE_SLEEP:
 			break;
 		case CORE_DEEPSLEEP_STANDBY:
-			SCB->SCR |= (1<<SCB_SCR_SLEEPDEEP_Pos);
-			LPC_SC->PCON = 3;
+			set_deep_sleep_standby_registers();
 			break;
 		default:
 			*level = -1;
 			return;
 	}
 	*level = 0;
+}
+
+void set_deep_sleep_registers(){
+	SCB->SCR |= (1<<SCB_SCR_SLEEPDEEP_Pos);
+#if defined PWR_CR_PDDS
+	MODIFY_REG(PWR->CR, (PWR_CR_PDDS | PWR_CR_LPDS), PWR_LOWPOWERREGULATOR_ON);
 #endif
+	HAL_PWREx_DisableFlashPowerDown();
+}
+
+void set_deep_sleep_stop_registers(){
+	SCB->SCR |= (1<<SCB_SCR_SLEEPDEEP_Pos);
+	HAL_PWREx_EnableFlashPowerDown();
+}
+
+void set_deep_sleep_standby_registers(){
+	SCB->SCR |= (1<<SCB_SCR_SLEEPDEEP_Pos);
+#if defined PWR_CR_PDDS
+	SET_BIT(PWR->CR, PWR_CR_PDDS);
+#endif
+
 }
 
 u32 mcu_core_get_reset_src(){
@@ -337,5 +359,7 @@ void mcu_core_invalidate_data_cache_block(void * addr, u32 size){
 	}
 #endif
 }
+
+
 
 

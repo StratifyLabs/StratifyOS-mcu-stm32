@@ -25,6 +25,7 @@
 typedef struct {
 	RTC_HandleTypeDef hal_handle; //must be the first member of the struct
 	mcu_event_handler_t alarm_handler;
+	mcu_event_handler_t count_handler;
 	u8 ref_count;
 } rtc_local_t;
 
@@ -36,7 +37,7 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(rtc, RTC_VERSION, RTC_IOC_IDENT_CHAR, I_MCU_TOTA
 static u8 year_is_leap(u16 year);
 static u16 get_yday_self(u8 mon, u8 day, u16 year);
 static u8 year_is_leap(u16 year){
-	return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+	return ((year % 4 == 0) && (year % 100 != 0)) || ((year % 400 == 0));
 }
 static u16 get_yday_self(u8 mon, u8 day, u16 year){
 	static const u16 days[2][13] = {
@@ -46,6 +47,21 @@ static u16 get_yday_self(u8 mon, u8 day, u16 year){
 	u8 leap = year_is_leap(year);
 	return days[leap][mon] + day;
 }
+
+static void convert_rtc_to_stm32(
+		const rtc_time_t * source,
+		RTC_TimeTypeDef * dest_time,
+		RTC_DateTypeDef * dest_date
+		);
+
+static void convert_stm32_to_rtc(
+		const RTC_TimeTypeDef * source_time,
+		const RTC_DateTypeDef * source_date,
+		rtc_time_t * dest
+		);
+
+static int set_alarm(rtc_local_t * local, const rtc_attr_t * attr);
+static int set_count(rtc_local_t * local, const rtc_attr_t * attr);
 
 int mcu_rtc_open(const devfs_handle_t * handle){
 	DEVFS_DRIVER_DECLARE_LOCAL(rtc, MCU_RTC_PORTS);
@@ -65,6 +81,9 @@ int mcu_rtc_open(const devfs_handle_t * handle){
 			}
 			local->alarm_handler.callback = NULL;
 			local->hal_handle.Instance = rtc_regs[port];
+
+			//uses EXTI line 17 -- need to enable on rising edge
+
 			cortexm_enable_irq(rtc_irqs[port]);
 		}
 		local->ref_count++;
@@ -82,7 +101,16 @@ int mcu_rtc_getinfo(const devfs_handle_t * handle, void * ctl){
 	rtc_info_t * info = ctl;
 
 	//set flags that are supported by this driver
-	info->o_flags = RTC_FLAG_ENABLE | RTC_FLAG_DISABLE;
+	info->o_flags =
+			RTC_FLAG_ENABLE |
+			RTC_FLAG_ENABLE_ALARM |
+			RTC_FLAG_IS_ALARM_MONTHLY |
+			RTC_FLAG_IS_ALARM_DAILY |
+			RTC_FLAG_IS_ALARM_ONCE |
+			RTC_FLAG_IS_ALARM_HOURLY |
+			RTC_FLAG_IS_ALARM_MINUTE |
+			RTC_FLAG_IS_ALARM_MINUTE |
+			RTC_FLAG_DISABLE;
 
 	return 0;
 }
@@ -91,22 +119,14 @@ int mcu_rtc_set(const devfs_handle_t * handle, void * ctl){
 	DEVFS_DRIVER_DECLARE_LOCAL(rtc, MCU_RTC_PORTS);
 	RTC_TimeTypeDef sTime;
 	RTC_DateTypeDef sDate;
-	rtc_time_t * time_p;
-	time_p = (rtc_time_t*)ctl;
-	sTime.TimeFormat = RTC_HOURFORMAT12_AM;
-	if( time_p->time.tm_hour > 12 ){
-		sTime.TimeFormat = RTC_HOURFORMAT12_PM;
-	}
-	sTime.Hours = time_p->time.tm_hour;
-	sTime.Minutes = time_p->time.tm_min;
-	sTime.Seconds = time_p->time.tm_sec;
+	const rtc_time_t * time_p = ctl;
+
+	convert_rtc_to_stm32(time_p, &sTime, &sDate);
+
 	if(HAL_RTC_SetTime(&local->hal_handle, &sTime, RTC_FORMAT_BIN)!= HAL_OK){
 		return SYSFS_SET_RETURN(EIO);
 	}
-	sDate.Date = time_p->time.tm_mday;
-	sDate.Month = time_p->time.tm_mon;//maybe + 1
-	sDate.Year = time_p->time.tm_year;
-	sDate.WeekDay = time_p->time.tm_wday;
+
 	if(HAL_RTC_SetDate(&local->hal_handle, &sDate, RTC_FORMAT_BIN)!= HAL_OK){
 		return SYSFS_SET_RETURN(EIO);
 	}
@@ -117,8 +137,7 @@ int mcu_rtc_get(const devfs_handle_t * handle, void * ctl){
 	DEVFS_DRIVER_DECLARE_LOCAL(rtc, MCU_RTC_PORTS);
 	RTC_TimeTypeDef sTime;
 	RTC_DateTypeDef sDate;
-	rtc_time_t * time_p;
-	time_p = (rtc_time_t*)ctl;
+	rtc_time_t * time_p	= ctl;
 
 	if(HAL_RTC_GetTime(&local->hal_handle, &sTime, RTC_FORMAT_BIN)!= HAL_OK){
 		return SYSFS_SET_RETURN(EIO);
@@ -128,19 +147,7 @@ int mcu_rtc_get(const devfs_handle_t * handle, void * ctl){
 		return SYSFS_SET_RETURN(EIO);
 	}
 
-	time_p->time.tm_sec = sTime.Seconds;
-	time_p->time.tm_min = sTime.Minutes;
-	time_p->time.tm_hour = sTime.Hours;
-	time_p->time.tm_wday = sDate.WeekDay;
-	time_p->time.tm_mday = sDate.Date;
-	time_p->time.tm_mon = sDate.Month;
-	time_p->time.tm_year = sDate.Year;
-	time_p->time.tm_yday = get_yday_self(
-				time_p->time.tm_mon,
-				time_p->time.tm_mday,
-				time_p->time.tm_year);
-
-	time_p->useconds = 0;
+	convert_stm32_to_rtc(&sTime, &sDate, time_p);
 	return 0;
 }
 
@@ -157,8 +164,6 @@ int mcu_rtc_setattr(const devfs_handle_t * handle, void * ctl){
 
 	u32 o_flags = attr->o_flags;
 
-
-
 	if( o_flags & RTC_FLAG_ENABLE ){
 		//set the init values based on the flags passed, we may need to add some flags to sos/dev/rtc.h
 		/*Initialize RTC Only */
@@ -173,26 +178,18 @@ int mcu_rtc_setattr(const devfs_handle_t * handle, void * ctl){
 		local->hal_handle.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
 
 		if( (result = HAL_RTC_Init(&local->hal_handle)) != HAL_OK ){
-			mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_RTC_Init (%d, %d)", result, local->hal_handle.State);
 			return SYSFS_SET_RETURN(EIO);
 		}
 	}
 	if( o_flags & RTC_FLAG_ENABLE_ALARM ){
-		RTC_AlarmTypeDef alarm;
-		u32 format = 0;
-
-		//set the alarm based on o_flags at attr
-		alarm.AlarmTime.Hours = attr->time.time.tm_hour;
-		alarm.AlarmTime.Minutes = attr->time.time.tm_min;
-
-		//enable the alarm
-		if( HAL_RTC_SetAlarm(&local->hal_handle, &alarm, format) != HAL_OK ){
-			mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_RTC_SetAlarm");
-			return SYSFS_SET_RETURN(EIO);
-		}
+		set_alarm(local, attr);
 	} else if( o_flags & RTC_FLAG_DISABLE_ALARM ){
-
 		//disable the alarm
+		HAL_RTC_DeactivateAlarm(&local->hal_handle, RTC_ALARM_A);
+	} else if( o_flags & RTC_FLAG_ENABLE_COUNT_EVENT ){
+		set_count(local, attr);
+	} else if( o_flags & RTC_FLAG_DISABLE_COUNT_EVENT ){
+		HAL_RTC_DeactivateAlarm(&local->hal_handle, RTC_ALARM_B);
 	}
 
 	return 0;
@@ -201,10 +198,9 @@ int mcu_rtc_setattr(const devfs_handle_t * handle, void * ctl){
 
 
 int mcu_rtc_setaction(const devfs_handle_t * handle, void * ctl){
-	//mcu_action_t * action = ctl;
+	mcu_action_t * action = ctl;
 	//assign value to rtc_local[port].alarm_handler
-
-
+	cortexm_set_irq_priority(RTC_Alarm_IRQn, action->prio, action->o_events);
 	return 0;
 }
 
@@ -216,20 +212,134 @@ int mcu_rtc_read(const devfs_handle_t * handle, devfs_async_t * async){
 	return SYSFS_SET_RETURN(ENOTSUP);
 }
 
-
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc){
 	rtc_local_t * rtc = (rtc_local_t *)hrtc;
 	rtc_event_t rtc_data;
 	u32 o_events;
 	rtc_data.time.time.tm_hour = 0; //set the alarm value
 	o_events = MCU_EVENT_FLAG_ALARM;
-	mcu_execute_event_handler(&rtc->alarm_handler, o_events, &rtc_data);
+	devfs_execute_event_handler(&rtc->alarm_handler, o_events, &rtc_data);
 }
 
-void mcu_core_rtc_wkup_isr(){
+void HAL_RTC_AlarmBEventCallback(RTC_HandleTypeDef *hrtc){
+	rtc_local_t * rtc = (rtc_local_t *)hrtc;
+	rtc_event_t rtc_data;
+	u32 o_events;
+	rtc_data.time.time.tm_hour = 0; //set the alarm value
+	o_events = MCU_EVENT_FLAG_COUNT;
+	devfs_execute_event_handler(&rtc->count_handler, o_events, &rtc_data);
+}
+
+void mcu_core_rtc_alarm_isr(){
 	HAL_RTC_AlarmIRQHandler(&m_rtc_local[0].hal_handle);
 }
 
+int set_alarm(rtc_local_t * local, const rtc_attr_t * attr){
+	RTC_AlarmTypeDef alarm = {0};
+	RTC_DateTypeDef date;
+
+	//set the alarm based on o_flags at attr
+	u32 o_flags = attr->o_flags;
+
+	convert_rtc_to_stm32(&attr->time, &alarm.AlarmTime, &date);
+
+	alarm.Alarm = RTC_ALARM_A;
+	alarm.AlarmDateWeekDay = date.Date;
+	alarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+#if defined RTC_ALARMSUBSECONDMASK_ALL
+	alarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
+#endif
+
+	alarm.AlarmMask = RTC_ALARMMASK_NONE; //all alarms used
+	if( o_flags & RTC_FLAG_IS_ALARM_DAILY ){
+		//don't care about month date (just hours, minutes, seconds)
+		alarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY;
+	} else if( o_flags & RTC_FLAG_IS_ALARM_HOURLY ){
+		alarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | RTC_ALARMMASK_HOURS;
+	} else if( o_flags & RTC_FLAG_IS_ALARM_MINUTE ){
+		alarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | RTC_ALARMMASK_HOURS |RTC_ALARMMASK_MINUTES;
+	}
+
+	//enable the alarm
+	if( HAL_RTC_SetAlarm_IT(&local->hal_handle, &alarm, RTC_FORMAT_BIN) != HAL_OK ){
+		mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_RTC_SetAlarm");
+		return SYSFS_SET_RETURN(EIO);
+	}
+
+	return SYSFS_RETURN_SUCCESS;
+}
+
+int set_count(rtc_local_t * local, const rtc_attr_t * attr){
+	RTC_AlarmTypeDef alarm = {0};
+	RTC_DateTypeDef date;
+
+	//set the alarm based on o_flags at attr
+	u32 o_flags = attr->o_flags;
+
+	convert_rtc_to_stm32(&attr->time, &alarm.AlarmTime, &date);
+
+	alarm.Alarm = RTC_ALARM_B;
+	alarm.AlarmDateWeekDay = date.Date;
+	alarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+#if defined RTC_ALARMSUBSECONDMASK_ALL
+	alarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
+#endif
+
+	//default is to count every second
+	alarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | RTC_ALARMMASK_HOURS |RTC_ALARMMASK_MINUTES | RTC_ALARMMASK_SECONDS;
+	if( o_flags & RTC_FLAG_IS_COUNT_DAY_OF_MONTH ){
+		//don't care about month date (just hours, minutes, seconds)
+		alarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY;
+	} else if( o_flags & RTC_FLAG_IS_COUNT_HOUR ){
+		alarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | RTC_ALARMMASK_HOURS;
+	} else if( o_flags & RTC_FLAG_IS_COUNT_MINUTE ){
+		alarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY | RTC_ALARMMASK_HOURS |RTC_ALARMMASK_MINUTES;
+	}
+
+	//enable the alarm
+	if( HAL_RTC_SetAlarm_IT(&local->hal_handle, &alarm, RTC_FORMAT_BIN) != HAL_OK ){
+		return SYSFS_SET_RETURN(EIO);
+	}
+	return SYSFS_RETURN_SUCCESS;
+}
+
+void convert_rtc_to_stm32(
+		const rtc_time_t * source,
+		RTC_TimeTypeDef * dest_time,
+		RTC_DateTypeDef * dest_date
+		){
+	dest_time->TimeFormat = RTC_HOURFORMAT12_AM; //AM or 24 hour format -- always 24 hour format
+	dest_time->Hours = source->time.tm_hour;
+	dest_time->Minutes = source->time.tm_min;
+	dest_time->Seconds = source->time.tm_sec;
+#if defined RTC_ALARMSUBSECONDMASK_NONE
+	dest_time->SubSeconds = 0;
+#endif
+	dest_time->DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+	dest_date->Date = source->time.tm_mday;
+	dest_date->Month = source->time.tm_mon;
+	dest_date->Year = source->time.tm_year;
+	dest_date->WeekDay = source->time.tm_wday;
+}
+
+void convert_stm32_to_rtc(
+		const RTC_TimeTypeDef * source_time,
+		const RTC_DateTypeDef * source_date,
+		rtc_time_t * dest
+		){
+	dest->time.tm_sec = source_time->Seconds;
+	dest->time.tm_min = source_time->Minutes;
+	dest->time.tm_hour = source_time->Hours;
+	dest->time.tm_wday = source_date->WeekDay;
+	dest->time.tm_mday = source_date->Date;
+	dest->time.tm_mon = source_date->Month;
+	dest->time.tm_year = source_date->Year;
+	dest->time.tm_yday = get_yday_self(
+				dest->time.tm_mon,
+				dest->time.tm_mday,
+				dest->time.tm_year);
+	dest->useconds = 0;
+}
 
 
 #endif

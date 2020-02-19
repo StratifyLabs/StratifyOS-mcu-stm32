@@ -780,7 +780,7 @@ HAL_StatusTypeDef HAL_RTC_SetAlarm(RTC_HandleTypeDef *hrtc, RTC_AlarmTypeDef *sA
   /* Check the parameters */
   assert_param(IS_RTC_FORMAT(Format));
   assert_param(IS_RTC_ALARM(sAlarm->Alarm));
-  assert_param(IS_RTC_ALARM_MASK(sAlarm->AlarmMask));
+	assert_param(IS_RTC_ALARM_MASK(sAlarm->AlarmMask));
   assert_param(IS_RTC_ALARM_DATE_WEEKDAY_SEL(sAlarm->AlarmDateWeekDaySel));
   assert_param(IS_RTC_ALARM_SUB_SECOND_VALUE(sAlarm->AlarmTime.SubSeconds));
   assert_param(IS_RTC_ALARM_SUB_SECOND_MASK(sAlarm->AlarmSubSecondMask));
