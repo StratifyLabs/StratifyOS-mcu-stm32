@@ -492,7 +492,7 @@ void usb_set_address(const devfs_handle_t * handle, u32 addr){
 }
 
 void usb_configure(const devfs_handle_t * handle, u32 cfg){
-	m_usb_local[handle->port].connected = 1;
+	//m_usb_local[handle->port].connected = 1;
 }
 
 void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32 max_packet_size, u8 type){
@@ -500,7 +500,7 @@ void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32
 	const stm32_config_t * stm32_config = mcu_board_config.arch_config;
 
 	HAL_PCD_EP_Open(&m_usb_local[handle->port].hal_handle, endpoint_num, max_packet_size, type & EP_TYPE_MSK);
-	m_usb_local[handle->port].connected = 1;
+	//m_usb_local[handle->port].connected = 1;
 
 	if( (endpoint_num & 0x80) == 0 ){
 		void * dest_buffer;
