@@ -27,15 +27,13 @@
 #if MCU_CRYPT_PORTS > 0
 
 #define MAX_KEY_SIZE 32
-#define MAX_IV_SIZE 32
+#define MAX_IV_SIZE 16
 #define MAX_HEADER_SIZE 64
 
 typedef struct {
 	CRYP_HandleTypeDef hal_handle;
 	devfs_transfer_handler_t transfer_handler;
 	u32 o_flags;
-	u8 key[MAX_KEY_SIZE];
-	u8 iv[MAX_IV_SIZE];
 	u8 header[MAX_HEADER_SIZE];
 	u8 ref_count;
 } crypt_local_t;

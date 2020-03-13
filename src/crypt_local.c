@@ -98,17 +98,15 @@ int crypt_local_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		//Key and initialization vector
-		memcpy(local->key, attr->key, MAX_KEY_SIZE);
-		memcpy(local->iv, attr->iv, MAX_IV_SIZE);
-		local->hal_handle.Init.pKey = (u32*)local->key;
-		local->hal_handle.Init.pInitVect = (u32*)local->iv;
+		//this is a big potential security problem!!!!
+		local->hal_handle.Init.pKey = (u32*)attr->key;
+		local->hal_handle.Init.pInitVect = (u32*)attr->iv;
 
 		//Algorithm
 		local->hal_handle.Init.Algorithm = CRYP_AES_CTR;
 		if( o_flags & CRYPT_FLAG_IS_AES_CBC ){
 			local->hal_handle.Init.Algorithm = CRYP_AES_CBC;
-		}
-		if( o_flags & CRYPT_FLAG_IS_AES_ECB ){
+		} else if( o_flags & CRYPT_FLAG_IS_AES_ECB ){
 			local->hal_handle.Init.Algorithm = CRYP_AES_ECB;
 		}
 
@@ -134,7 +132,6 @@ int crypt_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 		//DataWidthUnit
 		local->hal_handle.Init.DataWidthUnit = CRYP_DATAWIDTHUNIT_WORD;
-
 
 		//init if not yet initialized
 		if( HAL_CRYP_Init(&local->hal_handle) != HAL_OK ){

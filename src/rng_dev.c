@@ -75,7 +75,10 @@ int mcu_rng_close(const devfs_handle_t * handle){
 int mcu_rng_getinfo(const devfs_handle_t * handle, void * ctl){
 	random_info_t * info = ctl;
 	memset(info, 0, sizeof(random_info_t));
-	info->o_flags = RANDOM_FLAG_IS_TRUE | RANDOM_FLAG_ENABLE | RANDOM_FLAG_DISABLE;
+	info->o_flags =
+			RANDOM_FLAG_IS_TRUE |
+			RANDOM_FLAG_ENABLE |
+			RANDOM_FLAG_DISABLE;
 	return 0;
 }
 
