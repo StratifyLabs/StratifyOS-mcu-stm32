@@ -79,24 +79,25 @@ int mcu_uart_dma_setattr(const devfs_handle_t * handle, void * ctl){
 
 	//setup the DMA for receiving
 	stm32_dma_channel_t * channel = stm32_dma_setattr(&config->dma_config.rx);
-	if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
-
-	__HAL_LINKDMA((&local->hal_handle), hdmarx, channel->handle);
+	if( channel != 0 ){
+		__HAL_LINKDMA((&local->hal_handle), hdmarx, channel->handle);
+	}
 
 	channel = stm32_dma_setattr(&config->dma_config.tx);
-	if( channel == 0 ){ return SYSFS_SET_RETURN(EIO); }
-
-	__HAL_LINKDMA((&local->hal_handle), hdmatx, channel->handle);
-
+	if( channel != 0 ){
+		__HAL_LINKDMA((&local->hal_handle), hdmatx, channel->handle);
+	}
 
 	int result = uart_local_setattr(handle, ctl);
 	if( result < 0 ){ return result; }
 
 	//initiate the DMA circular read
 	if( local->fifo_config ){
-		if( (result = HAL_UART_Receive_DMA(&local->hal_handle,
-										 (u8*)local->fifo_config->buffer,
-										 local->fifo_config->size)) != HAL_OK ){
+		if( (result = HAL_UART_Receive_DMA(
+					 &local->hal_handle,
+					 (u8*)local->fifo_config->buffer,
+					 local->fifo_config->size)
+				 ) != HAL_OK ){
 			return SYSFS_SET_RETURN(EIO);
 		}
 	}

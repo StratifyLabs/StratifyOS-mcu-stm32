@@ -109,6 +109,7 @@ typedef struct {
 #define E_LPTM(port) ENTRY(CORE_PERIPH_TMR,(port-1)) //LPTIM
 #define E_TMR(port) ENTRY(CORE_PERIPH_TMR,(port-1)) //TIM (for values 10 and above
 #define E_UART(port) ENTRY(CORE_PERIPH_UART,(port-1)) //UART
+#define EUART(port) ENTRY(CORE_PERIPH_UART,(port-1)) //UART
 #define E_USRT(port) ENTRY(CORE_PERIPH_UART,(port-1)) //USART
 #define E_I2S_(port) ENTRY(CORE_PERIPH_I2S,(port-1)) //SAI (use SPI for I2S)
 #define E_SYS_(port) ENTRY(CORE_PERIPH_SYS,(port-1))

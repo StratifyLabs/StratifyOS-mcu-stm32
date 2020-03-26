@@ -78,6 +78,16 @@
 #include "mcu_stm32f412zx.h"
 #endif
 
+#if defined __stm32f413xx
+#define CORE_M4 1
+#define ARM_MATH_CM4 1
+#define STM32_FLASH_LAYOUT_16_16_16_16_64_128_128_128 1
+#if !defined STM32F413xx
+#define STM32F413xx 1
+#endif
+#include "mcu_stm32f413xx.h"
+#endif
+
 #if defined __stm32f417xx
 #define CORE_M4 1
 #define ARM_MATH_CM4 1
@@ -212,7 +222,8 @@ enum {
 
 enum {
 	STM32_DMA1 = 0,
-	STM32_DMA2 = 1
+	STM32_DMA2 = 1,
+	STM32_DMA_DISABLED = 100
 };
 
 typedef struct {

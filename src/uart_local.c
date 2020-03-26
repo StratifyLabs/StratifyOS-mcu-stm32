@@ -70,6 +70,26 @@ int uart_local_open(const devfs_handle_t * handle){
 				__HAL_RCC_USART6_CLK_ENABLE();
 				break;
 #endif
+#if defined UART7
+			case 6:
+				__HAL_RCC_UART7_CLK_ENABLE();
+				break;
+#endif
+#if defined UART8
+			case 7:
+				__HAL_RCC_UART8_CLK_ENABLE();
+				break;
+#endif
+#if defined UART9
+			case 8:
+				__HAL_RCC_UART9_CLK_ENABLE();
+				break;
+#endif
+#if defined UART10
+			case 9:
+				__HAL_RCC_UART10_CLK_ENABLE();
+				break;
+#endif
 
 		}
 		//reset HAL UART
@@ -115,6 +135,26 @@ int uart_local_close(const devfs_handle_t * handle){
 				case 5:
 					__HAL_RCC_USART6_CLK_DISABLE();
 					break;
+#endif
+#if defined UART7
+			case 6:
+				__HAL_RCC_UART7_CLK_DISABLE();
+				break;
+#endif
+#if defined UART8
+			case 7:
+				__HAL_RCC_UART8_CLK_DISABLE();
+				break;
+#endif
+#if defined UART9
+			case 8:
+				__HAL_RCC_UART9_CLK_DISABLE();
+				break;
+#endif
+#if defined UART10
+			case 9:
+				__HAL_RCC_UART10_CLK_DISABLE();
+				break;
 #endif
 
 			}
@@ -421,51 +461,66 @@ void mcu_uart_isr(int port){
 	}
 }
 
+#if defined USART1
 void mcu_core_usart1_isr(){
 	mcu_uart_isr(0);
 }
+#endif
 
-#if MCU_UART_PORTS > 1
+#if defined USART2
 void mcu_core_usart2_isr(){
 	mcu_uart_isr(1);
 }
 #endif
 
-#if MCU_UART_PORTS > 2
+#if defined USART3
 void mcu_core_usart3_isr(){
 	mcu_uart_isr(2);
 }
 #endif
 
-#if MCU_UART_PORTS > 3
+#if defined UART4
 void mcu_core_uart4_isr(){
 	mcu_uart_isr(3);
 }
 #endif
 
-#if MCU_UART_PORTS > 4
+#if defined UART5
 void mcu_core_uart5_isr(){
 	mcu_uart_isr(4);
 }
 #endif
 
-#if MCU_UART_PORTS > 5
+#if defined USART6
 void mcu_core_usart6_isr(){
 	mcu_uart_isr(5);
 }
 #endif
 
-#if MCU_UART_PORTS > 6
+#if defined UART7
 void mcu_core_uart7_isr(){
 	mcu_uart_isr(6);
 }
 #endif
 
 
-#if MCU_UART_PORTS > 7
+#if defined UART8
 void mcu_core_uart8_isr(){
 	mcu_uart_isr(7);
 }
 #endif
+
+#if defined UART9
+void mcu_core_uart9_isr(){
+	mcu_uart_isr(8);
+}
+#endif
+
+#if defined UART10
+void mcu_core_uart10_isr(){
+	mcu_uart_isr(9);
+}
+#endif
+
 
 #endif
