@@ -34,6 +34,7 @@ typedef struct {
 	CRYP_HandleTypeDef hal_handle;
 	devfs_transfer_handler_t transfer_handler;
 	u32 o_flags;
+	u8 iv[16];
 	u8 header[MAX_HEADER_SIZE];
 	u8 ref_count;
 } crypt_local_t;

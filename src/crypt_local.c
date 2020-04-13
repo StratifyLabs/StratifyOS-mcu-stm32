@@ -98,9 +98,14 @@ int crypt_local_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		//Key and initialization vector
-		//this is a big potential security problem!!!!
 		local->hal_handle.Init.pKey = (u32*)attr->key;
-		local->hal_handle.Init.pInitVect = (u32*)attr->iv;
+		memcpy(local->iv, attr->iv, 16);
+
+		u32 * ptr = (u32*)local->iv;
+		for(u32 i=0; i < 4; i++){
+			ptr[i] = __REV(ptr[i]);
+		}
+		local->hal_handle.Init.pInitVect = (u32*)local->iv;
 
 		//Algorithm
 		local->hal_handle.Init.Algorithm = CRYP_AES_CTR;

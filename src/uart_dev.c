@@ -50,10 +50,14 @@ int mcu_uart_setattr(const devfs_handle_t * handle, void * ctl){
 	if( result < 0 ){ return result; }
 
 	if( local->fifo_config != 0 ){
-		result = HAL_UART_Receive_IT(&local->hal_handle,
-											  (u8*)local->fifo_config->buffer,
-											  local->fifo_config->size);
-		if( result != HAL_OK ){ return SYSFS_SET_RETURN(EIO); }
+		result = HAL_UART_Receive_IT(
+					&local->hal_handle,
+					(u8*)local->fifo_config->buffer,
+					local->fifo_config->size
+					);
+		if( result != HAL_OK ){
+			return SYSFS_SET_RETURN(EIO);
+		}
 	}
 
 	return SYSFS_RETURN_SUCCESS;

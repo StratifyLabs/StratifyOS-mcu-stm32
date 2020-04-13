@@ -236,6 +236,11 @@ int uart_local_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		local->hal_handle.Init.Mode = UART_MODE_TX_RX;
+		if( attr->pin_assignment.tx.port == 0xff ){
+			local->hal_handle.Init.Mode = UART_MODE_RX;
+		} else if ( attr->pin_assignment.rx.port == 0xff ){
+			local->hal_handle.Init.Mode = UART_MODE_TX;
+		}
 		local->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 		local->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
 
@@ -337,10 +342,14 @@ int uart_local_get(const devfs_handle_t * handle, void * ctl){
 int uart_local_read(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
 
-	if( local->fifo_config == 0 ){ return SYSFS_SET_RETURN(ENOSYS); }
+	if( local->fifo_config == 0 ){
+		return SYSFS_SET_RETURN(ENOSYS);
+	}
 
 	//read the fifo, block if no bytes are available
-	return fifo_read_local(local->fifo_config, &local->fifo_state, async, 0);
+	int result = fifo_read_local(local->fifo_config, &local->fifo_state, async, 0);
+
+	return result;
 }
 
 void handle_bytes_received(uart_local_t * local, u16 bytes_received){
@@ -349,7 +358,6 @@ void handle_bytes_received(uart_local_t * local, u16 bytes_received){
 	for(u16 i=0; i < bytes_received; i++){
 		fifo_inc_head(&local->fifo_state, local->fifo_config->size);
 	}
-
 
 	//now tell the fifo the head has been updated so it can return data to the user asynchronously
 	fifo_data_received(local->fifo_config, &local->fifo_state);

@@ -209,6 +209,11 @@
   #include "stm32h7xx_hal_gpio.h"
 #endif /* HAL_GPIO_MODULE_ENABLED */
 
+//__StratifyOS__ MDMA needs to be above modules that refere to MDMA
+#ifdef HAL_MDMA_MODULE_ENABLED
+ #include "stm32h7xx_hal_mdma.h"
+#endif
+
 #ifdef HAL_DMA_MODULE_ENABLED
   #include "stm32h7xx_hal_dma.h"
 #endif /* HAL_DMA_MODULE_ENABLED */
@@ -308,10 +313,6 @@
 #ifdef HAL_MDIOS_MODULE_ENABLED
  #include "stm32h7xx_hal_mdios.h"
 #endif /* HAL_MDIOS_MODULE_ENABLED */
-
-#ifdef HAL_MDMA_MODULE_ENABLED
- #include "stm32h7xx_hal_mdma.h"
-#endif /* HAL_MDMA_MODULE_ENABLED */
 
 #ifdef HAL_MMC_MODULE_ENABLED
  #include "stm32h7xx_hal_mmc.h"

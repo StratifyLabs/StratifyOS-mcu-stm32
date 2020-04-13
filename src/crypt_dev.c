@@ -34,6 +34,7 @@ int mcu_crypt_close(const devfs_handle_t * handle){
 
 
 int mcu_crypt_getinfo(const devfs_handle_t * handle, void * ctl){
+	DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
 	crypt_info_t * info = ctl;
 	info->o_flags = CRYPT_FLAG_SET_CIPHER |
 			CRYPT_FLAG_IS_AES_128 |
@@ -54,6 +55,11 @@ int mcu_crypt_getinfo(const devfs_handle_t * handle, void * ctl){
 			CRYPT_FLAG_IS_ENCRYPT |
 			CRYPT_FLAG_IS_DECRYPT;
 
+	memcpy(info->iv, local->iv, 16);
+	u32 * ptr = (u32*)info->iv;
+	for(u32 i=0; i < 4; i++){
+		ptr[i] = __REV(ptr[i]);
+	}
 	return SYSFS_RETURN_SUCCESS;
 
 }

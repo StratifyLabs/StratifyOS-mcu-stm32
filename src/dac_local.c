@@ -207,6 +207,8 @@ int dac_local_setattr(const devfs_handle_t * handle, void * ctl){
 		channel_config.DAC_Trigger = DAC_TRIGGER_NONE;
 		channel_config.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
 		channel_config.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
+
+
 		channel_config.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
 
 		if( o_flags & DAC_FLAG_IS_SAMPLE_AND_HOLD ){ channel_config.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_ENABLE; }

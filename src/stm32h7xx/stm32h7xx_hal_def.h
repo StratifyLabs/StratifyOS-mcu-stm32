@@ -183,9 +183,6 @@ typedef enum
 }
 #endif
 
-#include "stm32h7xx_hal_conf.h"
-
-
 #endif /* STM32H7xx_HAL_DEF */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

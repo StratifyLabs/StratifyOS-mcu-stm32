@@ -29,6 +29,12 @@
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(i2s_spi_dma, I2S_VERSION, I2S_IOC_IDENT_CHAR, I_MCU_TOTAL + I_I2S_TOTAL, mcu_i2s_spi_dma_mute, mcu_i2s_spi_dma_unmute)
 
+#if defined STM32H7
+extern HAL_StatusTypeDef HAL_I2S_Transmit_DMA_DelayedStart(I2S_HandleTypeDef *hi2s, uint16_t *pData, uint16_t Size);
+#endif
+
+
+
 int mcu_i2s_spi_dma_open(const devfs_handle_t * handle){
 	DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
 	local->o_flags = SPI_LOCAL_IS_DMA;
@@ -164,19 +170,40 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
-	if( (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) && local->transfer_handler.read ){
+	if( (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) &&
+			local->transfer_handler.read ){
 
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT
 		if( local->transfer_handler.read->nbyte < async->nbyte ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
+
 		i2s_spi_local_wait_for_errata_level(local);
 
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT
 		result = HAL_I2SEx_TransmitReceive_DMA(
 					&local->i2s_hal_handle,
 					async->buf,
 					local->transfer_handler.read->buf,
 					async->nbyte);
+#elif defined STM32H7
+
+		result = HAL_I2S_Transmit_DMA_DelayedStart(
+					&local->i2s_hal_handle,
+					async->buf,
+					(async->nbyte/local->size_mult)
+					);
+
+		if( result != HAL_OK ){
+			return SYSFS_SET_RETURN(ENOTSUP);
+		}
+
+		local->i2s_hal_handle.State = HAL_I2S_STATE_READY;
+		result = HAL_I2S_Receive_DMA(
+					&local->i2s_hal_handle,
+					local->transfer_handler.read->buf,
+					(async->nbyte/local->size_mult)
+					);
+
 #else
 		return SYSFS_SET_RETURN(ENOTSUP);
 #endif
@@ -192,9 +219,7 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 					local->o_flags
 					);
 
-#if !defined STM32H7
 		i2s_spi_local_wait_for_errata_level(local);
-#endif
 
 		result = HAL_I2S_Transmit_DMA(
 					&local->i2s_hal_handle,
@@ -213,7 +238,6 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 			return SYSFS_SET_RETURN(EIO);
 		}
 		return SYSFS_SET_RETURN(EIO);
-
 	}
 
 	return 0;
@@ -225,15 +249,12 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT
 	if( local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX ){
 		//Receive assigns the transfer handler but then blocks until a write happens
 		return 0;
 	}
-#endif
 
 	i2s_spi_local_wait_for_errata_level(local);
-
 	ret = HAL_I2S_Receive_DMA(&local->i2s_hal_handle, async->buf,  (async->nbyte/local->size_mult));
 
 	if( ret != HAL_OK ){
@@ -259,6 +280,7 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 
 	return 0;
 }
+
 
 
 #endif

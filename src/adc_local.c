@@ -539,7 +539,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef * hadc){
 }
 
 void mcu_core_adc_isr(){
-	mcu_debug_log_info(MCU_DEBUG_DEVICE, "ADC ISR");
 	if( adc_local[0].hal_handle.Instance ){ HAL_ADC_IRQHandler(&adc_local[0].hal_handle); }
 #if MCU_ADC_PORTS > 1
 	if( adc_local[1].hal_handle.Instance ){ HAL_ADC_IRQHandler(&adc_local[1].hal_handle); }

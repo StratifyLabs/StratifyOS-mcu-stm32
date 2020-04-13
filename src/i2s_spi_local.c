@@ -75,7 +75,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 #if defined I2S_MODE_SLAVE_FULLDUPLEX
 					local->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_FULLDUPLEX;
 #endif
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
 					local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
 #endif
 				}
@@ -87,6 +87,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 			if( o_flags & I2S_FLAG_IS_TRANSMITTER ){
 				local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_TX;
 				if( o_flags & I2S_FLAG_IS_RECEIVER ){
+
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT && defined I2S_FULLDUPLEXMODE_ENABLE
 					local->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
 #endif
@@ -96,6 +97,7 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
 					local->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
 #endif
+
 				}
 			} else if ( o_flags & I2S_FLAG_IS_RECEIVER ){
 				local->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_RX;
@@ -182,14 +184,14 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 
 		if( mcu_set_pin_assignment(
-				 &(attr->pin_assignment),
-				 MCU_CONFIG_PIN_ASSIGNMENT(i2s_config_t, handle),
-				 MCU_PIN_ASSIGNMENT_COUNT(i2s_pin_assignment_t),
-				 CORE_PERIPH_SPI,
-				 port,
-				 0,
-				 0,
-				 0) < 0 ){
+					&(attr->pin_assignment),
+					MCU_CONFIG_PIN_ASSIGNMENT(i2s_config_t, handle),
+					MCU_PIN_ASSIGNMENT_COUNT(i2s_pin_assignment_t),
+					CORE_PERIPH_SPI,
+					port,
+					0,
+					0,
+					0) < 0 ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
@@ -214,6 +216,10 @@ int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl){
 void i2s_spi_local_wait_for_errata_level(
 		spi_local_t * local
 		){
+
+#if defined STM32H7
+	return;
+#endif
 
 	if( local->o_flags & SPI_LOCAL_IS_ERRATA_REQUIRED ){
 		u32 pio_level;
@@ -266,6 +272,14 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 				0,
 				0,
 				MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW);
+
+	if( local->o_flags & SPI_LOCAL_IS_DMA && async ){
+		mcu_core_clean_data_cache_block(
+					local->transfer_handler.read->buf,
+					local->transfer_handler.read->nbyte/2
+					);
+	}
+
 	if( result ){
 		local->transfer_handler.write = async;
 	} else {
@@ -288,6 +302,13 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
 				0, //zero means leave nbyte value alone
 				MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
 
+	if( local->o_flags & SPI_LOCAL_IS_DMA && async ){
+		mcu_core_clean_data_cache_block(
+					((u8*)local->transfer_handler.read->buf) + local->transfer_handler.read->nbyte/2,
+					local->transfer_handler.read->nbyte/2
+					);
+	}
+
 	if( result ){
 		local->transfer_handler.write = async;
 	} else {
@@ -303,6 +324,12 @@ void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 	int result;
 	devfs_async_t * async;
 
+	async = local->transfer_handler.read;
+	if( local->o_flags & SPI_LOCAL_IS_DMA && async ){
+		mcu_core_invalidate_data_cache_block(
+					local->transfer_handler.read->buf,
+					local->transfer_handler.read->nbyte/2);
+	}
 	async = local->transfer_handler.read;
 	result = devfs_execute_read_handler(
 				&local->transfer_handler,
@@ -325,6 +352,12 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
 	devfs_async_t * async;
 
 	async = local->transfer_handler.read;
+	if( local->o_flags & SPI_LOCAL_IS_DMA && async ){
+		mcu_core_invalidate_data_cache_block(
+					((u8*)local->transfer_handler.read->buf) + local->transfer_handler.read->nbyte/2,
+					local->transfer_handler.read->nbyte/2
+					);
+	}
 	result = devfs_execute_read_handler(
 				&local->transfer_handler,
 				0,
@@ -333,6 +366,11 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
 
 	if( result ){
 		local->transfer_handler.read = async;
+
+		mcu_core_invalidate_data_cache_block(
+					local->transfer_handler.read->buf,
+					local->transfer_handler.read->nbyte + 31);
+
 	} else if( local->o_flags & SPI_LOCAL_IS_DMA ){
 		HAL_I2S_DMAPause(hi2s);
 	}
