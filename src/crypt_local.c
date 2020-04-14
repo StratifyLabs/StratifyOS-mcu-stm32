@@ -90,26 +90,26 @@ int crypt_local_setattr(const devfs_handle_t * handle, void * ctl){
 			local->hal_handle.Init.DataType = CRYP_DATATYPE_16B;
 		}
 
-		u32 key_size = 128/(32);
+		u32 key_size = 128/(16);
 		local->hal_handle.Init.KeySize = CRYP_KEYSIZE_128B;
 		if( o_flags & CRYPT_FLAG_IS_AES_192 ){
 			local->hal_handle.Init.KeySize = CRYP_KEYSIZE_192B;
-			key_size = 192/32;
+			key_size = 192/16;
 		} else if( o_flags & CRYPT_FLAG_IS_AES_256 ){
 			local->hal_handle.Init.KeySize = CRYP_KEYSIZE_256B;
-			key_size = 256/32;
+			key_size = 256/16;
 		}
 
 		//Key and initialization vector
 		local->hal_handle.Init.pKey = (u32*)attr->key;
 		memcpy(local->iv, attr->iv, 16);
 
-		u32 * ptr = (u32*)attr->key;
+		u16 * ptr16 = (u16*)attr->key;
 		for(u32 i=0; i < key_size; i++){
-			ptr[i] = __REV(ptr[i]);
+			ptr16[i] = __REV16(ptr16[i]);
 		}
 
-		ptr = (u32*)local->iv;
+		u32 * ptr = (u32*)local->iv;
 		for(u32 i=0; i < 4; i++){
 			ptr[i] = __REV(ptr[i]);
 		}
