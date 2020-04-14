@@ -90,18 +90,26 @@ int crypt_local_setattr(const devfs_handle_t * handle, void * ctl){
 			local->hal_handle.Init.DataType = CRYP_DATATYPE_16B;
 		}
 
+		u32 key_size = 128/(32);
 		local->hal_handle.Init.KeySize = CRYP_KEYSIZE_128B;
 		if( o_flags & CRYPT_FLAG_IS_AES_192 ){
 			local->hal_handle.Init.KeySize = CRYP_KEYSIZE_192B;
+			key_size = 192/32;
 		} else if( o_flags & CRYPT_FLAG_IS_AES_256 ){
 			local->hal_handle.Init.KeySize = CRYP_KEYSIZE_256B;
+			key_size = 256/32;
 		}
 
 		//Key and initialization vector
 		local->hal_handle.Init.pKey = (u32*)attr->key;
 		memcpy(local->iv, attr->iv, 16);
 
-		u32 * ptr = (u32*)local->iv;
+		u32 * ptr = (u32*)attr->key;
+		for(u32 i=0; i < key_size; i++){
+			ptr[i] = __REV(ptr[i]);
+		}
+
+		ptr = (u32*)local->iv;
 		for(u32 i=0; i < 4; i++){
 			ptr[i] = __REV(ptr[i]);
 		}
@@ -173,6 +181,16 @@ int crypt_local_setaction(const devfs_handle_t * handle, void * ctl){
 	return SYSFS_RETURN_SUCCESS;
 }
 
+int crypt_local_getiv(const devfs_handle_t * handle, void * ctl){
+	DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
+	memcpy(ctl, local->iv, 16);
+	u32 * ptr = (u32*)ctl;
+	for(u32 i=0; i < 4; i++){
+		ptr[i] = __REV(ptr[i]);
+	}
+	return 0;
+}
+
 
 void HAL_CRYP_InCpltCallback(CRYP_HandleTypeDef *hcryp){
 	crypt_local_t * local = (crypt_local_t *)hcryp;
@@ -185,10 +203,10 @@ void HAL_CRYP_OutCpltCallback(CRYP_HandleTypeDef *hcryp){
 	//execute the callbacks
 	devfs_execute_read_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_DATA_READY);
 	//update the IV once reading is complete
-	*(uint32_t*)(hcryp->Init.pInitVect) = hcryp->Instance->IV0LR;
-	*(uint32_t*)(hcryp->Init.pInitVect+1) = hcryp->Instance->IV0RR;
-	*(uint32_t*)(hcryp->Init.pInitVect+2) = hcryp->Instance->IV1LR;
-	*(uint32_t*)(hcryp->Init.pInitVect+3) = hcryp->Instance->IV1RR;
+	*(hcryp->Init.pInitVect) = hcryp->Instance->IV0LR;
+	*(hcryp->Init.pInitVect+1) = hcryp->Instance->IV0RR;
+	*(hcryp->Init.pInitVect+2) = hcryp->Instance->IV1LR;
+	*(hcryp->Init.pInitVect+3) = hcryp->Instance->IV1RR;
 }
 
 void HAL_CRYP_ErrorCallback(CRYP_HandleTypeDef *hcryp){

@@ -22,7 +22,7 @@
 
 #if MCU_CRYPT_PORTS > 0
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(crypt, CRYPT_VERSION, CRYPT_IOC_CHAR)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(crypt, CRYPT_VERSION, CRYPT_IOC_CHAR, I_MCU_TOTAL + I_CRYPT_TOTAL, mcu_crypt_getiv)
 
 int mcu_crypt_open(const devfs_handle_t * handle){
 	return crypt_local_open(handle);
@@ -55,14 +55,10 @@ int mcu_crypt_getinfo(const devfs_handle_t * handle, void * ctl){
 			CRYPT_FLAG_IS_ENCRYPT |
 			CRYPT_FLAG_IS_DECRYPT;
 
-	memcpy(info->iv, local->iv, 16);
-	u32 * ptr = (u32*)info->iv;
-	for(u32 i=0; i < 4; i++){
-		ptr[i] = __REV(ptr[i]);
-	}
 	return SYSFS_RETURN_SUCCESS;
 
 }
+
 
 int mcu_crypt_setattr(const devfs_handle_t * handle, void * ctl){
 	return crypt_local_setattr(handle, ctl);
@@ -73,6 +69,9 @@ int mcu_crypt_setaction(const devfs_handle_t * handle, void * ctl){
 	return crypt_local_setaction(handle, ctl);
 }
 
+int mcu_crypt_getiv(const devfs_handle_t * handle, void * ctl){
+	return crypt_local_getiv(handle, ctl);
+}
 
 int mcu_crypt_read(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);

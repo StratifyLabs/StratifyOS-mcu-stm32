@@ -52,6 +52,7 @@ int crypt_local_open(const devfs_handle_t * handle);
 int crypt_local_close(const devfs_handle_t * handle);
 int crypt_local_setattr(const devfs_handle_t * handle, void * ctl);
 int crypt_local_setaction(const devfs_handle_t * handle, void * ctl);
+int crypt_local_getiv(const devfs_handle_t * handle, void * ctl);
 
 #endif
 
