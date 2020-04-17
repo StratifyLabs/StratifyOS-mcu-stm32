@@ -104,9 +104,9 @@ int crypt_local_setattr(const devfs_handle_t * handle, void * ctl){
 		local->hal_handle.Init.pKey = (u32*)attr->key;
 		memcpy(local->iv, attr->iv, 16);
 
-		u16 * ptr16 = (u16*)attr->key;
+		u32 * ptr_key = (u32*)attr->key;
 		for(u32 i=0; i < key_size; i++){
-			ptr16[i] = __REV16(ptr16[i]);
+			ptr_key[i] = __REV(ptr_key[i]);
 		}
 
 		u32 * ptr = (u32*)local->iv;
