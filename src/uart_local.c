@@ -242,7 +242,7 @@ int uart_local_setattr(const devfs_handle_t * handle, void * ctl){
 			local->hal_handle.Init.Mode = UART_MODE_TX;
 		}
 		local->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-		local->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
+		local->hal_handle.Init.OverSampling = UART_OVERSAMPLING_8;
 
 		//pin assignments
 		if( mcu_set_pin_assignment(
@@ -260,6 +260,7 @@ int uart_local_setattr(const devfs_handle_t * handle, void * ctl){
 		//enable the idle interrupt and initialize the fifo
 		if( local->fifo_config ){
 			fifo_ioctl_local(local->fifo_config, &local->fifo_state, I_FIFO_INIT, 0);
+			//enables idle interrupt
 			SET_BIT(local->hal_handle.Instance->CR1, USART_CR1_IDLEIE);
 		}
 
@@ -356,11 +357,18 @@ void handle_bytes_received(uart_local_t * local, u16 bytes_received){
 
 	//increment the head by the number of bytes received
 	for(u16 i=0; i < bytes_received; i++){
-		fifo_inc_head(&local->fifo_state, local->fifo_config->size);
+		fifo_inc_head(
+					&local->fifo_state,
+					local->fifo_config->size
+					);
+
 	}
 
 	//now tell the fifo the head has been updated so it can return data to the user asynchronously
-	fifo_data_received(local->fifo_config, &local->fifo_state);
+	fifo_data_received(
+				local->fifo_config,
+				&local->fifo_state
+				);
 }
 
 void HAL_UART_RxIdleCallback(UART_HandleTypeDef *huart){
@@ -441,7 +449,7 @@ void HAL_UART_AbortTransmitCpltCallback(UART_HandleTypeDef *huart){
 }
 
 void HAL_UART_AbortReceiveCpltCallback(UART_HandleTypeDef *huart){
-
+	mcu_debug_printf("abort rx\n");
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){

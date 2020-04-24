@@ -36,7 +36,6 @@ int mcu_uart_dma_close(const devfs_handle_t * handle){
 		//disable the DMA
 		const stm32_uart_dma_config_t * config;
 
-		mcu_debug_printf("close %d\n", handle->port);
 		if( local->transfer_handler.read || local->transfer_handler.write ){
 			HAL_UART_DMAStop(&local->hal_handle);
 			devfs_execute_cancel_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), 0);

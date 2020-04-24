@@ -273,12 +273,14 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s){
 				0,
 				MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_LOW);
 
+#if 0 //This needs to be cleaned higher up when the buffer is written
 	if( local->o_flags & SPI_LOCAL_IS_DMA && async ){
 		mcu_core_clean_data_cache_block(
 					local->transfer_handler.read->buf,
 					local->transfer_handler.read->nbyte/2
 					);
 	}
+#endif
 
 	if( result ){
 		local->transfer_handler.write = async;
@@ -302,12 +304,14 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s){
 				0, //zero means leave nbyte value alone
 				MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
 
+#if 0 //This needs to be cleaned higher up when the buffer is written
 	if( local->o_flags & SPI_LOCAL_IS_DMA && async ){
 		mcu_core_clean_data_cache_block(
 					((u8*)local->transfer_handler.read->buf) + local->transfer_handler.read->nbyte/2,
 					local->transfer_handler.read->nbyte/2
 					);
 	}
+#endif
 
 	if( result ){
 		local->transfer_handler.write = async;
@@ -366,11 +370,6 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s){
 
 	if( result ){
 		local->transfer_handler.read = async;
-
-		mcu_core_invalidate_data_cache_block(
-					local->transfer_handler.read->buf,
-					local->transfer_handler.read->nbyte + 31);
-
 	} else if( local->o_flags & SPI_LOCAL_IS_DMA ){
 		HAL_I2S_DMAPause(hi2s);
 	}

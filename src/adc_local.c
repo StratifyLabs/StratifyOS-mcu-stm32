@@ -151,7 +151,7 @@ int adc_local_getinfo(const devfs_handle_t * handle, void * ctl){
 	}
 
 	info->o_events = MCU_EVENT_FLAG_DATA_READY;
-	info->maximum = 0xffff; //max value
+	info->maximum = 0xffff; //max value (only if left justified)
 	info->freq = 1000000; //max frequency
 	info->bytes_per_sample = 2;
 
@@ -214,13 +214,6 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 			if( config->dma_config.o_flags & STM32_DMA_FLAG_IS_CIRCULAR ){
 				local->hal_handle.Init.DMAContinuousRequests = ENABLE;
 			}
-
-			//ADC_DATAALIGN_RIGHT
-			//ADC_DATAALIGN_LEFT
-			local->hal_handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-			if( o_flags & ADC_FLAG_IS_LEFT_JUSTIFIED ){
-				local->hal_handle.Init.DataAlign = ADC_DATAALIGN_LEFT;
-			}
 #else
 
 #endif
@@ -247,6 +240,13 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 			//ADC_EOC_SINGLE_SEQ_CONV
 			local->hal_handle.Init.EOCSelection = ADC_EOC_SEQ_CONV; //DMA needs to use end of sequence
 			local->hal_handle.Init.ScanConvMode = ENABLE; //always do scan mode with DMA
+		}
+
+		//ADC_DATAALIGN_RIGHT
+		//ADC_DATAALIGN_LEFT
+		local->hal_handle.Init.DataAlign = ADC_DATAALIGN_LEFT;
+		if( o_flags & ADC_FLAG_IS_RIGHT_JUSTIFIED ){
+			local->hal_handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
 		}
 
 		local->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4; //set based on the frequency
