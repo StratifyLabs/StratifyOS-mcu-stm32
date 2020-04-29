@@ -246,6 +246,8 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 				HAL_PCDEx_SetTxFiFo(&m_usb_local[port].hal_handle, i, attr->tx_fifo_word_size[i]);
 			}
 		}
+
+		usb_connect(port, 1);
 #else
 
 #if 1
@@ -268,8 +270,14 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 
 
 	if( o_flags & USB_FLAG_RESET ){ usb_reset(handle); }
-	if( o_flags & USB_FLAG_ATTACH ){ usb_connect(port, 1); }
-	if( o_flags & USB_FLAG_DETACH ){ usb_connect(port, 0); }
+	if( o_flags & USB_FLAG_ATTACH ){
+		HAL_PCD_DevConnect(&m_usb_local[port].hal_handle);
+		//usb_connect(port, 1);
+	}
+	if( o_flags & USB_FLAG_DETACH ){
+		HAL_PCD_DevDisconnect(&m_usb_local[port].hal_handle);
+		//usb_connect(port, 0);
+	}
 	if( o_flags & USB_FLAG_CONFIGURE ){ usb_configure(handle, 1); }
 	if( o_flags & USB_FLAG_UNCONFIGURE ){ usb_configure(handle, 0); }
 
@@ -731,6 +739,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 
 	HAL_PCD_EP_Open(hpcd, 0x00, mps, EP_TYPE_CTRL);
 	HAL_PCD_EP_Open(hpcd, 0x80, mps, EP_TYPE_CTRL);
+
 }
 
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd){

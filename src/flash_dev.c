@@ -40,16 +40,17 @@ static int get_last_boot_page(){
 
 }
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(flash,
-										  FLASH_VERSION,
-										  FLASH_IOC_IDENT_CHAR,
-										  I_MCU_TOTAL + I_FLASH_TOTAL,
-										  mcu_flash_eraseaddr,
-										  mcu_flash_erasepage,
-										  mcu_flash_getpage,
-										  mcu_flash_getsize,
-										  mcu_flash_getpageinfo,
-										  mcu_flash_writepage)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
+		flash,
+		FLASH_VERSION,
+		FLASH_IOC_IDENT_CHAR,
+		I_MCU_TOTAL + I_FLASH_TOTAL,
+		mcu_flash_eraseaddr,
+		mcu_flash_erasepage,
+		mcu_flash_getpage,
+		mcu_flash_getsize,
+		mcu_flash_getpageinfo,
+		mcu_flash_writepage)
 
 
 int mcu_flash_open(const devfs_handle_t * handle){ return 0; }

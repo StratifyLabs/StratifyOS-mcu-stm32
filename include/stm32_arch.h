@@ -81,7 +81,7 @@
 #if defined __stm32f413xx
 #define CORE_M4 1
 #define ARM_MATH_CM4 1
-#define STM32_FLASH_LAYOUT_16_16_16_16_64_128_128_128 1
+#define STM32_FLASH_LAYOUT_16_16_16_16_64_128x11 1
 #if !defined STM32F413xx
 #define STM32F413xx 1
 #endif

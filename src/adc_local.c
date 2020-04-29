@@ -242,12 +242,14 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 			local->hal_handle.Init.ScanConvMode = ENABLE; //always do scan mode with DMA
 		}
 
+#if defined ADC_DATAALIGN_LEFT
 		//ADC_DATAALIGN_RIGHT
 		//ADC_DATAALIGN_LEFT
 		local->hal_handle.Init.DataAlign = ADC_DATAALIGN_LEFT;
 		if( o_flags & ADC_FLAG_IS_RIGHT_JUSTIFIED ){
 			local->hal_handle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
 		}
+#endif
 
 		local->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4; //set based on the frequency
 
