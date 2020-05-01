@@ -137,24 +137,24 @@ int uart_local_close(const devfs_handle_t * handle){
 					break;
 #endif
 #if defined UART7
-			case 6:
-				__HAL_RCC_UART7_CLK_DISABLE();
-				break;
+				case 6:
+					__HAL_RCC_UART7_CLK_DISABLE();
+					break;
 #endif
 #if defined UART8
-			case 7:
-				__HAL_RCC_UART8_CLK_DISABLE();
-				break;
+				case 7:
+					__HAL_RCC_UART8_CLK_DISABLE();
+					break;
 #endif
 #if defined UART9
-			case 8:
-				__HAL_RCC_UART9_CLK_DISABLE();
-				break;
+				case 8:
+					__HAL_RCC_UART9_CLK_DISABLE();
+					break;
 #endif
 #if defined UART10
-			case 9:
-				__HAL_RCC_UART10_CLK_DISABLE();
-				break;
+				case 9:
+					__HAL_RCC_UART10_CLK_DISABLE();
+					break;
 #endif
 
 			}
@@ -235,21 +235,30 @@ int uart_local_setattr(const devfs_handle_t * handle, void * ctl){
 			local->hal_handle.Init.Parity = UART_PARITY_ODD;
 		}
 
+		const uart_pin_assignment_t * pin_assignment
+				= mcu_select_pin_assignment(
+					&attr->pin_assignment,
+					MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
+					MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t)
+					);
+
 		local->hal_handle.Init.Mode = UART_MODE_TX_RX;
-		if( attr->pin_assignment.tx.port == 0xff ){
-			local->hal_handle.Init.Mode = UART_MODE_RX;
-		} else if ( attr->pin_assignment.rx.port == 0xff ){
-			local->hal_handle.Init.Mode = UART_MODE_TX;
+		if( pin_assignment ){
+			if( pin_assignment->tx.port == 0xff ){
+				local->hal_handle.Init.Mode = UART_MODE_RX;
+			} else if ( pin_assignment->rx.port == 0xff ){
+				local->hal_handle.Init.Mode = UART_MODE_TX;
+			}
 		}
 		local->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 		local->hal_handle.Init.OverSampling = UART_OVERSAMPLING_8;
 
 		//pin assignments
 		if( mcu_set_pin_assignment(
-				 &(attr->pin_assignment),
-				 MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
-				 MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t),
-				 CORE_PERIPH_UART, port, 0, 0, 0) < 0 ){
+					&(attr->pin_assignment),
+					MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
+					MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t),
+					CORE_PERIPH_UART, port, 0, 0, 0) < 0 ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
@@ -397,8 +406,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	if( local->hal_handle.hdmarx == 0 ){
 		//if not in circular DMA mode -- start the next interrupt based read
 		HAL_UART_Receive_IT(&local->hal_handle,
-								  (u8*)local->fifo_config->buffer,
-								  local->fifo_config->size);
+												(u8*)local->fifo_config->buffer,
+												local->fifo_config->size);
 	}
 }
 
@@ -418,8 +427,8 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
 
 		//if not in circular DMA mode -- start the next interrupt based read
 		HAL_UART_Receive_IT(&local->hal_handle,
-								  (u8*)local->fifo_config->buffer,
-								  local->fifo_config->size);
+												(u8*)local->fifo_config->buffer,
+												local->fifo_config->size);
 	} else {
 		bytes_received = local->fifo_config->size - __HAL_DMA_GET_COUNTER(huart->hdmarx) - local->fifo_state.atomic_position.access.head;
 		handle_bytes_received(local, bytes_received);
@@ -430,8 +439,8 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
 
 		//if not in circular DMA mode -- start the next interrupt based read
 		HAL_UART_Receive_DMA(&local->hal_handle,
-									(u8*)local->fifo_config->buffer,
-									local->fifo_config->size);
+												 (u8*)local->fifo_config->buffer,
+												 local->fifo_config->size);
 	}
 
 }
