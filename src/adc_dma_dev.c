@@ -31,12 +31,12 @@
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(adc_dma, ADC_VERSION, ADC_IOC_IDENT_CHAR)
 
 int mcu_adc_dma_open(const devfs_handle_t * handle){
-	adc_local[handle->port].o_flags = ADC_LOCAL_IS_DMA;
+	m_adc_local[handle->port].o_flags = ADC_LOCAL_IS_DMA;
 	return adc_local_open(handle);
 }
 
 int mcu_adc_dma_close(const devfs_handle_t * handle){
-	adc_local_t * local = adc_local + handle->port;
+	adc_local_t * local = m_adc_local + handle->port;
 	if( local->ref_count == 1 ){
 		//disable the DMA
 
@@ -64,7 +64,7 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
 	const adc_attr_t * attr;
 
 
-	adc_local_t * local = &adc_local[handle->port];
+	adc_local_t * local = &m_adc_local[handle->port];
 
 	attr = mcu_select_attr(handle, ctl);
 	if( attr == 0 ){
@@ -101,7 +101,7 @@ int mcu_adc_dma_setattr(const devfs_handle_t * handle, void * ctl){
 int mcu_adc_dma_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = (mcu_action_t*)ctl;
 	int port = handle->port;
-	adc_local_t * local = adc_local + port;
+	adc_local_t * local = m_adc_local + port;
 
 	if( action->handler.callback == 0 ){
 		//if there is an ongoing operation -- cancel it
@@ -119,7 +119,7 @@ int mcu_adc_dma_setaction(const devfs_handle_t * handle, void * ctl){
 
 int mcu_adc_dma_read(const devfs_handle_t * handle, devfs_async_t * async){
 	const u32 port = handle->port;
-	adc_local_t * local = adc_local + port;
+	adc_local_t * local = m_adc_local + port;
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

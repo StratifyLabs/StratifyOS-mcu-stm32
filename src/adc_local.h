@@ -41,7 +41,7 @@ extern ADC_TypeDef * const adc_regs_table[MCU_ADC_PORTS];
 extern u8 const adc_irqs[MCU_ADC_PORTS];
 extern const u32 adc_channels[MCU_ADC_CHANNELS];
 
-extern adc_local_t adc_local[MCU_ADC_PORTS] MCU_SYS_MEM;
+extern adc_local_t m_adc_local[MCU_ADC_PORTS] MCU_SYS_MEM;
 
 
 int adc_local_open(const devfs_handle_t * handle);

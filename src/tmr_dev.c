@@ -46,7 +46,7 @@ static u8 decode_hal_channel(u8 channel){
 }
 
 
-tmr_local_t m_tmr_local[MCU_TMR_PORTS];
+tmr_local_t m_tmr_local[MCU_TMR_PORTS] MCU_SYS_MEM;
 
 static void clear_actions(int port);
 

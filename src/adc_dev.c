@@ -25,7 +25,7 @@
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(adc, ADC_VERSION, ADC_IOC_IDENT_CHAR)
 
 int mcu_adc_open(const devfs_handle_t * handle){
-	adc_local[handle->port].o_flags = 0;
+	m_adc_local[handle->port].o_flags = 0;
 	return adc_local_open(handle);
 
 }
@@ -47,7 +47,7 @@ int mcu_adc_setattr(const devfs_handle_t * handle, void * ctl){
 int mcu_adc_setaction(const devfs_handle_t * handle, void * ctl){
 	mcu_action_t * action = (mcu_action_t*)ctl;
 	const u32 port = handle->port;
-	adc_local_t * local = adc_local + port;
+	adc_local_t * local = m_adc_local + port;
 
 	if( action->handler.callback == 0 ){
 		//if there is an ongoing operation -- cancel it
@@ -64,7 +64,7 @@ int mcu_adc_setaction(const devfs_handle_t * handle, void * ctl){
 
 int mcu_adc_read(const devfs_handle_t * handle, devfs_async_t * async){
 	int port = handle->port;
-	adc_local_t * local = adc_local + port;
+	adc_local_t * local = m_adc_local + port;
 
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
 

@@ -31,7 +31,7 @@
 
 ADC_TypeDef * const adc_regs_table[MCU_ADC_PORTS] = MCU_ADC_REGS;
 u8 const adc_irqs[MCU_ADC_PORTS] = MCU_ADC_IRQS;
-adc_local_t adc_local[MCU_ADC_PORTS] MCU_SYS_MEM;
+adc_local_t m_adc_local[MCU_ADC_PORTS] MCU_SYS_MEM;
 
 const u32 adc_channels[MCU_ADC_CHANNELS] = {
 	ADC_CHANNEL_0, ADC_CHANNEL_1, ADC_CHANNEL_2, ADC_CHANNEL_3,
@@ -44,7 +44,7 @@ const u32 adc_channels[MCU_ADC_CHANNELS] = {
 
 int adc_local_open(const devfs_handle_t * handle){
 	const u32 port = handle->port;
-	adc_local_t * local = adc_local + port;
+	adc_local_t * local = m_adc_local + port;
 	if ( local->ref_count == 0 ){
 
 		local->hal_handle.Instance = adc_regs_table[port];
@@ -89,7 +89,7 @@ int adc_local_open(const devfs_handle_t * handle){
 
 int adc_local_close(const devfs_handle_t * handle){
 	const u32 port = handle->port;
-	adc_local_t * local = adc_local + port;
+	adc_local_t * local = m_adc_local + port;
 
 	if ( local->ref_count > 0 ){
 		if ( local->ref_count == 1 ){
@@ -135,7 +135,7 @@ int adc_local_close(const devfs_handle_t * handle){
 int adc_local_getinfo(const devfs_handle_t * handle, void * ctl){
 	adc_info_t * info = ctl;
 	const adc_config_t * config = handle->config;
-	adc_local_t * local = adc_local + handle->port;
+	adc_local_t * local = m_adc_local + handle->port;
 
 	info->o_flags = ADC_FLAG_IS_LEFT_JUSTIFIED |
 			ADC_FLAG_IS_RIGHT_JUSTIFIED |
@@ -168,7 +168,7 @@ int adc_local_getinfo(const devfs_handle_t * handle, void * ctl){
 int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 	u32 o_flags;
 	int port = handle->port;
-	adc_local_t * local = adc_local + port;
+	adc_local_t * local = m_adc_local + port;
 	const adc_attr_t * attr;
 
 	attr = mcu_select_attr(handle, ctl);
@@ -541,12 +541,12 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef * hadc){
 }
 
 void mcu_core_adc_isr(){
-	if( adc_local[0].hal_handle.Instance ){ HAL_ADC_IRQHandler(&adc_local[0].hal_handle); }
+	if( m_adc_local[0].hal_handle.Instance ){ HAL_ADC_IRQHandler(&m_adc_local[0].hal_handle); }
 #if MCU_ADC_PORTS > 1
-	if( adc_local[1].hal_handle.Instance ){ HAL_ADC_IRQHandler(&adc_local[1].hal_handle); }
+	if( m_adc_local[1].hal_handle.Instance ){ HAL_ADC_IRQHandler(&m_adc_local[1].hal_handle); }
 #endif
 #if MCU_ADC_PORTS > 2
-	if( adc_local[2].hal_handle.Instance ){ HAL_ADC_IRQHandler(&adc_local[2].hal_handle); }
+	if( m_adc_local[2].hal_handle.Instance ){ HAL_ADC_IRQHandler(&m_adc_local[2].hal_handle); }
 #endif
 }
 

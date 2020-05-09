@@ -343,8 +343,8 @@ int mcu_usb_setaction(const devfs_handle_t * handle, void * ctl){
 	cortexm_set_irq_priority(usb_irqs[port], action->prio, action->o_events);
 
 	if( action->o_events &
-		 (MCU_EVENT_FLAG_POWER|MCU_EVENT_FLAG_SUSPEND|MCU_EVENT_FLAG_STALL|MCU_EVENT_FLAG_SOF|MCU_EVENT_FLAG_WAKEUP)
-		 ){
+			(MCU_EVENT_FLAG_POWER|MCU_EVENT_FLAG_SUSPEND|MCU_EVENT_FLAG_STALL|MCU_EVENT_FLAG_SOF|MCU_EVENT_FLAG_WAKEUP)
+			){
 		m_usb_local[port].special_event_handler = action->handler;
 		return 0;
 	}
@@ -516,7 +516,7 @@ void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32
 		m_usb_local[port].rx_buffer_offset[endpoint_num] = m_usb_local[port].rx_buffer_used;
 		m_usb_local[port].rx_buffer_used += (max_packet_size*2);
 		if( m_usb_local[port].rx_buffer_used > stm32_config->usb_rx_buffer_size ){
-			//this is a fatal error
+			//this is a fatal error -- using mcu_debug_ will cause bootloader link problems
 			mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "usbbuf");
 		}
 

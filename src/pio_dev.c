@@ -40,7 +40,7 @@ static pio_local_t m_mcu_pio_local[MCU_PIO_PORTS] MCU_SYS_MEM;
 static GPIO_TypeDef * const m_pio_regs_table[MCU_PIO_PORTS] = MCU_PIO_REGS;
 //static u8 const m_pio_irqs[MCU_PIO_PORTS] = MCU_PIO_IRQS;
 
-static pio_local_event_handler_t pio_local_event_handler[16]; //there are 23 events but on 16 interrupts/events
+static pio_local_event_handler_t pio_local_event_handler[16] MCU_SYS_MEM; //there are 23 events but on 16 interrupts/events
 static const u8 pio_local_event_irq_numbers[] = {
 	EXTI0_IRQn, EXTI1_IRQn, EXTI2_IRQn, EXTI3_IRQn, EXTI4_IRQn,
 	EXTI9_5_IRQn, EXTI9_5_IRQn, EXTI9_5_IRQn, EXTI9_5_IRQn, EXTI9_5_IRQn,
