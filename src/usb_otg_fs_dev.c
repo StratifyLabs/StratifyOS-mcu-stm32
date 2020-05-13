@@ -240,10 +240,18 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 
 #if MCU_USB_API > 0
 		int i;
-		HAL_PCDEx_SetRxFiFo(&m_usb_local[port].hal_handle, attr->rx_fifo_word_size);  //size is in 32-bit words for all fifo - 512
+		HAL_PCDEx_SetRxFiFo(
+					&m_usb_local[port].hal_handle,
+					attr->rx_fifo_word_size
+					);  //size is in 32-bit words for all fifo - 512
+
 		for(i=0; i < USB_TX_FIFO_WORD_SIZE_COUNT; i++){
 			if( attr->tx_fifo_word_size[i] > 0 ){
-				HAL_PCDEx_SetTxFiFo(&m_usb_local[port].hal_handle, i, attr->tx_fifo_word_size[i]);
+				HAL_PCDEx_SetTxFiFo(
+							&m_usb_local[port].hal_handle,
+							i,
+							attr->tx_fifo_word_size[i]
+							);
 			}
 		}
 
