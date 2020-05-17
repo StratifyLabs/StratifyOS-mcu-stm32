@@ -34,6 +34,14 @@ qspi_local_t m_qspi_local[MCU_QSPI_PORTS] MCU_SYS_MEM;
 QUADSPI_TypeDef * const qspi_regs_table[MCU_QSPI_PORTS] = MCU_QSPI_REGS;
 u8 const qspi_irqs[MCU_QSPI_PORTS] = MCU_QSPI_IRQS;
 
+static void populate_command(
+		QSPI_CommandTypeDef * command,
+		u32 o_flags,
+		u32 opcode,
+		u32 address,
+		int data_size,
+		int dummy_cycles);
+
 int qspi_local_open(const devfs_handle_t * handle){
 	DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
 
@@ -84,16 +92,14 @@ int qspi_local_setattr(const devfs_handle_t * handle, void * ctl){
 	local->state = o_flags;
 	if( o_flags & QSPI_FLAG_SET_MASTER ){
 		//uint32_t flash_size = 24;
-
-
 		__HAL_RCC_QSPI_FORCE_RESET();
 		__HAL_RCC_QSPI_RELEASE_RESET();
 
 		if( mcu_set_pin_assignment(
-				 &(attr->pin_assignment),
-				 MCU_CONFIG_PIN_ASSIGNMENT(qspi_config_t, handle),
-				 MCU_PIN_ASSIGNMENT_COUNT(qspi_pin_assignment_t),
-				 CORE_PERIPH_QSPI, port, 0, 0, 0) < 0 ){
+					&(attr->pin_assignment),
+					MCU_CONFIG_PIN_ASSIGNMENT(qspi_config_t, handle),
+					MCU_PIN_ASSIGNMENT_COUNT(qspi_pin_assignment_t),
+					CORE_PERIPH_QSPI, port, 0, 0, 0) < 0 ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
@@ -130,10 +136,31 @@ int qspi_local_setattr(const devfs_handle_t * handle, void * ctl){
 			return SYSFS_SET_RETURN(EIO);
 		}
 
+		if( o_flags & QSPI_FLAG_IS_MEMORY_MAPPED ){
+			QSPI_CommandTypeDef      s_command;
+			QSPI_MemoryMappedTypeDef s_mem_mapped_cfg;
+
+			populate_command(
+						&s_command,
+						attr->o_flags,
+						attr->memory_mapped_read_instruction,
+						0,
+						4,
+						attr->memory_mapped_read_dummy_cycles
+						);
+
+			/* Configure the memory mapped mode */
+			s_mem_mapped_cfg.TimeOutActivation = QSPI_TIMEOUT_COUNTER_DISABLE;
+			s_mem_mapped_cfg.TimeOutPeriod     = 0;
+
+			if (HAL_QSPI_MemoryMapped(&local->hal_handle, &s_command, &s_mem_mapped_cfg) != HAL_OK)
+			{
+				return SYSFS_SET_RETURN(EIO);
+			}
+		}
 	}
 
-
-	return 0;
+	return SYSFS_RETURN_SUCCESS;
 }
 
 int qspi_local_setaction(const devfs_handle_t * handle, void * ctl){
@@ -146,6 +173,72 @@ int qspi_local_setaction(const devfs_handle_t * handle, void * ctl){
 	return 0;
 }
 
+void populate_command(
+		QSPI_CommandTypeDef * command,
+		u32 o_flags,
+		u32 opcode,
+		u32 address,
+		int data_size,
+		int dummy_cycles){
+
+	if( o_flags & QSPI_FLAG_IS_OPCODE_WRITE ){
+		command->Instruction = opcode;
+		command->InstructionMode = QSPI_INSTRUCTION_1_LINE;
+		if( o_flags & QSPI_FLAG_IS_OPCODE_DUAL ){
+			command->InstructionMode = QSPI_INSTRUCTION_2_LINES;
+		} else if( o_flags & QSPI_FLAG_IS_OPCODE_QUAD ){
+			command->InstructionMode = QSPI_INSTRUCTION_4_LINES;
+		}
+	} else {
+		command->InstructionMode = QSPI_INSTRUCTION_NONE;
+	}
+
+	if( o_flags & QSPI_FLAG_IS_ADDRESS_WRITE ){
+		command->Address = address;
+		command->AddressSize = QSPI_ADDRESS_8_BITS;
+		command->AddressMode = QSPI_ADDRESS_1_LINE;
+		if( o_flags & QSPI_FLAG_IS_ADDRESS_DUAL ){
+			command->AddressMode = QSPI_ADDRESS_2_LINES;
+		} else if( o_flags & QSPI_FLAG_IS_ADDRESS_QUAD ){
+			command->AddressMode = QSPI_ADDRESS_4_LINES;
+		}
+
+		if( o_flags & QSPI_FLAG_IS_ADDRESS_16_BITS ){
+			command->AddressSize = QSPI_ADDRESS_16_BITS;
+		} else if( o_flags & QSPI_FLAG_IS_ADDRESS_24_BITS ){
+			command->AddressSize = QSPI_ADDRESS_24_BITS;
+		} else if( o_flags & QSPI_FLAG_IS_ADDRESS_32_BITS ){
+			command->AddressSize = QSPI_ADDRESS_32_BITS;
+		}
+	} else {
+		command->AddressMode = QSPI_ADDRESS_NONE;
+	}
+
+	//not using alternate bytes
+	command->AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
+	command->AlternateBytes = 0; //up to 32 bits can be sent
+	command->AlternateBytesSize = QSPI_ALTERNATE_BYTES_8_BITS; //8,16,24 or 32 bits
+
+	//setup the data mode
+	command->DataMode = QSPI_DATA_NONE;
+	command->NbData = data_size;
+	if( data_size > 0 ){
+		command->DataMode = QSPI_DATA_1_LINE;
+		if( o_flags & QSPI_FLAG_IS_DATA_DUAL ){
+			command->DataMode = QSPI_DATA_2_LINES;
+		} else if( o_flags & QSPI_FLAG_IS_DATA_QUAD ){
+			command->DataMode = QSPI_DATA_4_LINES;
+		}
+	}
+
+	command->DummyCycles = dummy_cycles;
+
+	//no double data rate
+	command->DdrMode = QSPI_DDR_MODE_DISABLE;
+	command->DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
+	command->SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
+}
+
 int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 	DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
 
@@ -153,6 +246,18 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 	u32 o_flags = qspi_command->o_flags;
 
 	QSPI_CommandTypeDef command;
+
+#if 1
+	populate_command(
+				&command,
+				qspi_command->o_flags,
+				qspi_command->opcode,
+				qspi_command->address,
+				qspi_command->data_size,
+				qspi_command->dummy_cycles
+				);
+
+#else
 	if( o_flags & QSPI_FLAG_IS_OPCODE_WRITE ){
 		command.Instruction = qspi_command->opcode;
 		command.InstructionMode = QSPI_INSTRUCTION_1_LINE;
@@ -209,6 +314,7 @@ int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl){
 	command.DdrMode = QSPI_DDR_MODE_DISABLE;
 	command.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
 	command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
+#endif
 
 	int result;
 	if( (result = HAL_QSPI_Command(&local->hal_handle, &command, HAL_QPSI_TIMEOUT_DEFAULT_VALUE)) != HAL_OK ){
@@ -278,12 +384,12 @@ void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi){
 void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi){
 	qspi_local_t * local =  (qspi_local_t *)hqspi;
 	if(
-		#if MCU_QSPI_API == 1
-			local->hal_handle.hmdma != 0 &&
-		#else
-			local->hal_handle.hdma != 0 &&
-		#endif
-			local->transfer_handler.read ){
+	 #if MCU_QSPI_API == 1
+		 local->hal_handle.hmdma != 0 &&
+	 #else
+		 local->hal_handle.hdma != 0 &&
+	 #endif
+		 local->transfer_handler.read ){
 		//pull in values from memory to cache if using DMA
 
 		/*
