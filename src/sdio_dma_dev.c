@@ -131,6 +131,13 @@ int mcu_sdio_dma_write(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(sdio, MCU_SDIO_PORTS);
 	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
+#if defined STM32F7 || defined STM32H7
+	mcu_core_clean_data_cache_block(
+				async->buf,
+				async->nbyte
+				);
+#endif
+
 	local->hal_handle.TxXferSize = async->nbyte; //used by the callback but not set by HAL_SD_WriteBlocks_DMA
 	if( (HAL_SD_WriteBlocks_DMA(&local->hal_handle, async->buf, async->loc, async->nbyte / BLOCKSIZE)) == HAL_OK ){
 		return 0;

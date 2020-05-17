@@ -184,10 +184,10 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 		//pin assignments
 		if( mcu_set_pin_assignment(
-				 &(attr->pin_assignment),
-				 MCU_CONFIG_PIN_ASSIGNMENT(sdio_config_t, handle),
-				 MCU_PIN_ASSIGNMENT_COUNT(sdio_pin_assignment_t),
-				 CORE_PERIPH_SDIO, handle->port, 0, 0, 0) < 0 ){
+					&(attr->pin_assignment),
+					MCU_CONFIG_PIN_ASSIGNMENT(sdio_config_t, handle),
+					MCU_PIN_ASSIGNMENT_COUNT(sdio_pin_assignment_t),
+					CORE_PERIPH_SDIO, handle->port, 0, 0, 0) < 0 ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 
@@ -200,9 +200,9 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 		//SDIO_BUS_WIDE_8B -- not compatible with SDIO
 		if( o_flags & SDIO_FLAG_IS_BUS_WIDTH_4 ){
 			if( HAL_SD_ConfigWideBusOperation(
-					 &local->hal_handle,
-					 SDIO_BUS_WIDE_4B
-					 ) != HAL_OK ){
+						&local->hal_handle,
+						SDIO_BUS_WIDE_4B
+						) != HAL_OK ){
 				mcu_debug_log_error(
 							MCU_DEBUG_DEVICE,
 							"failed to config 4 bit width"
@@ -281,6 +281,16 @@ void HAL_SD_TxCpltCallback(SD_HandleTypeDef *hsd){
 
 void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd){
 	sdio_local_t * local = (sdio_local_t *)hsd;
+
+#if defined STM32F7 || defined STM32H7
+	if( local->transfer_handler.read ){
+		mcu_core_invalidate_data_cache_block(
+					local->transfer_handler.read->buf,
+					local->transfer_handler.read->nbyte
+					);
+	}
+#endif
+
 	//mcu_debug_root_printf("read complete %d 0x%lX %ld\n", hsd->RxXferSize, hsd->Instance->STA, TIM2->CNT - local->start_time);
 	devfs_execute_read_handler(&local->transfer_handler, 0, hsd->RxXferSize, MCU_EVENT_FLAG_DATA_READY);
 }
