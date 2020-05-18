@@ -348,6 +348,7 @@ enum {
 
 
 #define STM32_NUCLEO144_DECLARE_MCU_BOARD_CONFIG(cpu_frequency, event_handler_value, arch_config_value, o_mcu_debug_value) \
+	MCU_DECLARE_SECRET_KEY_32(secret_key) \
 	const mcu_board_config_t mcu_board_config = { \
 	.core_cpu_freq = cpu_frequency, \
 	.usb_max_packet_zero = 64, \
@@ -363,6 +364,8 @@ enum {
 	.o_flags = UART_FLAG_SET_LINE_CODING_DEFAULT, \
 	.width = 8 \
 	}, \
+	.secret_key_address = secret_key, \
+	.secret_key_size = 32, \
 	.o_flags = MCU_BOARD_CONFIG_FLAG_LED_ACTIVE_HIGH, \
 	.event_handler = event_handler_value, \
 	.led = {1, 7}, \
