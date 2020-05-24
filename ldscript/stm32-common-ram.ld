@@ -2,6 +2,7 @@
 
   .text : {
          _text = .;
+				 _tcim = .;
   		 KEEP(*(.startup))
   		 KEEP(*(.reset_vector))
   		 KEEP(*(.isr_vector))
@@ -43,6 +44,7 @@
   . = ALIGN(4);
   __exidx_end = .;
   _etext = .;
+	_etcim = .;
   .data : {
          _data = .;
          *(.data)
