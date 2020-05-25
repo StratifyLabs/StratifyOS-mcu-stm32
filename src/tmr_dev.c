@@ -202,10 +202,14 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 
 			if ( freq < pclk*2 ){
 				m_tmr_local[port].hal_handle.Init.Prescaler = ((pclk + freq/2) / freq) - 1;
-				mcu_debug_log_info(MCU_DEBUG_DEVICE, "Prescaler:%ld", m_tmr_local[port].hal_handle.Init.Prescaler);
 			} else {
 				m_tmr_local[port].hal_handle.Init.Prescaler = 0;
 			}
+
+			if( m_tmr_local[port].hal_handle.Init.Prescaler > 0xffff ){
+				m_tmr_local[port].hal_handle.Init.Prescaler = 0xffff;
+			}
+			mcu_debug_log_info(MCU_DEBUG_DEVICE, "Prescaler:%ld", m_tmr_local[port].hal_handle.Init.Prescaler);
 
 			if( o_flags & TMR_FLAG_IS_SOURCE_COUNTDOWN ){
 				m_tmr_local[port].hal_handle.Init.CounterMode = TIM_COUNTERMODE_DOWN;
@@ -380,7 +384,7 @@ int mcu_tmr_setattr(const devfs_handle_t * handle, void * ctl){
 
 int mcu_tmr_enable(const devfs_handle_t * handle, void * ctl){
 	int port = handle->port;
-	if( m_tmr_local[port].hal_handle.Init.Period != 0 ){
+	if(  m_tmr_local[port].period_handler.callback != 0 ){
 		HAL_TIM_Base_Start_IT(&m_tmr_local[port].hal_handle);
 	} else {
 		HAL_TIM_Base_Start(&m_tmr_local[port].hal_handle);

@@ -114,6 +114,11 @@
 #define MCU_RNG_REGS { RNG }
 #define MCU_RNG_IRQS { HASH_RNG_IRQn }
 
+#define MCU_CRYPT_API 0
+#define MCU_CRYPT_PORTS 1
+#define MCU_CRYPT_REGS { CRYP }
+#define MCU_CRYPT_IRQS { CRYP_IRQn }
+
 #define MCU_RTC_PORTS 1
 #define MCU_RTC_REGS { RTC }
 #define MCU_RTC_IRQS { RTC_Alarm_IRQn }
