@@ -106,7 +106,11 @@ int sdio_local_getinfo(const devfs_handle_t * handle, void * ctl){
 	info->o_flags = SDIO_FLAG_SET_INTERFACE;
 	info->o_events = MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_WRITE_COMPLETE | MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_SET_PRIORITY;
 
-	info->freq = 25000000UL;
+#if defined STM32H7
+	info->freq = HAL_RCC_GetHCLKFreq() / (local->hal_handle.Init.ClockDiv+1);
+#else
+	info->freq = 48000000UL / (local->hal_handle.Init.ClockDiv + 2);
+#endif
 	info->block_count = local->hal_handle.SdCard.BlockNbr;
 	info->block_size = local->hal_handle.SdCard.BlockSize;
 	info->card_class = local->hal_handle.SdCard.Class;
@@ -181,14 +185,14 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 		}
 
-
 		//pin assignments
-		if( mcu_set_pin_assignment(
-					&(attr->pin_assignment),
-					MCU_CONFIG_PIN_ASSIGNMENT(sdio_config_t, handle),
-					MCU_PIN_ASSIGNMENT_COUNT(sdio_pin_assignment_t),
-					CORE_PERIPH_SDIO, handle->port, 0, 0, 0) < 0 ){
-			return SYSFS_SET_RETURN(EINVAL);
+		int pin_result;
+		if( (pin_result = mcu_set_pin_assignment(
+					 &(attr->pin_assignment),
+					 MCU_CONFIG_PIN_ASSIGNMENT(sdio_config_t, handle),
+					 MCU_PIN_ASSIGNMENT_COUNT(sdio_pin_assignment_t),
+					 CORE_PERIPH_SDIO, handle->port, 0, 0, 0)) < 0 ){
+			return pin_result;
 		}
 
 		if( HAL_SD_Init(&local->hal_handle) != HAL_OK ){
@@ -205,7 +209,7 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 						) != HAL_OK ){
 				mcu_debug_log_error(
 							MCU_DEBUG_DEVICE,
-							"failed to config 4 bit width"
+							"failed to config 4 bit width 0x%X", local->hal_handle.ErrorCode
 							);
 			}
 		}
