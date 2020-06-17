@@ -211,6 +211,7 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 							MCU_DEBUG_DEVICE,
 							"failed to config 4 bit width 0x%X", local->hal_handle.ErrorCode
 							);
+				return SYSFS_SET_RETURN(EIO);
 			}
 		}
 	}
