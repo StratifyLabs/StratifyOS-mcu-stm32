@@ -370,7 +370,6 @@ void handle_bytes_received(uart_local_t * local, u16 bytes_received){
 					&local->fifo_state,
 					local->fifo_config->size
 					);
-
 	}
 
 	//now tell the fifo the head has been updated so it can return data to the user asynchronously
@@ -394,6 +393,13 @@ void HAL_UART_RxIdleCallback(UART_HandleTypeDef *huart){
 
 void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart){
 	MCU_UNUSED_ARGUMENT(huart);
+	//idle will handle partial reception until complete is called
+
+	//allow the caller to get the bytes that have arrived so far
+	uart_local_t * local = (uart_local_t*)huart;
+	u16 bytes_received;
+	bytes_received = local->fifo_config->size/2 - local->fifo_state.atomic_position.access.head;
+	handle_bytes_received(local, bytes_received);
 }
 
 //called when RX IT is complete or when DMA does full transfer
@@ -430,6 +436,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
 												(u8*)local->fifo_config->buffer,
 												local->fifo_config->size);
 	} else {
+
 		bytes_received = local->fifo_config->size - __HAL_DMA_GET_COUNTER(huart->hdmarx) - local->fifo_state.atomic_position.access.head;
 		handle_bytes_received(local, bytes_received);
 
@@ -474,13 +481,8 @@ void mcu_uart_isr(int port){
 	uart_local_t * local = m_uart_local + port;
 	HAL_UART_IRQHandler(&local->hal_handle);
 
-#if defined USART_SR_IDLE
-	if(  READ_REG(local->hal_handle.Instance->SR) & USART_SR_IDLE ){
-		local->hal_handle.Instance->DR; //this will clear the idle bit
-#elif defined USART_ISR_IDLE
-	if(  READ_REG(local->hal_handle.Instance->ISR) & USART_ISR_IDLE ){
-		SET_BIT(local->hal_handle.Instance->ICR, USART_ICR_IDLECF); //this will clear the idle bit
-#endif
+	if( __HAL_UART_GET_FLAG(&local->hal_handle, UART_FLAG_IDLE) ){
+		__HAL_UART_CLEAR_IDLEFLAG(&local->hal_handle);
 		HAL_UART_RxIdleCallback((UART_HandleTypeDef*)local);
 		return;
 	}

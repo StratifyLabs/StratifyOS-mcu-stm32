@@ -737,7 +737,6 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 	usb_local_t * usb = (usb_local_t *)hpcd;
 	u32 mps = mcu_board_config.usb_max_packet_zero;
 	usb->connected = 1;
-	//MCU_DEBUG_LINE_TRACE();
 	usb->rx_buffer_used = mps;
 	for(i=0; i < DEV_USB_LOGICAL_ENDPOINT_COUNT; i++){
 		usb->rx_buffer_offset[i] = 0;
