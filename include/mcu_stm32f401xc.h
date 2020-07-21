@@ -19,7 +19,7 @@
 
 #include <mcu/types.h>
 #include "cmsis/stm32f4xx.h"
-#include "cmsis/stm32f401xC.h"
+#include "cmsis/stm32f401xc.h"
 
 
 #define MCU_NO_HARD_FAULT 1
