@@ -251,7 +251,7 @@ int uart_local_setattr(const devfs_handle_t * handle, void * ctl){
 			}
 		}
 		local->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-		local->hal_handle.Init.OverSampling = UART_OVERSAMPLING_8;
+		local->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
 
 		//pin assignments
 		if( mcu_set_pin_assignment(
@@ -272,7 +272,6 @@ int uart_local_setattr(const devfs_handle_t * handle, void * ctl){
 			//enables idle interrupt
 			SET_BIT(local->hal_handle.Instance->CR1, USART_CR1_IDLEIE);
 		}
-
 	}
 
 	return SYSFS_RETURN_SUCCESS;
@@ -420,30 +419,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
 	uart_local_t * local = (uart_local_t*)huart;
 	devfs_execute_read_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_CANCELED);
-	u16 bytes_received;
-
+	//reset the head
+	fifo_flush(&local->fifo_state);
 	if( local->hal_handle.hdmarx == 0 ){
-
-		bytes_received = local->fifo_config->size - huart->RxXferCount - local->fifo_state.atomic_position.access.head;
-		handle_bytes_received(local, bytes_received);
-
-		//reset the head
-		fifo_flush(&local->fifo_state);
-
-
 		//if not in circular DMA mode -- start the next interrupt based read
 		HAL_UART_Receive_IT(&local->hal_handle,
 												(u8*)local->fifo_config->buffer,
 												local->fifo_config->size);
 	} else {
-
-		bytes_received = local->fifo_config->size - __HAL_DMA_GET_COUNTER(huart->hdmarx) - local->fifo_state.atomic_position.access.head;
-		handle_bytes_received(local, bytes_received);
-
-		//reset the head
-		fifo_flush(&local->fifo_state);
-
-
 		//if not in circular DMA mode -- start the next interrupt based read
 		HAL_UART_Receive_DMA(&local->hal_handle,
 												 (u8*)local->fifo_config->buffer,
@@ -465,7 +448,7 @@ void HAL_UART_AbortTransmitCpltCallback(UART_HandleTypeDef *huart){
 }
 
 void HAL_UART_AbortReceiveCpltCallback(UART_HandleTypeDef *huart){
-	mcu_debug_printf("abort rx\n");
+	//mcu_debug_printf("abort rx\n");
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){

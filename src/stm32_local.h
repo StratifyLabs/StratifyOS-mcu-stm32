@@ -25,7 +25,7 @@
 
 #define USE_FULL_LL_DRIVER
 
-#include "stm32_arch.h"
+#include "arch/stm32/stm32_arch.h"
 
 #include <fcntl.h>
 #include <cortexm/cortexm.h>
@@ -104,6 +104,9 @@ typedef SDMMC_TypeDef SDIO_TypeDef;
 #define SDIO_HARDWARE_FLOW_CONTROL_ENABLE SDMMC_HARDWARE_FLOW_CONTROL_ENABLE
 //STM32H7 drops the Q but it is still connected to PLLQ?
 #define RCC_CLK48CLKSOURCE_PLLQ RCC_CLK48SOURCE_PLL
+
+#define ETH_TXBUFNB ETH_TX_DESC_CNT
+#define ETH_RXBUFNB ETH_RX_DESC_CNT
 
 #endif
 

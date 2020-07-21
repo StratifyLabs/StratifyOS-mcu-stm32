@@ -45,10 +45,10 @@ static void usb_reset(const devfs_handle_t * handle);
 
 typedef struct MCU_PACK {
 	PCD_HandleTypeDef hal_handle;
-	devfs_transfer_handler_t transfer_handler[DEV_USB_LOGICAL_ENDPOINT_COUNT];
+	devfs_transfer_handler_t transfer_handler[MCU_USB_ENDPOINT_COUNT];
 	mcu_event_handler_t control_handler;
-	u16 rx_count[DEV_USB_LOGICAL_ENDPOINT_COUNT];
-	u16 rx_buffer_offset[DEV_USB_LOGICAL_ENDPOINT_COUNT];
+	u16 rx_count[MCU_USB_ENDPOINT_COUNT];
+	u16 rx_buffer_offset[MCU_USB_ENDPOINT_COUNT];
 	u16 rx_buffer_used;
 	volatile u32 write_pending;
 	volatile u32 read_ready;
@@ -64,10 +64,10 @@ static u8 const usb_irqs[MCU_USB_PORTS] = MCU_USB_IRQS;
 static void clear_callbacks();
 
 void clear_callbacks(int port){
-	memset(m_usb_local[port].transfer_handler, 0, (DEV_USB_LOGICAL_ENDPOINT_COUNT) * sizeof(devfs_transfer_handler_t));
+	memset(m_usb_local[port].transfer_handler, 0, (MCU_USB_ENDPOINT_COUNT) * sizeof(devfs_transfer_handler_t));
 	memset(&m_usb_local[port].control_handler, 0, sizeof(mcu_event_handler_t));
 	memset(&m_usb_local[port].special_event_handler, 0, sizeof(mcu_event_handler_t));
-	memset(m_usb_local[port].rx_buffer_offset, 0, DEV_USB_LOGICAL_ENDPOINT_COUNT * sizeof(u16));
+	memset(m_usb_local[port].rx_buffer_offset, 0, MCU_USB_ENDPOINT_COUNT * sizeof(u16));
 	m_usb_local[port].rx_buffer_used = 0;
 }
 
@@ -176,12 +176,12 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 #endif
 
 		if( port == 0 ){
-			m_usb_local[port].hal_handle.Init.dev_endpoints = 9;
+			m_usb_local[port].hal_handle.Init.dev_endpoints = MCU_USB_ENDPOINT_COUNT;
 			m_usb_local[port].hal_handle.Init.speed = PCD_SPEED_FULL;
 			m_usb_local[port].hal_handle.Init.phy_itface = PCD_PHY_EMBEDDED;
 		} else {
 #if MCU_USB_PORTS > 1
-			m_usb_local[port].hal_handle.Init.dev_endpoints = DEV_USB_LOGICAL_ENDPOINT_COUNT;
+			m_usb_local[port].hal_handle.Init.dev_endpoints = MCU_USB_ENDPOINT_COUNT;
 			if( o_flags & USB_FLAG_IS_HIGH_SPEED ){
 				m_usb_local[port].hal_handle.Init.speed = USB_OTG_SPEED_HIGH;
 			} else {
@@ -256,6 +256,7 @@ int mcu_usb_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		usb_connect(port, 1);
+
 #else
 
 #if 1
@@ -377,7 +378,7 @@ int mcu_usb_setaction(const devfs_handle_t * handle, void * ctl){
 		}
 	}
 
-	if ( (log_ep < DEV_USB_LOGICAL_ENDPOINT_COUNT)  ){
+	if ( (log_ep < MCU_USB_ENDPOINT_COUNT)  ){
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
 			//cortexm_enable_interrupts();
 			if( cortexm_validate_callback(action->handler.callback) < 0 ){
@@ -424,7 +425,7 @@ int mcu_usb_read(const devfs_handle_t * handle, devfs_async_t * async){
 	DEVFS_DRIVER_DECLARE_LOCAL(usb, MCU_USB_PORTS);
 
 	int loc = async->loc;
-	if ( loc > (DEV_USB_LOGICAL_ENDPOINT_COUNT-1) ){
+	if ( loc > (MCU_USB_ENDPOINT_COUNT-1) ){
 		return SYSFS_SET_RETURN(EINVAL);
 	}
 
@@ -465,7 +466,7 @@ int mcu_usb_write(const devfs_handle_t * handle, devfs_async_t * async){
 	int loc = async->loc;
 	int ep;
 	ep = (loc & 0x7F);
-	if ( ep > (DEV_USB_LOGICAL_ENDPOINT_COUNT-1) ){
+	if ( ep > (MCU_USB_ENDPOINT_COUNT-1) ){
 		return SYSFS_SET_RETURN(EINVAL);
 	}
 
@@ -734,11 +735,12 @@ void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd){
 
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 	int i;
+
 	usb_local_t * usb = (usb_local_t *)hpcd;
 	u32 mps = mcu_board_config.usb_max_packet_zero;
 	usb->connected = 1;
 	usb->rx_buffer_used = mps;
-	for(i=0; i < DEV_USB_LOGICAL_ENDPOINT_COUNT; i++){
+	for(i=0; i < MCU_USB_ENDPOINT_COUNT; i++){
 		usb->rx_buffer_offset[i] = 0;
 	}
 
@@ -774,7 +776,7 @@ void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum){
 
 	//epnum value passed is not valid -- need to find it
 	int i;
-	for(i=1; i < DEV_USB_LOGICAL_ENDPOINT_COUNT; i++){
+	for(i=1; i < MCU_USB_ENDPOINT_COUNT; i++){
 		if( hpcd->IN_ep[i].type == EP_TYPE_ISOC ){
 
 			epnum = 0x80 | i;

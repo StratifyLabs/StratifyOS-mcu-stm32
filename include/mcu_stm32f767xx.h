@@ -30,7 +30,6 @@
 #define MCU_ADC_IRQS { ADC_IRQn, ADC_IRQn, ADC_IRQn }
 #define MCU_ADC_CHANNELS 21
 
-#define MCU_ENET_PORTS 1
 #define MCU_FLASH_PORTS 1
 #define MCU_MEM_PORTS 1
 
@@ -42,6 +41,10 @@
 
 #define MCU_I2C_API 0
 #define MCU_I2C_FMP_PORTS 0
+
+#define MCU_ETH_PORTS 1
+#define MCU_ETH_REGS { ETH }
+#define MCU_ETH_IRQS { ETH_IRQn }
 
 #define MCU_CORE_PORTS 1
 #define MCU_EEPROM_PORTS 0
@@ -89,7 +92,7 @@
 #define MCU_USB_REGS { USB_OTG_FS }
 #define MCU_USB_IRQS { OTG_FS_IRQn }
 
-#define DEV_USB_LOGICAL_ENDPOINT_COUNT 4
+#define MCU_USB_ENDPOINT_COUNT 4
 
 #define MCU_LAST_IRQ MDIOS_IRQn
 #define MCU_MIDDLE_IRQ_PRIORITY 8

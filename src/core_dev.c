@@ -17,7 +17,6 @@
 
 //#include "config.h"
 #include "stm32_flash.h"
-#include <mcu/arch.h>
 #include <mcu/bootloader.h>
 
 

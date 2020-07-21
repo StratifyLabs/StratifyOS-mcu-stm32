@@ -56,7 +56,7 @@ option(BUILD_STM32H7 "Build All H7 configurations" OFF)
 option(BUILD_STM32H743 "Build H743 configuration" OFF)
 option(BUILD_STM32H750 "Build H750 configuration" OFF)
 
-set(SOS_BUILD_FLAGS -Wno-strict-aliasing)
+set(SOS_BUILD_FLAGS -Wno-strict-aliasing -Wno-address-of-packed-member)
 
 if(BUILD_STM32F205xx OR BUILD_STM32F2 OR BUILD_ALL)
 set(STM32_VARIANT stm32f205xx)

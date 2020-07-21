@@ -107,6 +107,7 @@ int mcu_adc_dma_setaction(const devfs_handle_t * handle, void * ctl){
 		//if there is an ongoing operation -- cancel it
 		if( action->o_events & MCU_EVENT_FLAG_DATA_READY ){
 			//execute the read callback if not null
+			mcu_debug_printf("can\n");
 			devfs_execute_read_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EAGAIN), MCU_EVENT_FLAG_CANCELED);
 		}
 	}

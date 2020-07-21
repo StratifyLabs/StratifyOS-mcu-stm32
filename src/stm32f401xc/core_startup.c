@@ -26,7 +26,7 @@
 
 const bootloader_api_t mcu_core_bootloader_api MCU_WEAK;
 const bootloader_api_t mcu_core_bootloader_api = {
-		.code_size = 0,
+	.code_size = 0,
 };
 
 void mcu_core_default_isr();
@@ -229,8 +229,8 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(dma2_stream5),
 		_ISR(dma2_stream6),
 		_ISR(dma2_stream7), //70
-        _ISR(usart6),  //71
-        _ISR(i2c3_ev), //72
+		_ISR(usart6),  //71
+		_ISR(i2c3_ev), //72
 		_ISR(i2c3_er), //73
 		mcu_core_default_isr,
 		mcu_core_default_isr,
@@ -242,8 +242,8 @@ void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) =
 		_ISR(fpu), //81
 		mcu_core_default_isr,
 		mcu_core_default_isr,
-        _ISR(spi4) //84
-};
+		_ISR(spi4) //84
+		};
 
 void mcu_core_reset_handler(){
 	core_init();

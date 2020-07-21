@@ -179,10 +179,10 @@ int adc_local_setattr(const devfs_handle_t * handle, void * ctl){
 	if( o_flags & ADC_FLAG_SET_CHANNELS ){
 		//pin assignments
 		if( mcu_set_pin_assignment(
-				 &(attr->pin_assignment),
-				 MCU_CONFIG_PIN_ASSIGNMENT(adc_config_t, handle),
-				 MCU_PIN_ASSIGNMENT_COUNT(adc_pin_assignment_t),
-				 CORE_PERIPH_ADC, port, 0, 0, 0) < 0 ){
+					&(attr->pin_assignment),
+					MCU_CONFIG_PIN_ASSIGNMENT(adc_config_t, handle),
+					MCU_PIN_ASSIGNMENT_COUNT(adc_pin_assignment_t),
+					CORE_PERIPH_ADC, port, 0, 0, 0) < 0 ){
 			return SYSFS_SET_RETURN(EINVAL);
 		}
 	}
@@ -469,7 +469,13 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc){
 #if defined ADC_SR_OVR
 	hadc->Instance->SR &= ~ADC_SR_OVR;
 #endif
-	devfs_execute_read_handler(&adc->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+	devfs_execute_read_handler(
+				&adc->transfer_handler,
+				0,
+				SYSFS_SET_RETURN(EIO),
+				MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR
+				);
+
 	if( (adc->o_flags & ADC_LOCAL_IS_DMA) == 0 ){
 		HAL_ADC_Stop_IT(hadc);
 	} else {

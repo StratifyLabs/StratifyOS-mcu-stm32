@@ -78,6 +78,7 @@
 #define MCU_UART_IRQS { USART1_IRQn, USART2_IRQn, -1, -1, -1, USART6_IRQn }
 
 #define MCU_USB_API 1
+#define MCU_USB_ENDPOINT_COUNT 4
 #define MCU_USB_PORTS 1
 #define MCU_USB_REGS { USB_OTG_FS }
 #define MCU_USB_IRQS { OTG_FS_IRQn }
@@ -88,8 +89,6 @@
 #define MCU_RTC_PORTS 1
 #define MCU_RTC_REGS { RTC }
 #define MCU_RTC_IRQS { RTC_Alarm_IRQn }
-
-#define DEV_USB_LOGICAL_ENDPOINT_COUNT 4
 
 #define MCU_LAST_IRQ SPI4_IRQn
 #define MCU_MIDDLE_IRQ_PRIORITY 8
