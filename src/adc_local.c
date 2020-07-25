@@ -33,14 +33,7 @@ ADC_TypeDef * const adc_regs_table[MCU_ADC_PORTS] = MCU_ADC_REGS;
 u8 const adc_irqs[MCU_ADC_PORTS] = MCU_ADC_IRQS;
 adc_local_t m_adc_local[MCU_ADC_PORTS] MCU_SYS_MEM;
 
-const u32 adc_channels[MCU_ADC_CHANNELS] = {
-	ADC_CHANNEL_0, ADC_CHANNEL_1, ADC_CHANNEL_2, ADC_CHANNEL_3,
-	ADC_CHANNEL_4, ADC_CHANNEL_5, ADC_CHANNEL_6, ADC_CHANNEL_7,
-	ADC_CHANNEL_8, ADC_CHANNEL_9, ADC_CHANNEL_10, ADC_CHANNEL_11,
-	ADC_CHANNEL_12, ADC_CHANNEL_13, ADC_CHANNEL_14, ADC_CHANNEL_15,
-	ADC_CHANNEL_16, ADC_CHANNEL_17, ADC_CHANNEL_18, ADC_CHANNEL_VREFINT,
-	ADC_CHANNEL_VBAT
-};
+const u32 adc_channels[MCU_ADC_CHANNELS] = MCU_ADC_CHANNEL_VALUES;
 
 int adc_local_open(const devfs_handle_t * handle){
 	const u32 port = handle->port;
@@ -159,6 +152,32 @@ int adc_local_getinfo(const devfs_handle_t * handle, void * ctl){
 		info->reference_mv = config->reference_mv;
 	} else {
 		info->reference_mv = 0;
+	}
+
+	info->internal_vref_channel = 0xff;
+	info->internal_temperature_channel = 0xff;
+	info->internal_vbat_channel = 0xff;
+
+	for(u32 i=0; i < MCU_ADC_CHANNELS; i++){
+
+#if defined ADC_CHANNEL_VBAT
+		if( adc_channels[i] == ADC_CHANNEL_VBAT ){
+			info->internal_vbat_channel = i;
+		}
+#endif
+
+#if defined ADC_CHANNEL_TEMPSENSOR
+		if( adc_channels[i] == ADC_CHANNEL_TEMPSENSOR ){
+			info->internal_temperature_channel = i;
+		}
+#endif
+
+#if defined ADC_CHANNEL_VREFINT
+		if( adc_channels[i] == ADC_CHANNEL_VREFINT ){
+			info->internal_vref_channel = i;
+		}
+#endif
+
 	}
 
 
