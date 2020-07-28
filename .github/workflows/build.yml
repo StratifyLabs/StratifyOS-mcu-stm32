@@ -13,16 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        ref: 'development'
     - name: prepare
-      run: mkdir cmake_link && mkdir cmake_arm
-    - name: configure-link
-      run: cmake -DSOS_SDK_PATH=/StratifyLabs-SDK ..
-      working-directory: cmake_link
-    - name: make-link
-      run: make -j3
-      working-directory: cmake_link
+      run: mkdir cmake_arm
     - name: configure
       run: cmake -DSOS_SDK_PATH=/StratifyLabs-SDK ..
       working-directory: cmake_arm
