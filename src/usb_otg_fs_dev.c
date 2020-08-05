@@ -543,7 +543,6 @@ void usb_enable_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
 }
 
 void usb_disable_endpoint(const devfs_handle_t * handle, u32 endpoint_num){
-	mcu_debug_printf("close %d\n", endpoint_num);
 	HAL_PCD_EP_Close(&m_usb_local[handle->port].hal_handle, endpoint_num);
 }
 
