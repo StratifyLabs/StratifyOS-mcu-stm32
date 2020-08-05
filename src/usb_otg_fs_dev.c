@@ -515,8 +515,9 @@ void usb_configure(const devfs_handle_t * handle, u32 cfg){
 void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32 max_packet_size, u8 type){
 	u32 port = handle->port;
 	const stm32_config_t * stm32_config = mcu_board_config.arch_config;
+	u8 logical_endpoint = endpoint_num & ~0x80;
 
-	if( m_usb_local[port].rx_buffer_offset[endpoint_num] == 0 ){
+	if( (endpoint_num & 0x80) || (m_usb_local[port].rx_buffer_offset[logical_endpoint] == 0) ){
 
 		HAL_PCD_EP_Open(&m_usb_local[handle->port].hal_handle, endpoint_num, max_packet_size, type & EP_TYPE_MSK);
 		//m_usb_local[handle->port].connected = 1;
