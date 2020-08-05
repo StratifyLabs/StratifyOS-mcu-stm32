@@ -217,6 +217,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   /* Wait for software reset */
   while (((heth->Instance)->DMABMR & ETH_DMABMR_SR) != (uint32_t)RESET)
   {
+		// __StratifyOS__
 		cortexm_delay_ms(5);
     /* Check for the Timeout */
     if((tickstart++ ) > ETH_TIMEOUT_SWRESET)
@@ -231,7 +232,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
 
       return HAL_TIMEOUT;
     }
-  }
+	}
   
   /*-------------------------------- MAC Initialization ----------------------*/
   /* Get the ETHERNET MACMIIAR value */

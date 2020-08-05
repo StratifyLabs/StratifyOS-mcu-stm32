@@ -516,24 +516,28 @@ void usb_configure_endpoint(const devfs_handle_t * handle, u32 endpoint_num, u32
 	u32 port = handle->port;
 	const stm32_config_t * stm32_config = mcu_board_config.arch_config;
 
-	HAL_PCD_EP_Open(&m_usb_local[handle->port].hal_handle, endpoint_num, max_packet_size, type & EP_TYPE_MSK);
-	//m_usb_local[handle->port].connected = 1;
+	if( m_usb_local[port].rx_buffer_offset[endpoint_num] == 0 ){
 
-	if( (endpoint_num & 0x80) == 0 ){
-		void * dest_buffer;
+		HAL_PCD_EP_Open(&m_usb_local[handle->port].hal_handle, endpoint_num, max_packet_size, type & EP_TYPE_MSK);
+		//m_usb_local[handle->port].connected = 1;
 
-		m_usb_local[port].rx_buffer_offset[endpoint_num] = m_usb_local[port].rx_buffer_used;
-		m_usb_local[port].rx_buffer_used += (max_packet_size*2);
-		if( m_usb_local[port].rx_buffer_used > stm32_config->usb_rx_buffer_size ){
-			//this is a fatal error -- using mcu_debug_ will cause bootloader link problems
-			mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "usbbuf");
+		if( (endpoint_num & 0x80) == 0 ){
+			void * dest_buffer;
+
+			m_usb_local[port].rx_buffer_offset[endpoint_num] = m_usb_local[port].rx_buffer_used;
+
+			m_usb_local[port].rx_buffer_used += (max_packet_size*2);
+			if( m_usb_local[port].rx_buffer_used > stm32_config->usb_rx_buffer_size ){
+				//this is a fatal error -- using mcu_debug_ will cause bootloader link problems
+				mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "usbbuf");
+			}
+
+			dest_buffer = stm32_config->usb_rx_buffer +
+					m_usb_local[port].rx_buffer_offset[endpoint_num] +
+					max_packet_size;
+
+			HAL_PCD_EP_Receive(&m_usb_local[port].hal_handle, endpoint_num, dest_buffer, max_packet_size);
 		}
-
-		dest_buffer = stm32_config->usb_rx_buffer +
-				m_usb_local[port].rx_buffer_offset[endpoint_num] +
-				max_packet_size;
-
-		HAL_PCD_EP_Receive(&m_usb_local[port].hal_handle, endpoint_num, dest_buffer, max_packet_size);
 	}
 }
 
@@ -740,6 +744,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd){
 	u32 mps = mcu_board_config.usb_max_packet_zero;
 	usb->connected = 1;
 	usb->rx_buffer_used = mps;
+	memset(usb->rx_buffer_offset, 0, MCU_USB_ENDPOINT_COUNT * sizeof(u16));
 	for(i=0; i < MCU_USB_ENDPOINT_COUNT; i++){
 		usb->rx_buffer_offset[i] = 0;
 	}
