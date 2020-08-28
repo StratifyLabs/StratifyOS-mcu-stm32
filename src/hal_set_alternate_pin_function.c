@@ -100,7 +100,7 @@ int mcu_core_set_pinsel_func(const mcu_pin_t * pin, core_periph_t function, int 
 		case CORE_PERIPH_QSPI:
 		case CORE_PERIPH_EMC:
 		case CORE_PERIPH_SDIO:
-			speed = GPIO_SPEED_FREQ_HIGH;
+			speed = GPIO_SPEED_FREQ_VERY_HIGH;
 			pull = GPIO_PULLUP;
 			break;
 	}
