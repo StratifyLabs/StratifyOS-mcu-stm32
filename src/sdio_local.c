@@ -218,6 +218,8 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 
 	if( o_flags & SDIO_FLAG_RESET ){
 		//if the EMMC has a timeout error, this will get it to recover from that
+
+#if 0
 		u32 width = local->hal_handle.Init.BusWide;
 		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Reset SDIO");
 		HAL_SD_Abort(&local->hal_handle);
@@ -228,6 +230,7 @@ int sdio_local_setattr(const devfs_handle_t * handle, void * ctl){
 		}
 
 		HAL_SD_ConfigWideBusOperation(&local->hal_handle, width);
+#endif
 	}
 
 	if( o_flags & SDIO_FLAG_GET_CARD_STATE ){
@@ -294,7 +297,6 @@ int sdio_local_getstatus(const devfs_handle_t * handle, void * ctl){
 
 void HAL_SD_TxCpltCallback(SD_HandleTypeDef *hsd){
 	sdio_local_t * local = (sdio_local_t *)hsd;
-	//mcu_debug_root_printf("w:%ld\n", TIM2->CNT - local->start_time);
 	devfs_execute_write_handler(&local->transfer_handler, 0, hsd->TxXferSize, MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
