@@ -204,6 +204,10 @@ int mcu_eth_setattr(const devfs_handle_t * handle, void * ctl){
 		mcu_debug_log_info(MCU_DEBUG_DEVICE, "HAL_ETH_Init()");
 		if( (result = HAL_ETH_Init(&local->hal_handle)) != HAL_OK ){
 			mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_ETH_Init() failed (%d)", result);
+			if( result == HAL_TIMEOUT ){
+				return SYSFS_SET_RETURN(ETIMEDOUT);
+			}
+
 			return SYSFS_SET_RETURN(EIO);
 		}
 

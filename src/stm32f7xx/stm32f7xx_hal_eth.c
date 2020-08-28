@@ -292,21 +292,26 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   
   /* Delay to assure PHY reset */
   HAL_Delay(PHY_RESET_DELAY);
-  
+	cortexm_delay_ms(10);
+
   if((heth->Init).AutoNegotiation != ETH_AUTONEGOTIATION_DISABLE)
   {
     /* Get tick */
     tickstart = 0;
     
     /* We wait for linked status */
-    do
-    {
-      HAL_ETH_ReadPHYRegister(heth, PHY_BSR, &phyreg);
-		cortexm_delay_ms(5);
+		do
+		{
+			HAL_ETH_ReadPHYRegister(heth, PHY_BSR, &phyreg);
+			// __StratifyOS__
+			cortexm_delay_us(250);
 
       /* Check for the Timeout */
-      if((tickstart++) > ETH_TIMEOUT_LINKED_STATE)
-      {
+			if((tickstart++) > ETH_TIMEOUT_LINKED_STATE) // __StratifyOS__
+			{
+				// __StratifyOS__
+				//this will timeout if a cable is not connected -- needs to be fast
+
         /* In case of write timeout */
         err = ETH_ERROR;
       
@@ -318,9 +323,9 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
         /* Process Unlocked */
         __HAL_UNLOCK(heth);
 
-        return HAL_TIMEOUT;
+				return HAL_TIMEOUT;
       }
-    } while (((phyreg & PHY_LINKED_STATUS) != PHY_LINKED_STATUS));
+		} while (((phyreg & PHY_LINKED_STATUS) != PHY_LINKED_STATUS));
 
     
     /* Enable Auto-Negotiation */
@@ -346,6 +351,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
     do
     {
       HAL_ETH_ReadPHYRegister(heth, PHY_BSR, &phyreg);
+			// __StratifyOS__
 		cortexm_delay_ms(5);
 
       /* Check for the Timeout */
@@ -361,7 +367,7 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   
         /* Process Unlocked */
         __HAL_UNLOCK(heth);
-        return HAL_TIMEOUT;
+				return HAL_TIMEOUT;
       }
       
     } while (((phyreg & PHY_AUTONEGO_COMPLETE) != PHY_AUTONEGO_COMPLETE));
