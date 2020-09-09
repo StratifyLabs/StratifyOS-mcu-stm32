@@ -170,6 +170,7 @@ int mcu_usb_setattr(const devfs_handle_t *handle, void *ctl) {
   if (o_flags & USB_FLAG_SET_DEVICE) {
     // Start the USB clock
     int result;
+    mcu_core_setusbclock(attr->freq);
 
     m_usb_local[port].read_ready = 0;
     m_usb_local[port].write_pending = 0;
@@ -865,7 +866,7 @@ void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {}
 
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd) {
   int i;
-  mcu_debug_printf("reset\n");
+
   usb_local_t *usb = (usb_local_t *)hpcd;
   u32 mps = mcu_board_config.usb_max_packet_zero;
   usb->connected = 1;
