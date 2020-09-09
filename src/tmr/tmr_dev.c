@@ -51,7 +51,7 @@ int mcu_tmr_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
 
   const tmr_attr_t *attr = mcu_select_attr(handle, ctl);
   if (attr == 0) {

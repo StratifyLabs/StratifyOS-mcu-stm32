@@ -37,6 +37,8 @@ extern u8 const tmr_local_irqs[MCU_TMR_PORTS];
 extern u32 const tmr_local_channels[MCU_TMR_CHANNELS];
 extern tmr_local_t m_tmr_local[MCU_TMR_PORTS] MCU_SYS_MEM;
 
+#define TMR_DECLARE_LOCAL(x, y) DEVFS_DRIVER_DECLARE_LOCAL(x, y)
+
 int tmr_local_open(const devfs_handle_t *handle);
 int tmr_local_close(const devfs_handle_t *handle);
 int tmr_local_getinfo(const devfs_handle_t *handle, void *ctl);

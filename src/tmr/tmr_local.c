@@ -54,7 +54,7 @@ void clear_actions(tmr_local_t *local) {
 }
 
 int tmr_local_open(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   if (local->ref_count == 0) {
     // DEVFS_DRIVER_ASSIGN_STATE_LOCAL(tmr);
     clear_actions(local);
@@ -89,7 +89,7 @@ int tmr_local_open(const devfs_handle_t *handle) {
 }
 
 int tmr_local_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   if (local->ref_count > 0) {
     if (local->ref_count == 1) {
       clear_actions(local);
@@ -125,7 +125,7 @@ int tmr_local_close(const devfs_handle_t *handle) {
 }
 
 int tmr_local_getinfo(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   tmr_info_t *info = ctl;
 
   // set supported flags and events
@@ -141,7 +141,7 @@ int tmr_local_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int tmr_local_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
 
   const tmr_attr_t *attr = mcu_select_attr(handle, ctl);
   if (attr == 0) {
@@ -236,7 +236,7 @@ int tmr_local_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int tmr_local_enable(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   if (local->period_handler.callback != 0) {
     HAL_TIM_Base_Start_IT(&local->hal_handle);
   } else {
@@ -246,14 +246,14 @@ int tmr_local_enable(const devfs_handle_t *handle, void *ctl) {
 }
 
 int tmr_local_disable(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   // HAL_TIM_Base_Stop_IT(&local->hal_handle);
   local->hal_handle.Instance->CR1 &= ~(TIM_CR1_CEN);
   return SYSFS_RETURN_SUCCESS;
 }
 
 int tmr_local_setchannel(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   TIM_TypeDef *regs = local->hal_handle.Instance;
   // Write the output compare value
   mcu_channel_t *req = (mcu_channel_t *)ctl;
@@ -277,7 +277,7 @@ int tmr_local_setchannel(const devfs_handle_t *handle, void *ctl) {
 }
 
 int tmr_local_getchannel(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   TIM_TypeDef *regs = local->hal_handle.Instance;
   mcu_channel_t *req = (mcu_channel_t *)ctl;
   u8 chan;
@@ -303,7 +303,7 @@ int tmr_local_write(const devfs_handle_t *handle, devfs_async_t *wop) {
 }
 
 int tmr_local_setaction(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   mcu_action_t *action = (mcu_action_t *)ctl;
   // regs = tmr_local_regs_table[port];
   u32 chan;
@@ -369,14 +369,14 @@ int tmr_local_read(const devfs_handle_t *handle, devfs_async_t *rop) {
 }
 
 int tmr_local_set(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   TIM_TypeDef *regs = local->hal_handle.Instance;
   regs->CNT = (u32)ctl;
   return SYSFS_RETURN_SUCCESS;
 }
 
 int tmr_local_get(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   TIM_TypeDef *regs = local->hal_handle.Instance;
   u32 *value = ctl;
   if (value) {
