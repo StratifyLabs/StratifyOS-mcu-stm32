@@ -18,29 +18,24 @@
  */
 
 #include "stm32_local.h"
-#include <mcu/mcu.h>
 #include <cortexm/cortexm.h>
 #include <mcu/core.h>
+#include <mcu/mcu.h>
 
+extern void mcu_set_sleep_mode(int *level);
 
-extern void mcu_set_sleep_mode(int * level);
+int mcu_core_user_sleep(core_sleep_t level) {
 
-int mcu_core_user_sleep(core_sleep_t level){
+  cortexm_svcall((cortexm_svcall_t)mcu_set_sleep_mode, &level);
+  if (level < 0) {
+    return level;
+  }
 
-	cortexm_svcall((cortexm_svcall_t)mcu_set_sleep_mode, &level);
-	if ( level < 0 ){
-		return level;
-	}
-
-	//Wait for an interrupt
-	__WFI();
-	return 0;
+  // Wait for an interrupt
+  __WFI();
+  return 0;
 }
 
-void mcu_core_prepare_deepsleep(int level){
+void mcu_core_prepare_deepsleep(int level) {}
 
-}
-
-void mcu_core_recover_deepsleep(int level){
-	mcu_core_initclock(0);
-}
+void mcu_core_recover_deepsleep(int level) { mcu_core_initclock(0); }

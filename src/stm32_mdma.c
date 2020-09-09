@@ -17,7 +17,6 @@
  *
  */
 
-
 #include "stm32_mdma.h"
 
 #if 0
@@ -155,7 +154,6 @@ stm32_mdma_channel_t * stm32_dma_setattr(const stm32_mdma_channel_config_t * con
 	if( o_flags & STM32_DMA_FLAG_IS_MEMORY_INC_DISABLE ){ channel->handle.Init.MemInc = DMA_MINC_DISABLE; }
 	if( o_flags & STM32_DMA_FLAG_IS_PERIPH_INC_ENABLE ){ channel->handle.Init.PeriphInc = DMA_PINC_ENABLE; }
 
-
 #if defined DMA_FIFOMODE_ENABLE
 	if( o_flags & STM32_DMA_FLAG_IS_FIFO ){
 		channel->handle.Init.FIFOMode = DMA_FIFOMODE_ENABLE; //?
@@ -207,8 +205,5 @@ void mcu_core_mdma_isr(){
 	HAL_MDMA_IRQHandler(0);
 }
 
-
-
 #endif
-#endif //0
-
+#endif // 0

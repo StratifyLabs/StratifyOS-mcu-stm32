@@ -19,7 +19,7 @@
 
 #include "cortexm/fault.h"
 
-int fault_dev_save(const fault_t * fault){
+int fault_dev_save(const fault_t *fault) {
 #if 0
 	LPC_RTC->GPREG0 = fault->num;
 	LPC_RTC->GPREG1 = (uint32_t)fault->pc;
@@ -27,10 +27,10 @@ int fault_dev_save(const fault_t * fault){
 	LPC_RTC->GPREG3 = (uint32_t)fault->handler_pc;
 	LPC_RTC->GPREG4 = (uint32_t)fault->handler_caller;
 #endif
-	return 0;
+  return 0;
 }
 
-int fault_dev_load(fault_t * fault){
+int fault_dev_load(fault_t *fault) {
 #if 0
 	fault->num = LPC_RTC->GPREG0;
 	fault->pc = (void*)LPC_RTC->GPREG1;
@@ -44,5 +44,5 @@ int fault_dev_load(fault_t * fault){
 	LPC_RTC->GPREG3 = 0; //clear any existing faults since it has been read
 	LPC_RTC->GPREG4 = 0; //clear any existing faults since it has been read
 #endif
-	return 0;
+  return 0;
 }

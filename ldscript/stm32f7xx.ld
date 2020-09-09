@@ -9,6 +9,13 @@ SECTIONS {
 	_esys = .;
 
 	. = 0;
+	.backup : {
+		_backup = . ;
+		*(.backup)
+	} >backup
+	_ebackup = .;
+
+	. = 0;
 	INCLUDE ldscripts/stm32-common.ld
 }
 

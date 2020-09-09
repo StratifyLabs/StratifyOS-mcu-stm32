@@ -17,128 +17,119 @@
  *
  */
 
-#include <fcntl.h>
 #include "crypt_local.h"
+#include <fcntl.h>
 
 #if MCU_CRYPT_PORTS > 0
 
-DEVFS_MCU_DRIVER_IOCTL_FUNCTION(crypt, CRYPT_VERSION, CRYPT_IOC_CHAR, I_MCU_TOTAL + I_CRYPT_TOTAL, mcu_crypt_getiv)
+DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
+  crypt,
+  CRYPT_VERSION,
+  CRYPT_IOC_CHAR,
+  I_MCU_TOTAL + I_CRYPT_TOTAL,
+  mcu_crypt_getiv)
 
-int mcu_crypt_open(const devfs_handle_t * handle){
-	return crypt_local_open(handle);
+int mcu_crypt_open(const devfs_handle_t *handle) {
+  return crypt_local_open(handle);
 }
 
-int mcu_crypt_close(const devfs_handle_t * handle){
-	return crypt_local_close(handle);
+int mcu_crypt_close(const devfs_handle_t *handle) {
+  return crypt_local_close(handle);
 }
 
-
-int mcu_crypt_getinfo(const devfs_handle_t * handle, void * ctl){
-	DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
-	crypt_info_t * info = ctl;
-	info->o_flags = CRYPT_FLAG_SET_CIPHER |
-			CRYPT_FLAG_IS_AES_128 |
-			CRYPT_FLAG_IS_AES_192 |
-			CRYPT_FLAG_IS_AES_256 |
-			CRYPT_FLAG_IS_AES_ECB |
-			CRYPT_FLAG_IS_AES_CBC |
-			CRYPT_FLAG_IS_AES_CTR |
+int mcu_crypt_getinfo(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
+  crypt_info_t *info = ctl;
+  info->o_flags
+    = CRYPT_FLAG_SET_CIPHER | CRYPT_FLAG_IS_AES_128 | CRYPT_FLAG_IS_AES_192
+      | CRYPT_FLAG_IS_AES_256 | CRYPT_FLAG_IS_AES_ECB | CRYPT_FLAG_IS_AES_CBC
+      | CRYPT_FLAG_IS_AES_CTR |
 #if defined CRYP_CR_ALGOMODE_AES_GCM
-			CRYPT_FLAG_IS_AES_GCM |
-			CRYPT_FLAG_IS_AES_CCM |
+      CRYPT_FLAG_IS_AES_GCM | CRYPT_FLAG_IS_AES_CCM |
 #endif
-			CRYPT_FLAG_IS_DATA_1 |
-			CRYPT_FLAG_IS_DATA_8 |
-			CRYPT_FLAG_IS_DATA_16 |
-			CRYPT_FLAG_IS_DATA_32 |
-			CRYPT_FLAG_SET_MODE |
-			CRYPT_FLAG_IS_ENCRYPT |
-			CRYPT_FLAG_IS_DECRYPT;
+      CRYPT_FLAG_IS_DATA_1 | CRYPT_FLAG_IS_DATA_8 | CRYPT_FLAG_IS_DATA_16
+      | CRYPT_FLAG_IS_DATA_32 | CRYPT_FLAG_SET_MODE | CRYPT_FLAG_IS_ENCRYPT
+      | CRYPT_FLAG_IS_DECRYPT;
 
-	return SYSFS_RETURN_SUCCESS;
-
+  return SYSFS_RETURN_SUCCESS;
 }
 
-
-int mcu_crypt_setattr(const devfs_handle_t * handle, void * ctl){
-	return crypt_local_setattr(handle, ctl);
+int mcu_crypt_setattr(const devfs_handle_t *handle, void *ctl) {
+  return crypt_local_setattr(handle, ctl);
 }
 
-
-int mcu_crypt_setaction(const devfs_handle_t * handle, void * ctl){
-	return crypt_local_setaction(handle, ctl);
+int mcu_crypt_setaction(const devfs_handle_t *handle, void *ctl) {
+  return crypt_local_setaction(handle, ctl);
 }
 
-int mcu_crypt_getiv(const devfs_handle_t * handle, void * ctl){
-	return crypt_local_getiv(handle, ctl);
+int mcu_crypt_getiv(const devfs_handle_t *handle, void *ctl) {
+  return crypt_local_getiv(handle, ctl);
 }
 
-int mcu_crypt_read(const devfs_handle_t * handle, devfs_async_t * async){
-	DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
-	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
-	//read just sets up the buffer - the action starts when the device is written
+int mcu_crypt_read(const devfs_handle_t *handle, devfs_async_t *async) {
+  DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
+  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
+  // read just sets up the buffer - the action starts when the device is written
 
-	return SYSFS_RETURN_SUCCESS;
+  return SYSFS_RETURN_SUCCESS;
 }
 
+int mcu_crypt_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
-int mcu_crypt_write(const devfs_handle_t * handle, devfs_async_t * async){
+  DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
+  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
-	DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
-	DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  if (local->transfer_handler.read == 0) {
+    // read must be setup first -- that is where the destination data will go
+    local->transfer_handler.write = 0;
+    return SYSFS_SET_RETURN(EINVAL);
+  }
 
-	if( local->transfer_handler.read == 0 ){
-		//read must be setup first -- that is where the destination data will go
-		local->transfer_handler.write = 0;
-		return SYSFS_SET_RETURN(EINVAL);
-	}
+  if (
+    local->transfer_handler.read->nbyte
+    < local->transfer_handler.write->nbyte) {
+    // read and write need to have the same number of bytes
+    local->transfer_handler.write = 0;
+    return SYSFS_SET_RETURN(EINVAL);
+  }
 
-	if( local->transfer_handler.read->nbyte < local->transfer_handler.write->nbyte ){
-		//read and write need to have the same number of bytes
-		local->transfer_handler.write = 0;
-		return SYSFS_SET_RETURN(EINVAL);
-	}
+  local->transfer_handler.read->nbyte = local->transfer_handler.write->nbyte;
 
-	local->transfer_handler.read->nbyte = local->transfer_handler.write->nbyte;
+  // blocks are always 128-bit (or 16 bytes)
+  if ((local->transfer_handler.write->nbyte % 16) != 0) {
+    local->transfer_handler.write = 0;
+    return SYSFS_SET_RETURN(EINVAL);
+  }
 
-	//blocks are always 128-bit (or 16 bytes)
-	if( (local->transfer_handler.write->nbyte % 16) != 0 ){
-		local->transfer_handler.write = 0;
-		return SYSFS_SET_RETURN(EINVAL);
-	}
+  int result;
+  if (local->o_flags & CRYPT_FLAG_IS_ENCRYPT) {
+    // nbyte is /4 based on DataWidthUnit
+    result = HAL_CRYP_Encrypt_IT(
+      &local->hal_handle,
+      async->buf,
+      async->nbyte / 4,
+      local->transfer_handler.read->buf);
+  } else if (local->o_flags & CRYPT_FLAG_IS_DECRYPT) {
+    // nbyte is /4 based on DataWidthUnit
+    result = HAL_CRYP_Decrypt_IT(
+      &local->hal_handle,
+      async->buf,
+      async->nbyte / 4,
+      local->transfer_handler.read->buf);
+  } else {
+    // must set either encrypt or decrypt
+    local->transfer_handler.write = 0;
+    return SYSFS_SET_RETURN(EINVAL);
+  }
 
-	int result;
-	if( local->o_flags & CRYPT_FLAG_IS_ENCRYPT ){
-		//nbyte is /4 based on DataWidthUnit
-		result = HAL_CRYP_Encrypt_IT(
-					&local->hal_handle,
-					async->buf, async->nbyte/4,
-					local->transfer_handler.read->buf
-					);
-	} else if( local->o_flags & CRYPT_FLAG_IS_DECRYPT ){
-		//nbyte is /4 based on DataWidthUnit
-		result = HAL_CRYP_Decrypt_IT(
-					&local->hal_handle,
-					async->buf, async->nbyte/4,
-					local->transfer_handler.read->buf
-					);
-	} else {
-		//must set either encrypt or decrypt
-		local->transfer_handler.write = 0;
-		return SYSFS_SET_RETURN(EINVAL);
-	}
+  if (result != HAL_OK) {
+    local->transfer_handler.write = 0;
+    return SYSFS_SET_RETURN(EIO);
+  }
 
-	if( result != HAL_OK ){
-		local->transfer_handler.write = 0;
-		return SYSFS_SET_RETURN(EIO);
-	}
+  // read just sets up the buffer - the action starts when the device is written
 
-
-	//read just sets up the buffer - the action starts when the device is written
-
-	return SYSFS_RETURN_SUCCESS;
+  return SYSFS_RETURN_SUCCESS;
 }
-
-
 
 #endif

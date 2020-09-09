@@ -20,42 +20,38 @@
 #ifndef UART_LOCAL_H_
 #define UART_LOCAL_H_
 
-#include <mcu/uart.h>
 #include <device/fifo.h>
+#include <mcu/uart.h>
 
 #include "stm32_dma.h"
 
 #if MCU_UART_PORTS > 0
 
-enum {
-	UART_LOCAL_IS_DMA = (1<<0)
-};
+enum { UART_LOCAL_IS_DMA = (1 << 0) };
 
 typedef struct {
-	UART_HandleTypeDef hal_handle;
-	devfs_transfer_handler_t transfer_handler;
-	fifo_state_t fifo_state;
-	const fifo_config_t * fifo_config;
-	u8 ref_count;
-	u8 o_flags;
+  UART_HandleTypeDef hal_handle;
+  devfs_transfer_handler_t transfer_handler;
+  fifo_state_t fifo_state;
+  const fifo_config_t *fifo_config;
+  u8 ref_count;
+  u8 o_flags;
 } uart_local_t;
 
 extern uart_local_t m_uart_local[MCU_UART_PORTS] MCU_SYS_MEM;
-extern USART_TypeDef * const uart_regs_table[MCU_UART_PORTS];
+extern USART_TypeDef *const uart_regs_table[MCU_UART_PORTS];
 extern u8 const uart_irqs[MCU_UART_PORTS];
 
-int uart_local_open(const devfs_handle_t * handle);
-int uart_local_close(const devfs_handle_t * handle);
-int uart_local_setattr(const devfs_handle_t * handle, void * ctl);
-int uart_local_setaction(const devfs_handle_t * handle, void * ctl);
-int uart_local_getinfo(const devfs_handle_t * handle, void * ctl);
-int uart_local_get(const devfs_handle_t * handle, void * ctl);
-int uart_local_put(const devfs_handle_t * handle, void * ctl);
-int uart_local_flush(const devfs_handle_t * handle, void * ctl);
-int uart_local_read(const devfs_handle_t * handle, devfs_async_t * async);
-
+int uart_local_open(const devfs_handle_t *handle);
+int uart_local_close(const devfs_handle_t *handle);
+int uart_local_setattr(const devfs_handle_t *handle, void *ctl);
+int uart_local_setaction(const devfs_handle_t *handle, void *ctl);
+int uart_local_getinfo(const devfs_handle_t *handle, void *ctl);
+int uart_local_get(const devfs_handle_t *handle, void *ctl);
+int uart_local_put(const devfs_handle_t *handle, void *ctl);
+int uart_local_flush(const devfs_handle_t *handle, void *ctl);
+int uart_local_read(const devfs_handle_t *handle, devfs_async_t *async);
 
 #endif
-
 
 #endif /* UART_LOCAL_H_ */

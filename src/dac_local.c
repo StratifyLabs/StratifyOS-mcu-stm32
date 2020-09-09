@@ -17,21 +17,21 @@
  *
  */
 
-#include <fcntl.h>
-#include "stm32_local.h"
 #include "cortexm/cortexm.h"
-#include "mcu/dac.h"
-#include "mcu/pio.h"
-#include "mcu/debug.h"
 #include "mcu/core.h"
+#include "mcu/dac.h"
+#include "mcu/debug.h"
+#include "mcu/pio.h"
+#include "stm32_local.h"
+#include <fcntl.h>
 
 #include "dac_local.h"
 
 #if MCU_DAC_PORTS > 0
 
-DAC_TypeDef * const m_dac_regs_table[MCU_DAC_PORTS] = MCU_DAC_REGS;
+DAC_TypeDef *const m_dac_regs_table[MCU_DAC_PORTS] = MCU_DAC_REGS;
 u8 const m_dac_irqs[MCU_DAC_PORTS] = MCU_DAC_IRQS;
-u32 const m_dac_channels[MCU_DAC_CHANNELS] = { DAC_CHANNEL_1, DAC_CHANNEL_2 };
+u32 const m_dac_channels[MCU_DAC_CHANNELS] = {DAC_CHANNEL_1, DAC_CHANNEL_2};
 dac_local_t m_dac_local[MCU_DAC_PORTS] MCU_SYS_MEM;
 
 #if 0
@@ -45,425 +45,459 @@ const u32 dac_channels[MCU_DAC_CHANNELS] = {
 };
 #endif
 
-int dac_local_open(const devfs_handle_t * handle){
-	const u32 port = handle->port;
-	dac_local_t * local = m_dac_local + handle->port;
-	if ( local->ref_count == 0 ){
+int dac_local_open(const devfs_handle_t *handle) {
+  const u32 port = handle->port;
+  dac_local_t *local = m_dac_local + handle->port;
+  if (local->ref_count == 0) {
 
-		local->hal_handle.Instance = m_dac_regs_table[port];
+    local->hal_handle.Instance = m_dac_regs_table[port];
 
-		switch(port){
-			case 0:
+    switch (port) {
+    case 0:
 #if defined __HAL_RCC_DAC1_CLK_ENABLE
-				__HAL_RCC_DAC1_CLK_ENABLE();
+      __HAL_RCC_DAC1_CLK_ENABLE();
 #elif defined __HAL_RCC_DAC_CLK_ENABLE
-				__HAL_RCC_DAC_CLK_ENABLE();
+      __HAL_RCC_DAC_CLK_ENABLE();
 #elif defined __HAL_RCC_DAC12_CLK_ENABLE
-				__HAL_RCC_DAC12_CLK_ENABLE();
+      __HAL_RCC_DAC12_CLK_ENABLE();
 #else
 #error("__HAL_RCC_DAC_CLK_ENABLE is not defined")
 #endif
-				break;
-			case 1:
-				if( m_dac_regs_table[1] == m_dac_regs_table[0] ){
+      break;
+    case 1:
+      if (m_dac_regs_table[1] == m_dac_regs_table[0]) {
 #if defined __HAL_RCC_DAC1_CLK_ENABLE
-					__HAL_RCC_DAC1_CLK_ENABLE();
+        __HAL_RCC_DAC1_CLK_ENABLE();
 #elif defined __HAL_RCC_DAC_CLK_ENABLE
-					__HAL_RCC_DAC_CLK_ENABLE();
+        __HAL_RCC_DAC_CLK_ENABLE();
 #elif defined __HAL_RCC_DAC12_CLK_ENABLE
-					__HAL_RCC_DAC12_CLK_ENABLE();
+        __HAL_RCC_DAC12_CLK_ENABLE();
 #else
 #error("__HAL_RCC_DAC_CLK_ENABLE is not defined")
 #endif
-				}
+      }
 #if defined __HAL_RCC_DAC2_CLK_ENABLE
-				__HAL_RCC_DAC2_CLK_ENABLE();
+      __HAL_RCC_DAC2_CLK_ENABLE();
 #endif
-				break;
+      break;
 #if defined __HAL_RCC_DAC3_CLK_ENABLE
-			case 2:
-				__HAL_RCC_DAC3_CLK_ENABLE();
-				break;
+    case 2:
+      __HAL_RCC_DAC3_CLK_ENABLE();
+      break;
 #endif
 #if defined __HAL_RCC_DAC4_CLK_ENABLE
-			case 3:
-				__HAL_RCC_DAC4_CLK_ENABLE();
-				break;
+    case 3:
+      __HAL_RCC_DAC4_CLK_ENABLE();
+      break;
 #endif
-		}
-		cortexm_enable_irq(m_dac_irqs[port]);
-	}
-	local->ref_count++;
+    }
+    cortexm_enable_irq(m_dac_irqs[port]);
+  }
+  local->ref_count++;
 
-	return 0;
+  return 0;
 }
 
-int dac_local_close(const devfs_handle_t * handle){
-	const u32 port = handle->port;
-	dac_local_t * local = m_dac_local + handle->port;
+int dac_local_close(const devfs_handle_t *handle) {
+  const u32 port = handle->port;
+  dac_local_t *local = m_dac_local + handle->port;
 
-	if ( local->ref_count > 0 ){
-		if ( local->ref_count == 1 ){
-			cortexm_disable_irq(m_dac_irqs[port]);
-			switch(port){
-				case 0:
+  if (local->ref_count > 0) {
+    if (local->ref_count == 1) {
+      cortexm_disable_irq(m_dac_irqs[port]);
+      switch (port) {
+      case 0:
 #if defined __HAL_RCC_DAC1_CLK_DISABLE
-					__HAL_RCC_DAC1_CLK_DISABLE();
+        __HAL_RCC_DAC1_CLK_DISABLE();
 #elif defined __HAL_RCC_DAC_CLK_DISABLE
-					__HAL_RCC_DAC_CLK_DISABLE();
+        __HAL_RCC_DAC_CLK_DISABLE();
 #elif defined __HAL_RCC_DAC12_CLK_DISABLE
-					__HAL_RCC_DAC12_CLK_DISABLE();
+        __HAL_RCC_DAC12_CLK_DISABLE();
 #else
 #error("__HAL_RCC_DAC_CLK_DISABLE not defined")
 #endif
-					break;
+        break;
 #if defined __HAL_RCC_DAC2_CLK_DISABLE
-				case 1:
-					__HAL_RCC_DAC2_CLK_DISABLE();
-					break;
+      case 1:
+        __HAL_RCC_DAC2_CLK_DISABLE();
+        break;
 #endif
 #if defined __HAL_RCC_DAC3_CLK_DISABLE
-				case 2:
-					__HAL_RCC_DAC3_CLK_DISABLE();
-					break;
+      case 2:
+        __HAL_RCC_DAC3_CLK_DISABLE();
+        break;
 #endif
 #if defined __HAL_RCC_DAC4_CLK_DISABLE
-				case 3:
-					__HAL_RCC_DAC4_CLK_DISABLE();
-					break;
+      case 3:
+        __HAL_RCC_DAC4_CLK_DISABLE();
+        break;
 #endif
-			}
-			local->hal_handle.Instance = 0;
-		}
-		local->ref_count--;
-	}
-	return 0;
+      }
+      local->hal_handle.Instance = 0;
+    }
+    local->ref_count--;
+  }
+  return 0;
 }
 
+int dac_local_getinfo(const devfs_handle_t *handle, void *ctl) {
 
-int dac_local_getinfo(const devfs_handle_t * handle, void * ctl){
+  dac_info_t *info = ctl;
+  const dac_config_t *config = handle->config;
+  // dac_local_t * local = dac_local + handle->port;
 
-	dac_info_t * info = ctl;
-	const dac_config_t * config = handle->config;
-	//dac_local_t * local = dac_local + handle->port;
+  info->o_flags = DAC_FLAG_IS_LEFT_JUSTIFIED | DAC_FLAG_IS_RIGHT_JUSTIFIED
+                  | DAC_FLAG_SET_CONVERTER;
+  info->o_events = MCU_EVENT_FLAG_DATA_READY;
+  // info->maximum = 0xffff; //max value
+  info->freq = 1000000; // max frequency
+  // info->bytes_per_sample = 2;
 
-	info->o_flags = DAC_FLAG_IS_LEFT_JUSTIFIED |
-			DAC_FLAG_IS_RIGHT_JUSTIFIED |
-			DAC_FLAG_SET_CONVERTER;
-	info->o_events = MCU_EVENT_FLAG_DATA_READY;
-	//info->maximum = 0xffff; //max value
-	info->freq = 1000000; //max frequency
-	//info->bytes_per_sample = 2;
+  if (config) {
+    // info->reference_mv = config->reference_mv;
+  } else {
+    // info->reference_mv = 0;
+  }
 
-	if( config ){
-		//info->reference_mv = config->reference_mv;
-	} else {
-		//info->reference_mv = 0;
-	}
-
-
-	return SYSFS_RETURN_SUCCESS;
+  return SYSFS_RETURN_SUCCESS;
 }
 
-int dac_local_setattr(const devfs_handle_t * handle, void * ctl){
-	u32 o_flags;
-	int port = handle->port;
-	const dac_attr_t * attr;
-	dac_local_t * local = m_dac_local + handle->port;
+int dac_local_setattr(const devfs_handle_t *handle, void *ctl) {
+  u32 o_flags;
+  int port = handle->port;
+  const dac_attr_t *attr;
+  dac_local_t *local = m_dac_local + handle->port;
 
-	attr = mcu_select_attr(handle, ctl);
-	if( attr == 0 ){
-		return SYSFS_SET_RETURN(EINVAL);
-	}
+  attr = mcu_select_attr(handle, ctl);
+  if (attr == 0) {
+    return SYSFS_SET_RETURN(EINVAL);
+  }
 
-	o_flags = attr->o_flags;
+  o_flags = attr->o_flags;
 
-	if( o_flags & DAC_FLAG_SET_CONVERTER ){
-		if( HAL_DAC_Init(&local->hal_handle) != HAL_OK ){
-			return SYSFS_SET_RETURN(EIO);
-		}
-	}
+  if (o_flags & DAC_FLAG_SET_CONVERTER) {
+    if (HAL_DAC_Init(&local->hal_handle) != HAL_OK) {
+      return SYSFS_SET_RETURN(EIO);
+    }
+  }
 
-	if( o_flags & DAC_FLAG_SET_CHANNELS ){
-		//pin assignments
-		if( mcu_set_pin_assignment(
-				 &(attr->pin_assignment),
-				 MCU_CONFIG_PIN_ASSIGNMENT(dac_config_t, handle),
-				 MCU_PIN_ASSIGNMENT_COUNT(dac_pin_assignment_t),
-				 CORE_PERIPH_DAC, port, 0, 0, 0) < 0 ){
-			return SYSFS_SET_RETURN(EINVAL);
-		}
+  if (o_flags & DAC_FLAG_SET_CHANNELS) {
+    // pin assignments
+    if (
+      mcu_set_pin_assignment(
+        &(attr->pin_assignment),
+        MCU_CONFIG_PIN_ASSIGNMENT(dac_config_t, handle),
+        MCU_PIN_ASSIGNMENT_COUNT(dac_pin_assignment_t),
+        CORE_PERIPH_DAC,
+        port,
+        0,
+        0,
+        0)
+      < 0) {
+      return SYSFS_SET_RETURN(EINVAL);
+    }
 
-		DAC_ChannelConfTypeDef channel_config;
-		u32 channel;
+    DAC_ChannelConfTypeDef channel_config;
+    u32 channel;
 
-		if( port < MCU_DAC_PORTS ){
-			channel = m_dac_channels[port];
-		} else {
-			return SYSFS_SET_RETURN(ENOSYS);
-		}
+    if (port < MCU_DAC_PORTS) {
+      channel = m_dac_channels[port];
+    } else {
+      return SYSFS_SET_RETURN(ENOSYS);
+    }
 
-		channel_config.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
-		channel_config.DAC_Trigger = DAC_TRIGGER_NONE;
-		channel_config.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
-		channel_config.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
+    channel_config.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
+    channel_config.DAC_Trigger = DAC_TRIGGER_NONE;
+    channel_config.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
+    channel_config.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
 
+    channel_config.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
 
-		channel_config.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
+    if (o_flags & DAC_FLAG_IS_SAMPLE_AND_HOLD) {
+      channel_config.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_ENABLE;
+    }
+    if (o_flags & DAC_FLAG_IS_OUTPUT_BUFFERED) {
+      channel_config.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+    }
+    if (o_flags & DAC_FLAG_IS_ON_CHIP) {
+      channel_config.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_ENABLE;
+    }
 
-		if( o_flags & DAC_FLAG_IS_SAMPLE_AND_HOLD ){ channel_config.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_ENABLE; }
-		if( o_flags & DAC_FLAG_IS_OUTPUT_BUFFERED ){ channel_config.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE; }
-		if( o_flags & DAC_FLAG_IS_ON_CHIP ){ channel_config.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_ENABLE; }
+    if (local->o_flags & DAC_LOCAL_FLAG_IS_DMA) {
+      // DMA requires an external trigger
 
-		if( local->o_flags & DAC_LOCAL_FLAG_IS_DMA ){
-			//DMA requires an external trigger
+      if (o_flags & DAC_FLAG_IS_TRIGGER_EINT) {
+        channel_config.DAC_Trigger = DAC_TRIGGER_EXT_IT9;
 
-			if( o_flags & DAC_FLAG_IS_TRIGGER_EINT ){
-				channel_config.DAC_Trigger = DAC_TRIGGER_EXT_IT9;
+      } else if (o_flags & DAC_FLAG_IS_TRIGGER_TMR) {
 
-			} else if( o_flags & DAC_FLAG_IS_TRIGGER_TMR ){
-
-				switch(attr->trigger.port){
-					case 1: //TIM2
-						channel_config.DAC_Trigger = DAC_TRIGGER_T2_TRGO;
-						break;
+        switch (attr->trigger.port) {
+        case 1: // TIM2
+          channel_config.DAC_Trigger = DAC_TRIGGER_T2_TRGO;
+          break;
 #if defined DAC_TRIGGER_T4_TRGO
-					case 3: //TIM4
-						channel_config.DAC_Trigger = DAC_TRIGGER_T4_TRGO;
-						break;
+        case 3: // TIM4
+          channel_config.DAC_Trigger = DAC_TRIGGER_T4_TRGO;
+          break;
 #endif
 #if defined DAC_TRIGGER_T5_TRGO
-					case 4: //TIM5
-						channel_config.DAC_Trigger = DAC_TRIGGER_T5_TRGO;
-						break;
+        case 4: // TIM5
+          channel_config.DAC_Trigger = DAC_TRIGGER_T5_TRGO;
+          break;
 #endif
-					case 5: //TIM6
-						channel_config.DAC_Trigger = DAC_TRIGGER_T6_TRGO;
-						break;
-					case 6: //TIM7
-						channel_config.DAC_Trigger = DAC_TRIGGER_T7_TRGO;
-						break;
+        case 5: // TIM6
+          channel_config.DAC_Trigger = DAC_TRIGGER_T6_TRGO;
+          break;
+        case 6: // TIM7
+          channel_config.DAC_Trigger = DAC_TRIGGER_T7_TRGO;
+          break;
 #if defined DAC_TRIGGER_T8_TRGO
-					case 7: //TIM8
-						channel_config.DAC_Trigger = DAC_TRIGGER_T8_TRGO;
-						break;
+        case 7: // TIM8
+          channel_config.DAC_Trigger = DAC_TRIGGER_T8_TRGO;
+          break;
 #endif
 #if defined DAC_TRIGGER_T15_TRGO
-					case 14: //TIM15
-						channel_config.DAC_Trigger = DAC_TRIGGER_T15_TRGO;
-						break;
+        case 14: // TIM15
+          channel_config.DAC_Trigger = DAC_TRIGGER_T15_TRGO;
+          break;
 #endif
 
+        default:
+          return SYSFS_SET_RETURN(EINVAL);
+        }
 
-					default:
-						return SYSFS_SET_RETURN(EINVAL);
-				}
+        mcu_debug_log_info(
+          MCU_DEBUG_DEVICE,
+          "Trigger on tmr %d",
+          attr->trigger.port);
+      }
+    }
 
-				mcu_debug_log_info(MCU_DEBUG_DEVICE, "Trigger on tmr %d", attr->trigger.port);
-			}
-		}
+    mcu_debug_log_info(
+      MCU_DEBUG_DEVICE,
+      "config port:%d channel:0x%X",
+      port,
+      channel);
+    if (
+      HAL_DAC_ConfigChannel(&local->hal_handle, &channel_config, channel)
+      != HAL_OK) {
+      return SYSFS_SET_RETURN(EIO);
+    }
+  }
 
-		mcu_debug_log_info(
-					MCU_DEBUG_DEVICE,
-					"config port:%d channel:0x%X",
-					port,
-					channel
-					);
-		if( HAL_DAC_ConfigChannel(&local->hal_handle, &channel_config, channel) != HAL_OK ){
-			return SYSFS_SET_RETURN(EIO);
-		}
-	}
-
-	return SYSFS_RETURN_SUCCESS;
+  return SYSFS_RETURN_SUCCESS;
 }
 
-int dac_local_get(const devfs_handle_t * handle, void * ctl){
-	u32 channel;
-	dac_local_t * local = m_dac_local + handle->port;
-	mcu_channel_t * mcu_channel = ctl;
+int dac_local_get(const devfs_handle_t *handle, void *ctl) {
+  u32 channel;
+  dac_local_t *local = m_dac_local + handle->port;
+  mcu_channel_t *mcu_channel = ctl;
 
-	if( handle->port < MCU_DAC_PORTS ){
-		channel = m_dac_channels[handle->port];
-	} else {
-		return SYSFS_SET_RETURN(ENOSYS);
-	}
+  if (handle->port < MCU_DAC_PORTS) {
+    channel = m_dac_channels[handle->port];
+  } else {
+    return SYSFS_SET_RETURN(ENOSYS);
+  }
 
-	mcu_channel->value = HAL_DAC_GetValue(&local->hal_handle, channel);
+  mcu_channel->value = HAL_DAC_GetValue(&local->hal_handle, channel);
 
-	return SYSFS_RETURN_SUCCESS;
+  return SYSFS_RETURN_SUCCESS;
 }
 
-u32 dac_local_get_alignment(dac_local_t * dac){
-	if( dac->o_flags & DAC_FLAG_IS_LEFT_JUSTIFIED ){
-		return DAC_ALIGN_12B_L;
-	}
+u32 dac_local_get_alignment(dac_local_t *dac) {
+  if (dac->o_flags & DAC_FLAG_IS_LEFT_JUSTIFIED) {
+    return DAC_ALIGN_12B_L;
+  }
 
-	return DAC_ALIGN_12B_R;
+  return DAC_ALIGN_12B_R;
 }
 
-int dac_local_set(const devfs_handle_t * handle, void * ctl){
-	dac_local_t * local = m_dac_local + handle->port;
-	u32 channel;
-	mcu_channel_t * mcu_channel = ctl;
+int dac_local_set(const devfs_handle_t *handle, void *ctl) {
+  dac_local_t *local = m_dac_local + handle->port;
+  u32 channel;
+  mcu_channel_t *mcu_channel = ctl;
 
-	if( handle->port < MCU_DAC_PORTS ){
-		channel = m_dac_channels[handle->port];
-	} else {
-		return SYSFS_SET_RETURN(ENOSYS);
-	}
+  if (handle->port < MCU_DAC_PORTS) {
+    channel = m_dac_channels[handle->port];
+  } else {
+    return SYSFS_SET_RETURN(ENOSYS);
+  }
 
+  if (
+    HAL_DAC_SetValue(
+      &local->hal_handle,
+      channel,
+      dac_local_get_alignment(local),
+      mcu_channel->value)
+    != HAL_OK) {
+    return SYSFS_SET_RETURN(EIO);
+  }
 
-	if( HAL_DAC_SetValue(&local->hal_handle, channel, dac_local_get_alignment(local), mcu_channel->value) != HAL_OK ){
-		return SYSFS_SET_RETURN(EIO);
-	}
+  if (HAL_DAC_Start(&local->hal_handle, channel) != HAL_OK) {
+    return SYSFS_SET_RETURN(EIO);
+  }
 
-	if( HAL_DAC_Start(&local->hal_handle, channel) != HAL_OK ){
-		return SYSFS_SET_RETURN(EIO);
-	}
-
-	return SYSFS_RETURN_SUCCESS;
+  return SYSFS_RETURN_SUCCESS;
 }
 
-void HAL_DAC_ErrorCallback(DAC_HandleTypeDef *hdac){
-	dac_local_t * dac = (dac_local_t*)hdac;
-	mcu_debug_log_error(MCU_DEBUG_DEVICE, "DAC 1 Error %d", hdac->ErrorCode);
+void HAL_DAC_ErrorCallback(DAC_HandleTypeDef *hdac) {
+  dac_local_t *dac = (dac_local_t *)hdac;
+  mcu_debug_log_error(MCU_DEBUG_DEVICE, "DAC 1 Error %d", hdac->ErrorCode);
 #if defined DAC_SR_OVR
-	hdac->Instance->SR &= ~DAC_SR_OVR;
+  hdac->Instance->SR &= ~DAC_SR_OVR;
 #endif
-	devfs_execute_write_handler(&dac->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
-	if( (dac->o_flags & DAC_LOCAL_FLAG_IS_DMA) == 0 ){
-		//HAL_DAC_Stop_IT(hdac);
-	} else {
-		//HAL_DAC_Stop_DMA(hdac);
-	}
+  devfs_execute_write_handler(
+    &dac->transfer_handler,
+    0,
+    SYSFS_SET_RETURN(EIO),
+    MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+  if ((dac->o_flags & DAC_LOCAL_FLAG_IS_DMA) == 0) {
+    // HAL_DAC_Stop_IT(hdac);
+  } else {
+    // HAL_DAC_Stop_DMA(hdac);
+  }
 }
 
-void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef* hdac){
+void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
 
-	//MCU_EVENT_FLAG_HALF_TRANSFER
+  // MCU_EVENT_FLAG_HALF_TRANSFER
 
-	dac_local_t * local = (dac_local_t *)hdac;
+  dac_local_t *local = (dac_local_t *)hdac;
 
-	//since this is streaming, the transfer handler is restored if requested
-	devfs_async_t * async = local->transfer_handler.write;
-	int result;
+  // since this is streaming, the transfer handler is restored if requested
+  devfs_async_t *async = local->transfer_handler.write;
+  int result;
 
-	result = devfs_execute_write_handler(&local->transfer_handler, 0, 2, MCU_EVENT_FLAG_LOW | MCU_EVENT_FLAG_WRITE_COMPLETE);
-	if( result ){
-		local->transfer_handler.write = async;
-		if( local->hal_handle.DMA_Handle1 ){
-			mcu_core_clean_data_cache_block(
-						async->buf,
-						async->nbyte/2
-						);
-		}
-	} else {
-		HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA H");
-	}
+  result = devfs_execute_write_handler(
+    &local->transfer_handler,
+    0,
+    2,
+    MCU_EVENT_FLAG_LOW | MCU_EVENT_FLAG_WRITE_COMPLETE);
+  if (result) {
+    local->transfer_handler.write = async;
+    if (local->hal_handle.DMA_Handle1) {
+      mcu_core_clean_data_cache_block(async->buf, async->nbyte / 2);
+    }
+  } else {
+    HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA H");
+  }
 }
 
-void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef * hdac){
-	dac_local_t * local = (dac_local_t *)hdac;
-	devfs_async_t * async = local->transfer_handler.write;
-	int result;
+void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
+  dac_local_t *local = (dac_local_t *)hdac;
+  devfs_async_t *async = local->transfer_handler.write;
+  int result;
 
-	result = devfs_execute_write_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
-	if( result ){
-		local->transfer_handler.write = async;
-		if( local->hal_handle.DMA_Handle1 ){
-			mcu_core_clean_data_cache_block(
-						(char*)async->buf + async->nbyte/2,
-						async->nbyte/2
-						);
-		}
-	} else {
-		HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA");
-	}
+  result = devfs_execute_write_handler(
+    &local->transfer_handler,
+    0,
+    0,
+    MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
+  if (result) {
+    local->transfer_handler.write = async;
+    if (local->hal_handle.DMA_Handle1) {
+      mcu_core_clean_data_cache_block(
+        (char *)async->buf + async->nbyte / 2,
+        async->nbyte / 2);
+    }
+  } else {
+    HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA");
+  }
 }
 
-void HAL_DACEx_ConvCpltCallbackCh2(DAC_HandleTypeDef* hdac){
-	dac_local_t * local = (dac_local_t *)hdac;
-	devfs_async_t * async = local->transfer_handler.write;
-	int result;
+void HAL_DACEx_ConvCpltCallbackCh2(DAC_HandleTypeDef *hdac) {
+  dac_local_t *local = (dac_local_t *)hdac;
+  devfs_async_t *async = local->transfer_handler.write;
+  int result;
 
-	result = devfs_execute_write_handler(&local->transfer_handler, 0, 0, MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
-	if( result ){
-		local->transfer_handler.write = async;
-		if( local->hal_handle.DMA_Handle2 ){
-			mcu_core_clean_data_cache_block(
-						(char*)async->buf + async->nbyte/2,
-						async->nbyte/2
-						);
-		}
-	} else {
-		HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA");
-	}
-
+  result = devfs_execute_write_handler(
+    &local->transfer_handler,
+    0,
+    0,
+    MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
+  if (result) {
+    local->transfer_handler.write = async;
+    if (local->hal_handle.DMA_Handle2) {
+      mcu_core_clean_data_cache_block(
+        (char *)async->buf + async->nbyte / 2,
+        async->nbyte / 2);
+    }
+  } else {
+    HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA");
+  }
 }
 
-void HAL_DACEx_ConvHalfCpltCallbackCh2(DAC_HandleTypeDef* hdac){
+void HAL_DACEx_ConvHalfCpltCallbackCh2(DAC_HandleTypeDef *hdac) {
 
-	//MCU_EVENT_FLAG_HALF_TRANSFER
-	dac_local_t * local = (dac_local_t *)hdac;
+  // MCU_EVENT_FLAG_HALF_TRANSFER
+  dac_local_t *local = (dac_local_t *)hdac;
 
-	//since this is streaming, the transfer handler is restored if requested
-	devfs_async_t * async = local->transfer_handler.write;
-	int result;
+  // since this is streaming, the transfer handler is restored if requested
+  devfs_async_t *async = local->transfer_handler.write;
+  int result;
 
-	result = devfs_execute_write_handler(&local->transfer_handler, 0, 2, MCU_EVENT_FLAG_LOW | MCU_EVENT_FLAG_WRITE_COMPLETE);
-	if( result ){
-		local->transfer_handler.write = async;
-		if( local->hal_handle.DMA_Handle2 ){
-			mcu_core_clean_data_cache_block(
-						async->buf,
-						async->nbyte/2
-						);
-		}
-	} else {
+  result = devfs_execute_write_handler(
+    &local->transfer_handler,
+    0,
+    2,
+    MCU_EVENT_FLAG_LOW | MCU_EVENT_FLAG_WRITE_COMPLETE);
+  if (result) {
+    local->transfer_handler.write = async;
+    if (local->hal_handle.DMA_Handle2) {
+      mcu_core_clean_data_cache_block(async->buf, async->nbyte / 2);
+    }
+  } else {
 
-		HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA H");
-	}
+    HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
+    mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA H");
+  }
 }
 
-void HAL_DACEx_ErrorCallbackCh2(DAC_HandleTypeDef* hdac){
-	dac_local_t * local = (dac_local_t*)hdac;
-	mcu_debug_log_error(MCU_DEBUG_DEVICE, "DAC 2 Error %d", hdac->ErrorCode);
+void HAL_DACEx_ErrorCallbackCh2(DAC_HandleTypeDef *hdac) {
+  dac_local_t *local = (dac_local_t *)hdac;
+  mcu_debug_log_error(MCU_DEBUG_DEVICE, "DAC 2 Error %d", hdac->ErrorCode);
 #if defined DAC_SR_OVR
-	hdac->Instance->SR &= ~DAC_SR_OVR;
+  hdac->Instance->SR &= ~DAC_SR_OVR;
 #endif
-	devfs_execute_write_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
-	if( (local->o_flags & DAC_LOCAL_FLAG_IS_DMA) == 0 ){
-		//HAL_DAC_Stop_IT(hdac);
-	} else {
-		//HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
-	}
+  devfs_execute_write_handler(
+    &local->transfer_handler,
+    0,
+    SYSFS_SET_RETURN(EIO),
+    MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+  if ((local->o_flags & DAC_LOCAL_FLAG_IS_DMA) == 0) {
+    // HAL_DAC_Stop_IT(hdac);
+  } else {
+    // HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
+  }
 }
 
-void HAL_DACEx_DMAUnderrunCallbackCh2(DAC_HandleTypeDef* hdac){
-	dac_local_t * local = (dac_local_t*)hdac;
-	mcu_debug_log_error(MCU_DEBUG_DEVICE, "DAC Under Error %d", hdac->ErrorCode);
-	devfs_execute_write_handler(&local->transfer_handler, 0, SYSFS_SET_RETURN(EIO), MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
-	HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
+void HAL_DACEx_DMAUnderrunCallbackCh2(DAC_HandleTypeDef *hdac) {
+  dac_local_t *local = (dac_local_t *)hdac;
+  mcu_debug_log_error(MCU_DEBUG_DEVICE, "DAC Under Error %d", hdac->ErrorCode);
+  devfs_execute_write_handler(
+    &local->transfer_handler,
+    0,
+    SYSFS_SET_RETURN(EIO),
+    MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
+  HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
 }
 
-//shared with TIM6 -- called from mcu_core_tim6_dac_isr()
-void mcu_core_dac_isr(){
-	if( m_dac_local[0].hal_handle.Instance != 0 ){
-		HAL_DAC_IRQHandler(&m_dac_local[0].hal_handle);
-	}
+// shared with TIM6 -- called from mcu_core_tim6_dac_isr()
+void mcu_core_dac_isr() {
+  if (m_dac_local[0].hal_handle.Instance != 0) {
+    HAL_DAC_IRQHandler(&m_dac_local[0].hal_handle);
+  }
 #if MCU_DAC_PORTS > 1
-	HAL_DAC_IRQHandler(&m_dac_local[1].hal_handle);
+  HAL_DAC_IRQHandler(&m_dac_local[1].hal_handle);
 #endif
 #if MCU_DAC_PORTS > 2
-	if( m_dac_local[2]  ){
-		HAL_DAC_IRQHandler(&m_dac_local[2].hal_handle);
-	}
+  if (m_dac_local[2]) {
+    HAL_DAC_IRQHandler(&m_dac_local[2].hal_handle);
+  }
 #endif
 }
-
 
 #endif
