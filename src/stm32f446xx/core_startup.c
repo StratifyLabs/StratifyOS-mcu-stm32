@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert; 
+/* Copyright 2011-2016 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -13,27 +13,26 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  */
 
-#include <core_startup.h>
-#include <mcu/mcu.h>
 #include <mcu/bootloader.h>
-#include "../core_startup.h"
-#include "stm32_local.h"
+#include <mcu/mcu.h>
 
+#include "../core/core_startup.h"
+#include "stm32_local.h"
 
 const bootloader_api_t mcu_core_bootloader_api MCU_WEAK;
 const bootloader_api_t mcu_core_bootloader_api = {
-		.code_size = 0,
+  .code_size = 0,
 };
 
 void mcu_core_default_isr();
 
 void mcu_core_hardware_id() MCU_ALIAS(mcu_core_default_isr);
 
-void mcu_core_reset_handler() __attribute__ ((section(".reset_vector")));
+void mcu_core_reset_handler() __attribute__((section(".reset_vector")));
 void mcu_core_nmi_isr() MCU_WEAK;
 
 void mcu_core_hardfault_handler();
@@ -46,8 +45,7 @@ void mcu_core_debugmon_handler() MCU_ALIAS(mcu_core_default_isr);
 void mcu_core_pendsv_handler();
 void mcu_core_systick_handler();
 
-
-//ISR's -- weakly bound to default handler
+// ISR's -- weakly bound to default handler
 _DECLARE_ISR(wwdg);
 _DECLARE_ISR(pvd);
 _DECLARE_ISR(tamp_stamp);
@@ -135,138 +133,135 @@ _DECLARE_ISR(spdif_rx);
 _DECLARE_ISR(fmpi2c1_ev);
 _DECLARE_ISR(fmpi2c1_er);
 
+void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
+  // Core Level - CM3
+  (void *)&_top_of_stack,           // The initial stack pointer
+  mcu_core_reset_handler,           // The reset handler
+  mcu_core_nmi_isr,                 // The NMI handler
+  mcu_core_hardfault_handler,       // The hard fault handler
+  mcu_core_memfault_handler,        // The MPU fault handler
+  mcu_core_busfault_handler,        // The bus fault handler
+  mcu_core_usagefault_handler,      // The usage fault handler
+  mcu_core_hardware_id,             // Reserved
+  0,                                // Reserved
+  (void *)&mcu_core_bootloader_api, // Reserved -- this is the kernel signature
+                                    // checksum value 0x24
+  0,                                // Reserved
+  mcu_core_svcall_handler,          // SVCall handler
+  mcu_core_debugmon_handler,        // Debug monitor handler
+  0,                                // Reserved
+  mcu_core_pendsv_handler,          // The PendSV handler
+  mcu_core_systick_handler,         // The SysTick handler
+  // Non Cortex M interrupts (device specific interrupts)
 
-void (* const mcu_core_vector_table[])() __attribute__ ((section(".startup"))) = {
-		// Core Level - CM3
-		(void*)&_top_of_stack,					// The initial stack pointer
-		mcu_core_reset_handler,						// The reset handler
-		mcu_core_nmi_isr,							// The NMI handler
-		mcu_core_hardfault_handler,					// The hard fault handler
-		mcu_core_memfault_handler,					// The MPU fault handler
-		mcu_core_busfault_handler,					// The bus fault handler
-		mcu_core_usagefault_handler,				// The usage fault handler
-		mcu_core_hardware_id,					// Reserved
-		0,										// Reserved
-		(void*)&mcu_core_bootloader_api,										// Reserved -- this is the kernel signature checksum value 0x24
-		0,										// Reserved
-		mcu_core_svcall_handler,					// SVCall handler
-		mcu_core_debugmon_handler,					// Debug monitor handler
-		0,										// Reserved
-		mcu_core_pendsv_handler,					// The PendSV handler
-		mcu_core_systick_handler,					// The SysTick handler
-		//Non Cortex M interrupts (device specific interrupts)
+  _ISR(wwdg), // 0
+  _ISR(pvd),
+  _ISR(tamp_stamp),
+  _ISR(rtc_wkup),
+  _ISR(flash),
+  _ISR(rcc),
+  _ISR(exti0),
+  _ISR(exti1),
+  _ISR(exti2),
+  _ISR(exti3),
+  _ISR(exti4), // 10
+  _ISR(dma1_stream0),
+  _ISR(dma1_stream1),
+  _ISR(dma1_stream2),
+  _ISR(dma1_stream3),
+  _ISR(dma1_stream4),
+  _ISR(dma1_stream5),
+  _ISR(dma1_stream6),
+  _ISR(adc),
+  _ISR(can1_tx),
+  _ISR(can1_rx0), // 20
+  _ISR(can1_rx1),
+  _ISR(can1_sce),
+  _ISR(exti9_5),
+  _ISR(tim1_brk_tim9),
+  _ISR(tim1_up_tim10),
+  _ISR(tim1_trg_com_tim11),
+  _ISR(tim1_cc),
+  _ISR(tim2),
+  _ISR(tim3),
+  _ISR(tim4), // 30
+  _ISR(i2c1_ev),
+  _ISR(i2c1_er),
+  _ISR(i2c2_ev),
+  _ISR(i2c2_er),
+  _ISR(spi1),
+  _ISR(spi2),
+  _ISR(usart1),
+  _ISR(usart2),
+  _ISR(usart3),
+  _ISR(exti15_10), // 40
+  _ISR(rtc_alarm),
+  _ISR(otg_fs_wkup),
+  _ISR(tim8_brk_tim12),
+  _ISR(tim8_up_tim13),
+  _ISR(tim8_trg_com_tim14),
+  _ISR(tim8_cc),
+  _ISR(dma1_stream7),
+  _ISR(fmc),
+  _ISR(sdio),
+  _ISR(tim5), // 50
+  _ISR(spi3),
+  _ISR(uart4),
+  _ISR(uart5),
+  _ISR(tim6_dac),
+  _ISR(tim7),
+  _ISR(dma2_stream0),
+  _ISR(dma2_stream1),
+  _ISR(dma2_stream2),
+  _ISR(dma2_stream3),
+  _ISR(dma2_stream4), // 60
+  mcu_core_default_isr,
+  mcu_core_default_isr,
+  _ISR(can2_tx),
+  _ISR(can2_rx0),
+  _ISR(can2_rx1),
+  _ISR(can2_sce),
+  _ISR(otg_fs),
+  _ISR(dma2_stream5), // 68
+  _ISR(dma2_stream6),
+  _ISR(dma2_stream7), // 70
+  _ISR(usart6),
+  _ISR(i2c3_ev),
+  _ISR(i2c3_er),
+  _ISR(otg_hs_ep1_out),
+  _ISR(otg_hs_ep1_in),
+  _ISR(otg_hs_wkup),
+  _ISR(otg_hs),
+  _ISR(dcmi),
+  mcu_core_default_isr,
+  mcu_core_default_isr, // 80
+  _ISR(fpu),
+  mcu_core_default_isr,
+  mcu_core_default_isr,
+  _ISR(spi4), // 84
+  mcu_core_default_isr,
+  mcu_core_default_isr,
+  _ISR(sai1), // 87
+  mcu_core_default_isr,
+  mcu_core_default_isr,
+  mcu_core_default_isr, // 90
+  _ISR(sai2),           // 91
+  _ISR(quadspi),
+  _ISR(cec),
+  _ISR(spdif_rx),
+  _ISR(fmpi2c1_ev),
+  _ISR(fmpi2c1_er)};
 
-		_ISR(wwdg), //0
-		_ISR(pvd),
-		_ISR(tamp_stamp),
-		_ISR(rtc_wkup),
-		_ISR(flash),
-		_ISR(rcc),
-		_ISR(exti0),
-		_ISR(exti1),
-		_ISR(exti2),
-		_ISR(exti3),
-		_ISR(exti4), //10
-		_ISR(dma1_stream0),
-		_ISR(dma1_stream1),
-		_ISR(dma1_stream2),
-		_ISR(dma1_stream3),
-		_ISR(dma1_stream4),
-		_ISR(dma1_stream5),
-		_ISR(dma1_stream6),
-		_ISR(adc),
-		_ISR(can1_tx),
-		_ISR(can1_rx0), //20
-		_ISR(can1_rx1),
-		_ISR(can1_sce),
-		_ISR(exti9_5),
-		_ISR(tim1_brk_tim9),
-		_ISR(tim1_up_tim10),
-		_ISR(tim1_trg_com_tim11),
-		_ISR(tim1_cc),
-		_ISR(tim2),
-		_ISR(tim3),
-		_ISR(tim4), //30
-		_ISR(i2c1_ev),
-		_ISR(i2c1_er),
-		_ISR(i2c2_ev),
-		_ISR(i2c2_er),
-		_ISR(spi1),
-		_ISR(spi2),
-		_ISR(usart1),
-		_ISR(usart2),
-		_ISR(usart3),
-		_ISR(exti15_10), //40
-		_ISR(rtc_alarm),
-		_ISR(otg_fs_wkup),
-		_ISR(tim8_brk_tim12),
-		_ISR(tim8_up_tim13),
-		_ISR(tim8_trg_com_tim14),
-		_ISR(tim8_cc),
-		_ISR(dma1_stream7),
-		_ISR(fmc),
-		_ISR(sdio),
-		_ISR(tim5), //50
-		_ISR(spi3),
-		_ISR(uart4),
-		_ISR(uart5),
-		_ISR(tim6_dac),
-		_ISR(tim7),
-		_ISR(dma2_stream0),
-		_ISR(dma2_stream1),
-		_ISR(dma2_stream2),
-		_ISR(dma2_stream3),
-		_ISR(dma2_stream4), //60
-		mcu_core_default_isr,
-		mcu_core_default_isr,
-		_ISR(can2_tx),
-		_ISR(can2_rx0),
-		_ISR(can2_rx1),
-		_ISR(can2_sce),
-		_ISR(otg_fs),
-        _ISR(dma2_stream5), //68
-		_ISR(dma2_stream6),
-		_ISR(dma2_stream7), //70
-		_ISR(usart6),
-		_ISR(i2c3_ev),
-		_ISR(i2c3_er),
-		_ISR(otg_hs_ep1_out),
-		_ISR(otg_hs_ep1_in),
-		_ISR(otg_hs_wkup),
-		_ISR(otg_hs),
-		_ISR(dcmi),
-		mcu_core_default_isr,
-		mcu_core_default_isr, //80
-		_ISR(fpu),
-		mcu_core_default_isr,
-		mcu_core_default_isr,
-		_ISR(spi4), //84
-		mcu_core_default_isr,
-		mcu_core_default_isr,
-		_ISR(sai1), //87
-		mcu_core_default_isr,
-		mcu_core_default_isr,
-		mcu_core_default_isr, //90
-		_ISR(sai2), //91
-		_ISR(quadspi),
-		_ISR(cec),
-		_ISR(spdif_rx),
-		_ISR(fmpi2c1_ev),
-		_ISR(fmpi2c1_er)
-};
-
-void mcu_core_reset_handler(){
-	core_init();
-	cortexm_set_vector_table_addr((void*)mcu_core_vector_table);
-	_main(); //This function should never return
-	mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "main");
-	while(1){
-		;
-	}
+void mcu_core_reset_handler() {
+  core_init();
+  cortexm_set_vector_table_addr((void *)mcu_core_vector_table);
+  _main(); // This function should never return
+  mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "main");
+  while (1) {
+    ;
+  }
 }
 
-void mcu_core_default_isr(){
-	mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "dflt");
+void mcu_core_default_isr() {
+  mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "dflt");
 }
-
-

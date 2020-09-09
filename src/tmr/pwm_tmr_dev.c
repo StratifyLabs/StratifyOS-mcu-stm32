@@ -1,4 +1,4 @@
-/* Copyright 2011-2017 Tyler Gilbert;
+/* Copyright 2011-2016 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -17,17 +17,13 @@
  *
  */
 
-#ifndef CORE_STARTUP_H_
-#define CORE_STARTUP_H_
+#include "tmr_local.h"
 
-#include <mcu/types.h>
-#include <mcu/mcu.h>
-#include <cortexm/cortexm.h>
+#define NUM_OCS MCU_TMR_CHANNELS
+#define NUM_ICS MCU_TMR_CHANNELS
 
-void core_init();
-int _main();
+#if MCU_TMR_PORTS > 0
 
-#define _DECLARE_ISR(name) void mcu_core_##name##_isr() MCU_ALIAS(mcu_core_default_isr)
-#define _ISR(name) mcu_core_##name##_isr
+// implment the PWM driver
 
-#endif /* CORE_STARTUP_H_ */
+#endif

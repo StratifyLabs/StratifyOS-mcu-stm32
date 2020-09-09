@@ -21,15 +21,17 @@ endif()
 set(SOS_TOOLCHAIN_CMAKE_PATH ${SOS_SDK_PATH}/Tools/gcc/arm-none-eabi/cmake)
 
 include(${SOS_TOOLCHAIN_CMAKE_PATH}/sos-variables.cmake)
+include(${SOS_TOOLCHAIN_CMAKE_PATH}/sos-sdk.cmake)
 set(CMAKE_TOOLCHAIN_FILE ${SOS_TOOLCHAIN_CMAKE_PATH}/sos-lib-toolchain.cmake)
 
 set(SOS_NAME sos)
 project(${SOS_NAME} C ASM)
 
 #Add sources to the project
-set(SOURCES_PREFIX ${CMAKE_SOURCE_DIR}/src)
-add_subdirectory(src)
-set(SHARED_SOURCELIST ${SOURCES} ${CMAKE_SOURCE_DIR}/include/stm32_arch.h ${CMAKE_SOURCE_DIR}/README.md)
+sos_sdk_add_subdirectory(SOURCE_LIST ${CMAKE_SOURCE_DIR}/src)
+set(SHARED_SOURCELIST ${SOURCE_LIST}
+	${CMAKE_SOURCE_DIR}/include/stm32_arch.h
+	${CMAKE_SOURCE_DIR}/README.md)
 
 file(GLOB STM32F2XX_LDSCRIPT_SOURCES "${CMAKE_SOURCE_DIR}/ldscript/stm32f2*")
 file(GLOB STM32F3XX_LDSCRIPT_SOURCES "${CMAKE_SOURCE_DIR}/ldscript/stm32f3*")

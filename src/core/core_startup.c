@@ -18,7 +18,8 @@
  */
 
 #include "stm32_local.h"
-#include <core_startup.h>
+
+#include "core_startup.h"
 
 extern u32 _unique_id;
 extern void SystemInit();

@@ -26,6 +26,7 @@
 #define USE_FULL_LL_DRIVER
 
 #include "stm32_arch.h"
+#include "stm32_dev_local.h"
 
 #include <fcntl.h>
 #include <cortexm/cortexm.h>
@@ -33,13 +34,7 @@
 #include <mcu/pio.h>
 #include <mcu/debug.h>
 
-#if defined STM32F2
-#include "stm32f2xx/stm32f2xx_hal_conf.h"
-#endif
-
 #if defined STM32F4
-#include "stm32f4xx/stm32f4xx_hal_conf.h"
-
 //#define STM32_LOCAL_HAS_PERIPH_CLOCK_SELECTOR 1
 
 #if defined(STM32F410Tx) || defined(STM32F410Cx) || defined(STM32F410Rx) || defined(STM32F446xx) || defined(STM32F469xx) ||\
@@ -57,8 +52,6 @@
 #endif
 
 #if defined STM32F7
-#include "stm32f7xx/stm32f7xx_hal_conf.h"
-
 typedef SDMMC_TypeDef SDIO_TypeDef;
 #define SDIO_CLOCK_EDGE_RISING SDMMC_CLOCK_EDGE_RISING
 #define SDIO_CLOCK_EDGE_FALLING SDMMC_CLOCK_EDGE_FALLING
@@ -89,9 +82,6 @@ typedef SDMMC_TypeDef SDIO_TypeDef;
 #endif
 
 #if defined STM32H7
-
-#include "stm32h7xx/stm32h7xx_hal_conf.h"
-
 typedef SDMMC_TypeDef SDIO_TypeDef;
 #define SDIO_CLOCK_EDGE_RISING SDMMC_CLOCK_EDGE_RISING
 #define SDIO_CLOCK_EDGE_FALLING SDMMC_CLOCK_EDGE_FALLING
@@ -112,7 +102,6 @@ typedef SDMMC_TypeDef SDIO_TypeDef;
 
 
 #if defined STM32L4
-#include "stm32l4xx/stm32l4xx_hal_conf.h"
 #define STM32_LOCAL_HAS_RCC_PLLR 1
 #define STM32_LOCAL_HAS_PERIPH_CLOCK_SELECTOR 1
 #define SDIO_CLOCK_EDGE_RISING SDMMC_CLOCK_EDGE_RISING

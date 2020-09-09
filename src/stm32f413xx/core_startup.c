@@ -17,10 +17,10 @@
  *
  */
 
-#include <core_startup.h>
 #include <mcu/mcu.h>
 #include <mcu/bootloader.h>
-#include "../core_startup.h"
+
+#include "../core/core_startup.h"
 #include "stm32_local.h"
 
 

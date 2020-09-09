@@ -1,4 +1,4 @@
-/* Copyright 2011-2018 Tyler Gilbert;
+/* Copyright 2011-2017 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -17,19 +17,17 @@
  *
  */
 
-#ifndef I2S_SPI_LOCAL_H_
-#define I2S_SPI_LOCAL_H_
+#ifndef SRC_CORE_CORE_STARTUP_H_
+#define SRC_CORE_CORE_STARTUP_H_
 
+#include <mcu/types.h>
+#include <mcu/mcu.h>
+#include <cortexm/cortexm.h>
 
-#include "spi_local.h"
+void core_init();
+int _main();
 
-int i2s_spi_local_open(const devfs_handle_t * handle);
-int i2s_spi_local_close(const devfs_handle_t * handle);
-int i2s_spi_local_setattr(const devfs_handle_t * handle, void * ctl);
-int i2s_spi_local_mute(const devfs_handle_t * handle, void * ctl);
-int i2s_spi_local_unmute(const devfs_handle_t * handle, void * ctl);
+#define _DECLARE_ISR(name) void mcu_core_##name##_isr() MCU_ALIAS(mcu_core_default_isr)
+#define _ISR(name) mcu_core_##name##_isr
 
-void i2s_spi_local_wait_for_errata_level(spi_local_t * local);
-
-
-#endif /* SPI_LOCAL_H_ */
+#endif /* SRC_CORE_CORE_STARTUP_H_ */

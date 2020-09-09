@@ -17,12 +17,11 @@
  *
  */
 
-#include <core_startup.h>
-#include <mcu/mcu.h>
 #include <mcu/bootloader.h>
-#include "../core_startup.h"
-#include "stm32_local.h"
+#include <mcu/mcu.h>
 
+#include "../core/core_startup.h"
+#include "stm32_local.h"
 
 const bootloader_api_t mcu_core_bootloader_api MCU_WEAK;
 const bootloader_api_t mcu_core_bootloader_api = {

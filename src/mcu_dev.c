@@ -23,3 +23,5 @@ const mcu_config_t mcu_config = {
   .usb_logical_endpoint_count = 4,
   .delay_factor = MCU_DELAY_FACTOR,
   .git_hash = SOS_GIT_HASH};
+
+int mcu_core_initclock(int freq) { return 0; }

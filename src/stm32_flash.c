@@ -36,8 +36,8 @@ const u16 stm32_flash_layout[] = {
 	64, 128, 128, 128,
 	128, 128, 128, 128
 };
-u16 stm32_flash_local_get_sector_size(u16 sector){
-	return stm32_flash_layout[sector];
+u16 stm32_flash_local_get_sector_size(u16 sector) {
+  return stm32_flash_layout[sector];
 }
 #elif defined STM32_FLASH_LAYOUT_16_16_16_16_64_128x11
 const u16 stm32_flash_layout[] = {
