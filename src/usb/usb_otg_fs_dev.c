@@ -819,9 +819,6 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
         count,
         MCU_EVENT_FLAG_DATA_READY);
     } else {
-      if (epnum == 3) {
-        mcu_debug_printf("sync data ready\n");
-      }
       // data is ready to read synchronously
       local->read_ready |= (1 << epnum);
     }

@@ -19,25 +19,20 @@
 
 #include "stm32_local.h"
 
-#define WDEN (1 << 0)
-#define WDRESET (1 << 1)
-#define WDTOF (1 << 2)
-#define WDINT (1 << 3)
+int mcu_wdt_init(int mode, int interval) {
+  __HAL_RCC_WWDG_CLK_ENABLE();
 
-#define WDLOCK (1 << 31)
-
-int mcu_wdt_init(int mode, int interval) { return 0; }
+  return 0;
+}
 
 int mcu_wdt_setinterval(int interval) { return 0; }
 
 void mcu_wdt_root_reset(void *args) {
-  // LPC_WDT->FEED = 0xAA;
-  // LPC_WDT->FEED = 0x55;
+ 
 }
 
 void mcu_wdt_reset() {
-  // LPC_WDT->FEED = 0xAA;
-  // LPC_WDT->FEED = 0x55;
+
 }
 
 // ISR handler is in the cortex_m/fault.c source file

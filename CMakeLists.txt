@@ -200,6 +200,7 @@ install(FILES ${STM32H7XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32h7xx)
 install(FILES
 	${CMAKE_SOURCE_DIR}/src/stm32_dev_local.h
 	${CMAKE_SOURCE_DIR}/src/stm32_dev_local_conf.h
+	${CMAKE_SOURCE_DIR}/src/stm32_dma.h
 	DESTINATION
 	include/mcu/arch/stm32)
 install(FILES ${CMAKE_SOURCE_DIR}/src/stm32f2xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32f2xx/Legacy)

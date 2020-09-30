@@ -21,7 +21,9 @@
 #define DAC_LOCAL_H_
 
 #include <mcu/dac.h>
+
 #include "stm32_dma.h"
+#include "stm32_local.h"
 
 #if MCU_DAC_PORTS > 0
 

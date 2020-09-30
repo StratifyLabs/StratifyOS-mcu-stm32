@@ -23,6 +23,7 @@
 #include <mcu/mmc.h>
 
 #include "stm32_dma.h"
+#include "stm32_local.h"
 
 #if MCU_SDIO_PORTS > 0 && defined MMC_TypeDef
 

@@ -22,6 +22,8 @@
 
 #include <sos/dev/spi.h>
 
+#include "stm32_local.h"
+
 #include "stm32_dma.h"
 
 typedef struct {

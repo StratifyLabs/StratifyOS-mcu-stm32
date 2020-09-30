@@ -22,6 +22,8 @@
 
 #include <mcu/sdio.h>
 
+#include "stm32_local.h"
+
 #include "stm32_dma.h"
 
 #if MCU_SDIO_PORTS > 0

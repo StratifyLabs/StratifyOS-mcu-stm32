@@ -23,6 +23,8 @@
 #include <device/fifo.h>
 #include <mcu/uart.h>
 
+#include "stm32_local.h"
+
 #include "stm32_dma.h"
 
 #if MCU_UART_PORTS > 0

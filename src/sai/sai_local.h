@@ -21,6 +21,9 @@
 #define sai_local_H_
 
 #include <sos/dev/i2s.h>
+
+#include "stm32_local.h"
+
 #include "stm32_dma.h"
 
 #if MCU_SAI_PORTS > 0

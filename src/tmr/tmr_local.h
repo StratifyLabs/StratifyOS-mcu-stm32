@@ -23,6 +23,8 @@
 #include <mcu/debug.h>
 #include <mcu/tmr.h>
 
+#include "stm32_local.h"
+
 #include "stm32_dma.h"
 
 enum {

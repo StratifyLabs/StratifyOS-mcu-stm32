@@ -17,6 +17,8 @@
  *
  */
 
+#include "stm32_local.h"
+
 #include "stm32_dma.h"
 
 #define MCU_DMA_PORTS 2

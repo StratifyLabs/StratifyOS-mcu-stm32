@@ -22,29 +22,28 @@
 
 #include <sos/dev/qspi.h>
 
+#include "stm32_local.h"
+
 #include "stm32_dma.h"
 
 typedef struct {
-	QSPI_HandleTypeDef hal_handle;
-	devfs_transfer_handler_t transfer_handler;
-	u32 state;
-	u32 ref_count;
+  QSPI_HandleTypeDef hal_handle;
+  devfs_transfer_handler_t transfer_handler;
+  u32 state;
+  u32 ref_count;
 #if MCU_QSPI_API == 1
-	MDMA_HandleTypeDef hmdma;
+  MDMA_HandleTypeDef hmdma;
 #endif
 } qspi_local_t;
 
-
 extern qspi_local_t m_qspi_local[MCU_QSPI_PORTS] MCU_SYS_MEM;
-extern QUADSPI_TypeDef * const qspi_regs_table[MCU_QSPI_PORTS];
+extern QUADSPI_TypeDef *const qspi_regs_table[MCU_QSPI_PORTS];
 extern u8 const qspi_irqs[MCU_QSPI_PORTS];
 
-int qspi_local_open(const devfs_handle_t * handle);
-int qspi_local_close(const devfs_handle_t * handle);
-int qspi_local_setattr(const devfs_handle_t * handle, void * ctl);
-int qspi_local_setaction(const devfs_handle_t * handle, void * ctl);
-int qspi_local_execcommand(const devfs_handle_t * handle, void * ctl);
-
-
+int qspi_local_open(const devfs_handle_t *handle);
+int qspi_local_close(const devfs_handle_t *handle);
+int qspi_local_setattr(const devfs_handle_t *handle, void *ctl);
+int qspi_local_setaction(const devfs_handle_t *handle, void *ctl);
+int qspi_local_execcommand(const devfs_handle_t *handle, void *ctl);
 
 #endif /* QSPI_LOCAL_H_ */
