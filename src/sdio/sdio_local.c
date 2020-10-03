@@ -324,6 +324,7 @@ void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd) {
 
 #if defined STM32F7 || defined STM32H7
   if (local->transfer_handler.read) {
+    // problems can happen if this is not aligned to a cache block
     mcu_core_invalidate_data_cache_block(
       local->transfer_handler.read->buf,
       local->transfer_handler.read->nbyte);

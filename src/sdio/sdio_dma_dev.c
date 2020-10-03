@@ -158,7 +158,10 @@ int mcu_sdio_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
   DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
 
 #if defined STM32F7 || defined STM32H7
-  mcu_core_clean_data_cache_block(async->buf, async->nbyte);
+  // need to make sure the block is clean even if it is not aligned
+  mcu_core_clean_data_cache_block(
+    async->buf,
+    async->nbyte + ((u32)async->buf % 32));
 #endif
 
   local->hal_handle.TxXferSize
@@ -185,6 +188,7 @@ int mcu_sdio_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
   local->hal_handle.RxXferSize
     = async->nbyte; // used by the callback but not set by HAL_SD_ReadBlocks_DMA
   int hal_result;
+
   if (
     (hal_result = HAL_SD_ReadBlocks_DMA(
        &local->hal_handle,
