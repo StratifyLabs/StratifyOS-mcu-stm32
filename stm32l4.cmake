@@ -10,8 +10,6 @@ set(SOS_SOURCELIST ${SHARED_SOURCELIST} ${STM32_FAMILY_SOURCES} ${STM32_VARIANT_
 
 set(SOS_OPTION mcu_${STM32_VARIANT})
 set(SOS_DEFINITIONS __${STM32_VARIANT} ${STM32_VARIANT_DEFINE}=1)
-set(SOS_ARCH v7em_f4sh)
-set(SOS_CONFIG release)
-include(${SOS_TOOLCHAIN_CMAKE_PATH}/sos-lib.cmake)
-set(SOS_CONFIG debug)
-include(${SOS_TOOLCHAIN_CMAKE_PATH}/sos-lib.cmake)
+
+
+add_targets()

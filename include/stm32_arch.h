@@ -17,6 +17,18 @@
 #ifndef STM32_ARCH_H_
 #define STM32_ARCH_H_
 
+#if (defined __stm32f446xx) || (defined __stm32f401xc)                         \
+  || (defined __stm32f411xe) || (defined __stm32f413xx)                        \
+  || (defined __stm32f417xx) || (defined __stm32f412zx)                        \
+  || (defined __stm32f429xx) || (defined __stm32f746xx)                        \
+  || (defined __stm32f722xx) || (defined __stm32f723xx)                        \
+  || (defined __stm32f767xx) || (defined __stm32l475xx)                        \
+  || (defined __stm32l432xx) || (defined __stm32f401xe)                        \
+  || (defined __stm32h743xx) || (defined __stm32h750xx)                        \
+  || (defined __stm32f205xx) || (defined __stm32f207xx)                        \
+  || (defined __stm32f215xx) || (defined __stm32f217xx)
+#undef __FPU_USED
+
 #include <mcu/adc.h>
 #include <mcu/dac.h>
 #include <mcu/eth.h>
@@ -378,4 +390,5 @@ enum {
     .link_transport_driver = link_transport_driver_value,                      \
     .id = __HARDWARE_ID}
 
+#endif
 #endif /* STM32_ARCH_H_ */
