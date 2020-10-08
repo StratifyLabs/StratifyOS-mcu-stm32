@@ -189,6 +189,5 @@ install(DIRECTORY include/ DESTINATION include/mcu/arch/stm32)
 install(DIRECTORY ldscript/ DESTINATION lib/ldscripts)
 
 else()
-# Need a dummy target to work with parent projects
-add_library(StratifyOS-mcu-stm32 INTERFACE)
+# no targets for non arm
 endif()
