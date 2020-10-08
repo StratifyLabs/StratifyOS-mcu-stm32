@@ -11,6 +11,8 @@ include(sos-sdk)
 set(SOS_NAME sos)
 project(StratifyOS-mcu-stm32 C ASM)
 
+if(SOS_IS_ARM)
+
 #Add sources to the project
 sos_sdk_add_subdirectory(SOURCE_LIST ${CMAKE_SOURCE_DIR}/src)
 set(SHARED_SOURCELIST ${SOURCE_LIST}
@@ -185,3 +187,8 @@ install(FILES ${CMAKE_SOURCE_DIR}/src/stm32l4xx/Legacy/stm32_hal_legacy.h DESTIN
 
 install(DIRECTORY include/ DESTINATION include/mcu/arch/stm32)
 install(DIRECTORY ldscript/ DESTINATION lib/ldscripts)
+
+else()
+# Need a dummy target to work with parent projects
+add_library(StratifyOS-mcu-stm32 INTERFACE)
+endif()
