@@ -173,8 +173,8 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
     // ETH_MODE_HALFDUPLEX
     local->hal_handle.Init.DuplexMode = ETH_MODE_HALFDUPLEX;
 
-    mcu_debug_log_info(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_info(
+      SOS_DEBUG_DEVICE,
       "PHY address is %d",
       attr->phy_address);
     local->hal_handle.Init.PhyAddress = attr->phy_address;
@@ -191,7 +191,7 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
     // ETH_MEDIA_INTERFACE_MII
     // ETH_MEDIA_INTERFACE_RMII
     if (o_flags & ETH_FLAG_IS_RMII) {
-      mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use Ethernet RMII");
+      sos_debug_log_info(SOS_DEBUG_DEVICE, "Use Ethernet RMII");
       local->hal_handle.Init.MediaInterface = ETH_MEDIA_INTERFACE_RMII;
     } else if (o_flags & ETH_FLAG_IS_MII) {
       local->hal_handle.Init.MediaInterface = ETH_MEDIA_INTERFACE_MII;
@@ -199,7 +199,7 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
       return SYSFS_SET_RETURN(EINVAL);
     }
 
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set eth pin assignments");
+    sos_debug_log_info(SOS_DEBUG_DEVICE, "Set eth pin assignments");
 
     // pin assignments
     if (
@@ -216,10 +216,10 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
       return SYSFS_SET_RETURN(EINVAL);
     }
 
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "HAL_ETH_Init()");
+    sos_debug_log_info(SOS_DEBUG_DEVICE, "HAL_ETH_Init()");
     if ((result = HAL_ETH_Init(&local->hal_handle)) != HAL_OK) {
-      mcu_debug_log_error(
-        MCU_DEBUG_DEVICE,
+      sos_debug_log_error(
+        SOS_DEBUG_DEVICE,
         "HAL_ETH_Init() failed (%d)",
         result);
       if (result == HAL_TIMEOUT) {
@@ -240,7 +240,7 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
       config->rx_buffer,
       ETH_RXBUFNB);
 #endif
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Start Ethernet");
+    sos_debug_log_info(SOS_DEBUG_DEVICE, "Start Ethernet");
   }
 
   if (o_flags & ETH_FLAG_GET_STATE) {

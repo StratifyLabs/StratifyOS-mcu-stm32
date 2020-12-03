@@ -42,7 +42,7 @@ int sai_local_open(sai_local_t *local, const devfs_handle_t *handle) {
 #if defined SAI2
       case 2:
       case 3:
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Turn on SAI2 clock\n");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "Turn on SAI2 clock\n");
         __HAL_RCC_SAI2_CLK_ENABLE();
         irq_number = 1;
         break;
@@ -50,7 +50,7 @@ int sai_local_open(sai_local_t *local, const devfs_handle_t *handle) {
 #if defined SAI3
       case 4:
       case 5:
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Turn on SAI2 clock\n");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "Turn on SAI2 clock\n");
         __HAL_RCC_SAI3_CLK_ENABLE();
         irq_number = 1;
         break;
@@ -58,7 +58,7 @@ int sai_local_open(sai_local_t *local, const devfs_handle_t *handle) {
 #if defined SAI4
       case 6:
       case 7:
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Turn on SAI2 clock\n");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "Turn on SAI2 clock\n");
         __HAL_RCC_SAI4_CLK_ENABLE();
         irq_number = 1;
         break;
@@ -335,12 +335,12 @@ int sai_local_setattr(
 		local->hal_handle.SlotInit.SlotActive = 0x00000001;
 		int sai_result;
 		if ( (sai_result = HAL_SAI_Init(&local->hal_handle)) != HAL_OK){
-			mcu_debug_log_error(MCU_DEBUG_DEVICE, "Failed to init SAI %d", sai_result);
+			sos_debug_log_error(SOS_DEBUG_DEVICE, "Failed to init SAI %d", sai_result);
 			return SYSFS_SET_RETURN(EIO);
 		}
 #else
-    mcu_debug_log_info(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_info(
+      SOS_DEBUG_DEVICE,
       "SAI: %d %d %d",
       protocol,
       data_size,
@@ -353,8 +353,8 @@ int sai_local_setattr(
          data_size,
          slot_count))
       != HAL_OK) {
-      mcu_debug_log_error(
-        MCU_DEBUG_DEVICE,
+      sos_debug_log_error(
+        SOS_DEBUG_DEVICE,
         "Failed to init SAI %d",
         sai_result);
       return SYSFS_SET_RETURN(EIO);
@@ -479,8 +479,8 @@ void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai) {
   volatile u32 status = hsai->Instance->SR;
   MCU_UNUSED_ARGUMENT(status);
   status = hsai->Instance->DR;
-  mcu_debug_log_error(
-    MCU_DEBUG_DEVICE,
+  sos_debug_log_error(
+    SOS_DEBUG_DEVICE,
     "SAI Error %d on %p",
     hsai->ErrorCode,
     hsai->Instance);

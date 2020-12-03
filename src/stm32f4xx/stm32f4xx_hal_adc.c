@@ -1013,7 +1013,7 @@ void HAL_ADC_IRQHandler(ADC_HandleTypeDef* hadc)
     __HAL_ADC_CLEAR_FLAG(hadc, ADC_FLAG_OVR);
   }
 }
-#include <mcu/debug.h>
+#include <sos/debug.h>
 
 /**
   * @brief  Enables ADC DMA request after last transfer (Single-ADC mode) and enables ADC peripheral  

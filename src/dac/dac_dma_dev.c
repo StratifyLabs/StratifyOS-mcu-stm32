@@ -147,8 +147,8 @@ int mcu_dac_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
-  mcu_debug_log_info(
-    MCU_DEBUG_DEVICE,
+  sos_debug_log_info(
+    SOS_DEBUG_DEVICE,
     "DAC DMA write %d words on channel 0x%X",
 #if defined STM32H7
     async->nbyte / 4,
@@ -171,7 +171,7 @@ int mcu_dac_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
 #endif
       dac_local_get_alignment(local))
     == HAL_OK) {
-    // mcu_debug_root_printf("wait DMA\n");
+    // sos_debug_root_printf("wait DMA\n");
     return 0;
   }
 

@@ -1169,7 +1169,7 @@ static uint32_t SDMMC_GetCmdError(SDIO_TypeDef *SDIOx)
   return SDMMC_ERROR_NONE;
 }
 
-#include <mcu/debug.h>
+#include <sos/debug.h>
 
 /**
   * @brief  Checks for error conditions for R1 response.

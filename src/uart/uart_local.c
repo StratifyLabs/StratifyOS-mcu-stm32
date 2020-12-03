@@ -21,26 +21,28 @@
 #include <cortexm/cortexm.h>
 #include <fcntl.h>
 #include <mcu/core.h>
-#include <mcu/debug.h>
+#include <sos/debug.h>
 #include <mcu/pio.h>
 
 #if MCU_UART_PORTS > 0
 
 #include "uart_local.h"
 
-uart_local_t m_uart_local[MCU_UART_PORTS] MCU_SYS_MEM;
+uart_local_t *m_uart_local[MCU_UART_PORTS] MCU_SYS_MEM;
+
 USART_TypeDef *const uart_regs_table[MCU_UART_PORTS] = MCU_UART_REGS;
 u8 const uart_irqs[MCU_UART_PORTS] = MCU_UART_IRQS;
 
 static void handle_bytes_received(uart_local_t *local, u16 bytes_received);
 
 int uart_local_open(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
   if (local->ref_count == 0) {
+    DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(uart);
 
-    local->hal_handle.Instance = uart_regs_table[port];
+    local->hal_handle.Instance = uart_regs_table[config->port];
 
-    switch (port) {
+    switch (config->port) {
     case 0:
       __HAL_RCC_USART1_CLK_ENABLE();
       break;
@@ -91,7 +93,7 @@ int uart_local_open(const devfs_handle_t *handle) {
 #endif
     }
     // reset HAL UART
-    cortexm_enable_irq(uart_irqs[port]);
+    cortexm_enable_irq(uart_irqs[config->port]);
   }
   local->ref_count++;
 
@@ -99,7 +101,7 @@ int uart_local_open(const devfs_handle_t *handle) {
 }
 
 int uart_local_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
 
   // FIFO won't exist on write only devices
   if (local->fifo_config != 0) {
@@ -109,8 +111,8 @@ int uart_local_close(const devfs_handle_t *handle) {
 
   if (local->ref_count > 0) {
     if (local->ref_count == 1) {
-      cortexm_disable_irq(uart_irqs[port]);
-      switch (port) {
+      cortexm_disable_irq(uart_irqs[config->port]);
+      switch (config->port) {
       case 0:
         __HAL_RCC_USART1_CLK_DISABLE();
         break;
@@ -161,6 +163,7 @@ int uart_local_close(const devfs_handle_t *handle) {
 #endif
       }
       local->hal_handle.Instance = 0;
+      DEVFS_DRIVER_CLOSE_STATE_LOCAL_V4(uart);
     }
     local->ref_count--;
   }
@@ -168,7 +171,7 @@ int uart_local_close(const devfs_handle_t *handle) {
 }
 
 int uart_local_getinfo(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
 
   uart_info_t *info = ctl;
 
@@ -191,7 +194,7 @@ int uart_local_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
   u32 o_flags;
   u32 freq;
 
@@ -200,9 +203,9 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
     return SYSFS_SET_RETURN(EINVAL);
   }
 
-  const uart_config_t *config = handle->config;
-  if (config) {
-    local->fifo_config = config->fifo_config;
+  const uart_config_t *uart_config = handle->config;
+  if (uart_config) {
+    local->fifo_config = uart_config->fifo_config;
   } else {
     local->fifo_config = 0;
   }
@@ -257,7 +260,7 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
         MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
         MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t),
         CORE_PERIPH_UART,
-        port,
+        config->port,
         0,
         0,
         0)
@@ -281,7 +284,7 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_setaction(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
   mcu_action_t *action = (mcu_action_t *)ctl;
 
   if (action->handler.callback == 0) {
@@ -310,12 +313,15 @@ int uart_local_setaction(const devfs_handle_t *handle, void *ctl) {
     }
   }
 
-  cortexm_set_irq_priority(uart_irqs[port], action->prio, action->o_events);
+  cortexm_set_irq_priority(
+    uart_irqs[config->port],
+    action->prio,
+    action->o_events);
   return 0;
 }
 
 int uart_local_put(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
   u8 c = (u32)ctl;
 
   if (HAL_UART_Transmit(&local->hal_handle, &c, 1, HAL_MAX_DELAY) != HAL_OK) {
@@ -326,7 +332,7 @@ int uart_local_put(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_flush(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
 
   /*
    * The interrupt and DMA reads rely on the head staying
@@ -344,7 +350,7 @@ int uart_local_flush(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_get(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
 
   if (local->fifo_config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
@@ -360,7 +366,7 @@ int uart_local_get(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
 
   if (local->fifo_config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
@@ -461,7 +467,7 @@ void HAL_UART_AbortCpltCallback(UART_HandleTypeDef *huart) {}
 void HAL_UART_AbortTransmitCpltCallback(UART_HandleTypeDef *huart) {}
 
 void HAL_UART_AbortReceiveCpltCallback(UART_HandleTypeDef *huart) {
-  // mcu_debug_printf("abort rx\n");
+  // sos_debug_printf("abort rx\n");
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
@@ -478,7 +484,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 }
 
 void mcu_uart_isr(int port) {
-  uart_local_t *local = m_uart_local + port;
+  uart_local_t *local = m_uart_local[port];
   HAL_UART_IRQHandler(&local->hal_handle);
 
   if (__HAL_UART_GET_FLAG(&local->hal_handle, UART_FLAG_IDLE)) {

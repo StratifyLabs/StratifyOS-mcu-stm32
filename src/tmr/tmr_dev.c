@@ -17,6 +17,8 @@
  *
  */
 
+#include <sos/sos_config.h>
+
 #include "tmr_local.h"
 
 #define NUM_OCS MCU_TMR_CHANNELS
@@ -53,8 +55,9 @@ int mcu_tmr_getinfo(const devfs_handle_t *handle, void *ctl) {
 int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
   TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
 
-  const tmr_attr_t *attr = mcu_select_attr(handle, ctl);
-  if (attr == 0) {
+  const tmr_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(tmr, ctl);
+
+  if (attr == NULL) {
     return -1;
   }
 
@@ -63,8 +66,6 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
   // regs = tmr_local_regs_table[port];
 
   if (o_flags & TMR_FLAG_SET_TIMER) {
-
-    // tmr_local_setattr(handle, ctl); //handles basic setup for set timer
 
     if (
       (o_flags
@@ -95,12 +96,12 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
         pclk = HAL_RCC_GetPCLK2Freq();
       }
 
-      if (pclk <= mcu_board_config.core_cpu_freq / 2) {
+      if (pclk <= sos_config.clock.frequency / 2) {
         // timer clocks are double pclks
         pclk = pclk * 2;
       }
 
-      mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use pclk is %ld", pclk);
+      sos_debug_log_info(SOS_DEBUG_DEVICE, "Use pclk is %ld", pclk);
 
       if (freq < pclk * 2) {
         local->hal_handle.Init.Prescaler = ((pclk + freq / 2) / freq) - 1;
@@ -111,8 +112,8 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
       if (local->hal_handle.Init.Prescaler > 0xffff) {
         local->hal_handle.Init.Prescaler = 0xffff;
       }
-      mcu_debug_log_info(
-        MCU_DEBUG_DEVICE,
+      sos_debug_log_info(
+        SOS_DEBUG_DEVICE,
         "Prescaler:%ld",
         local->hal_handle.Init.Prescaler);
 
@@ -299,7 +300,7 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
         MCU_CONFIG_PIN_ASSIGNMENT(tmr_config_t, handle),
         MCU_PIN_ASSIGNMENT_COUNT(tmr_pin_assignment_t),
         CORE_PERIPH_TMR,
-        port,
+        DEVFS_DRIVER_PORT(tmr),
         0,
         0,
         0)

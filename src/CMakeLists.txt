@@ -46,6 +46,7 @@ set(SOURCES
 	hal_set_alternate_pin_function.c
 	fault_dev.c
 	stm32_flash.c
+	stm32_config.c
 	stm32_dma.c
 	stm32_dma.h
 	stm32_mdma.c

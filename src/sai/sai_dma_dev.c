@@ -116,8 +116,8 @@ int mcu_sai_dma_setattr(const devfs_handle_t *handle, void *ctl) {
   sai_dma_local[port].dma_channel.handle = channel->handle;
   if (attr->o_flags & I2S_FLAG_IS_RECEIVER) {
     sai_dma_local[port].sai.o_flags |= SAI_LOCAL_IS_RX;
-    mcu_debug_log_info(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_info(
+      SOS_DEBUG_DEVICE,
       "Set I2S DMA as receiver %d.%d.%d",
       config->dma_config.dma_number,
       config->dma_config.stream_number,
@@ -132,8 +132,8 @@ int mcu_sai_dma_setattr(const devfs_handle_t *handle, void *ctl) {
   if (attr->o_flags & I2S_FLAG_IS_TRANSMITTER) {
     sai_dma_local[port].sai.o_flags |= SAI_LOCAL_IS_TX;
 
-    mcu_debug_log_info(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_info(
+      SOS_DEBUG_DEVICE,
       "Set I2S DMA as transmitter %d.%d.%d",
       config->dma_config.dma_number,
       config->dma_config.stream_number,
@@ -185,8 +185,8 @@ int mcu_sai_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
   int port = handle->port;
   sai_dma_local_t *local = sai_dma_local + port;
   DEVFS_DRIVER_IS_BUSY(local->sai.transfer_handler.read, async);
-  mcu_debug_log_info(
-    MCU_DEBUG_DEVICE,
+  sos_debug_log_info(
+    SOS_DEBUG_DEVICE,
     "SAI DMA RX: %p %ld %d ",
     async->buf,
     async->nbyte,
@@ -197,8 +197,8 @@ int mcu_sai_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
     async->nbyte / local->sai.size_mult);
 
   if (ret != HAL_OK) {
-    mcu_debug_log_error(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_error(
+      SOS_DEBUG_DEVICE,
       "Failed to start I2S DMA Read (%d, %d) %d/%d",
       ret,
       local->sai.hal_handle.ErrorCode,

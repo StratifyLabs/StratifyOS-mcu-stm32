@@ -20,7 +20,7 @@
 #ifndef STM32_DMA_H_
 #define STM32_DMA_H_
 
-#include <mcu/debug.h>
+#include <sos/debug.h>
 
 #include "stm32_dev_local.h"
 

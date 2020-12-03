@@ -25,7 +25,6 @@
 extern void mcu_set_sleep_mode(int *level);
 
 int mcu_core_user_sleep(core_sleep_t level) {
-
   cortexm_svcall((cortexm_svcall_t)mcu_set_sleep_mode, &level);
   if (level < 0) {
     return level;
@@ -35,7 +34,3 @@ int mcu_core_user_sleep(core_sleep_t level) {
   __WFI();
   return 0;
 }
-
-void mcu_core_prepare_deepsleep(int level) {}
-
-void mcu_core_recover_deepsleep(int level) { mcu_core_initclock(0); }

@@ -210,20 +210,6 @@
 #include "mcu_stm32h750xx.h"
 #endif
 
-typedef struct MCU_PACK {
-  u16 flash_program_millivolts;
-  u16 usb_rx_buffer_size;
-  void *usb_rx_buffer;
-} stm32_config_t;
-
-enum {
-  STM32_CONFIG_FLAG_IS_HSE_ON = (1 << 0),
-  STM32_CONFIG_FLAG_IS_48_CLOCK_PLLQ = 0, // default values
-  STM32_CONFIG_FLAG_IS_OVERDRIVE_ON = (1 << 1),
-  STM32_CONFIG_FLAG_IS_LSE_ON = (1 << 2),
-  STM32_CONFIG_FLAG_IS_MSE_ON = (1 << 3),
-  STM32_CONFIG_FLAG_IS_I2S_PLL_ON = (1 << 4)
-};
 
 enum {
   STM32_DMA_PRIORITY_LOW,
@@ -363,7 +349,7 @@ enum {
   cpu_frequency,                                                                                                                                                            \
   event_handler_value,                                                                                                                                                      \
   arch_config_value,                                                                                                                                                        \
-  o_mcu_debug_value)                                                                                                                                                        \
+  o_sos_debug_value)                                                                                                                                                        \
   MCU_DECLARE_SECRET_KEY_32(secret_key)                                                                                                                                     \
   const mcu_board_config_t mcu_board_config = {                                                                                                                             \
     .core_cpu_freq = cpu_frequency,                                                                                                                                         \
@@ -377,7 +363,7 @@ enum {
     .event_handler = event_handler_value,                                                                                                                                   \
     .led = {1, 7},                                                                                                                                                          \
     .arch_config = arch_config_value,                                                                                                                                       \
-    .o_mcu_debug = o_mcu_debug_value}
+    .o_mcu_debug = o_sos_debug_value}
 
 #define STM32_NUCLEO144_DECLARE_BOOT_BOARD_CONFIG(link_transport_driver_value) \
   extern u32 _flash_start;                                                     \

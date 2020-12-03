@@ -25,23 +25,19 @@
 #if MCU_PIO_PORTS > 0
 
 typedef struct {
-  u8 ref_count;
-} pio_local_t;
-
-typedef struct {
   mcu_event_handler_t handler;
   u32 o_events;
   u8 pull_mode;
   GPIO_TypeDef *pio_regs;
 } pio_local_event_handler_t;
 
-static pio_local_t m_mcu_pio_local[MCU_PIO_PORTS] MCU_SYS_MEM;
+static pio_local_t *m_pio_local[MCU_PIO_PORTS] MCU_SYS_MEM;
 static GPIO_TypeDef *const m_pio_regs_table[MCU_PIO_PORTS] = MCU_PIO_REGS;
 // static u8 const m_pio_irqs[MCU_PIO_PORTS] = MCU_PIO_IRQS;
 
-static pio_local_event_handler_t
-  pio_local_event_handler[16] MCU_SYS_MEM; // there are 23 events but on 16
-                                           // interrupts/events
+// there are 23 events but on 16 interrupts/events
+static pio_local_event_handler_t pio_local_event_handler[16] MCU_SYS_MEM;
+
 static const u8 pio_local_event_irq_numbers[] = {
   EXTI0_IRQn,
   EXTI1_IRQn,
@@ -79,9 +75,10 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_pio_set)
 
 int mcu_pio_open(const devfs_handle_t *handle) {
-  int port = handle->port;
-  if (m_mcu_pio_local[port].ref_count == 0) {
-    switch (port) {
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(pio);
+  if (local->ref_count == 0) {
+    DEVFS_DRIVER_ASSIGN_STATE_LOCAL(pio);
+    switch (config->port) {
     case 0:
       __HAL_RCC_GPIOA_CLK_ENABLE();
       break;
@@ -121,25 +118,18 @@ int mcu_pio_open(const devfs_handle_t *handle) {
 #endif
     }
   }
-  m_mcu_pio_local[port].ref_count++;
+  local->ref_count++;
   return 0;
 }
 
 int mcu_pio_close(const devfs_handle_t *handle) {
-  int port = handle->port;
-  if (m_mcu_pio_local[port].ref_count > 0) {
-    if (m_mcu_pio_local[port].ref_count == 1) {
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(pio);
+  if (local->ref_count > 0) {
+    if (local->ref_count == 1) {
+      DEVFS_DRIVER_CLOSE_STATE_LOCAL_V4(pio);
       //
     }
-    m_mcu_pio_local[port].ref_count--;
-  }
-  return 0;
-}
-
-int mcu_pio_dev_is_powered(const devfs_handle_t *handle) {
-  int port = handle->port;
-  if (m_mcu_pio_local[port].ref_count > 0) {
-    return 1;
+    local->ref_count--;
   }
   return 0;
 }
@@ -161,10 +151,11 @@ int mcu_pio_read(const devfs_handle_t *cfg, devfs_async_t *async) {
 }
 
 int mcu_pio_setaction(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(pio);
   const mcu_action_t *action = ctl;
 
   if (action->channel < 16) {
-    GPIO_TypeDef *regs = m_pio_regs_table[handle->port];
+    GPIO_TypeDef *regs = m_pio_regs_table[config->port];
     GPIO_InitTypeDef gpio_init;
     pio_local_event_handler_t *local_handler
       = pio_local_event_handler + action->channel;

@@ -20,7 +20,7 @@
 #include "cortexm/cortexm.h"
 #include "mcu/core.h"
 #include "mcu/dac.h"
-#include "mcu/debug.h"
+#include "sos/debug.h"
 #include "mcu/pio.h"
 #include "stm32_local.h"
 #include <fcntl.h>
@@ -266,15 +266,15 @@ int dac_local_setattr(const devfs_handle_t *handle, void *ctl) {
           return SYSFS_SET_RETURN(EINVAL);
         }
 
-        mcu_debug_log_info(
-          MCU_DEBUG_DEVICE,
+        sos_debug_log_info(
+          SOS_DEBUG_DEVICE,
           "Trigger on tmr %d",
           attr->trigger.port);
       }
     }
 
-    mcu_debug_log_info(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_info(
+      SOS_DEBUG_DEVICE,
       "config port:%d channel:0x%X",
       port,
       channel);
@@ -342,7 +342,7 @@ int dac_local_set(const devfs_handle_t *handle, void *ctl) {
 
 void HAL_DAC_ErrorCallback(DAC_HandleTypeDef *hdac) {
   dac_local_t *dac = (dac_local_t *)hdac;
-  mcu_debug_log_error(MCU_DEBUG_DEVICE, "DAC 1 Error %d", hdac->ErrorCode);
+  sos_debug_log_error(SOS_DEBUG_DEVICE, "DAC 1 Error %d", hdac->ErrorCode);
 #if defined DAC_SR_OVR
   hdac->Instance->SR &= ~DAC_SR_OVR;
 #endif
@@ -380,7 +380,7 @@ void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
     }
   } else {
     HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA H");
+    sos_debug_log_info(SOS_DEBUG_DEVICE, "STOP DMA H");
   }
 }
 
@@ -403,7 +403,7 @@ void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
     }
   } else {
     HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA");
+    sos_debug_log_info(SOS_DEBUG_DEVICE, "STOP DMA");
   }
 }
 
@@ -426,7 +426,7 @@ void HAL_DACEx_ConvCpltCallbackCh2(DAC_HandleTypeDef *hdac) {
     }
   } else {
     HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA");
+    sos_debug_log_info(SOS_DEBUG_DEVICE, "STOP DMA");
   }
 }
 
@@ -452,13 +452,13 @@ void HAL_DACEx_ConvHalfCpltCallbackCh2(DAC_HandleTypeDef *hdac) {
   } else {
 
     HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "STOP DMA H");
+    sos_debug_log_info(SOS_DEBUG_DEVICE, "STOP DMA H");
   }
 }
 
 void HAL_DACEx_ErrorCallbackCh2(DAC_HandleTypeDef *hdac) {
   dac_local_t *local = (dac_local_t *)hdac;
-  mcu_debug_log_error(MCU_DEBUG_DEVICE, "DAC 2 Error %d", hdac->ErrorCode);
+  sos_debug_log_error(SOS_DEBUG_DEVICE, "DAC 2 Error %d", hdac->ErrorCode);
 #if defined DAC_SR_OVR
   hdac->Instance->SR &= ~DAC_SR_OVR;
 #endif
@@ -476,7 +476,7 @@ void HAL_DACEx_ErrorCallbackCh2(DAC_HandleTypeDef *hdac) {
 
 void HAL_DACEx_DMAUnderrunCallbackCh2(DAC_HandleTypeDef *hdac) {
   dac_local_t *local = (dac_local_t *)hdac;
-  mcu_debug_log_error(MCU_DEBUG_DEVICE, "DAC Under Error %d", hdac->ErrorCode);
+  sos_debug_log_error(SOS_DEBUG_DEVICE, "DAC Under Error %d", hdac->ErrorCode);
   devfs_execute_write_handler(
     &local->transfer_handler,
     0,

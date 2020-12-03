@@ -21,7 +21,7 @@
 
 #include <cortexm/cortexm.h>
 #include <mcu/crc.h>
-#include <mcu/debug.h>
+#include <sos/debug.h>
 
 #include "stm32_local.h"
 

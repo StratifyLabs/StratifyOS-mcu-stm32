@@ -122,8 +122,8 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
 
     if (attr->o_flags & I2S_FLAG_IS_RECEIVER) {
 
-      mcu_debug_log_info(
-        MCU_DEBUG_DEVICE,
+      sos_debug_log_info(
+        SOS_DEBUG_DEVICE,
         "Set I2S DMA as receiver %d.%d.%d",
         config->dma_config.rx.dma_number,
         config->dma_config.rx.stream_number,
@@ -139,8 +139,8 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
 
     if (attr->o_flags & I2S_FLAG_IS_TRANSMITTER) {
 
-      mcu_debug_log_info(
-        MCU_DEBUG_DEVICE,
+      sos_debug_log_info(
+        SOS_DEBUG_DEVICE,
         "Set I2S DMA as transmitter %d.%d.%d",
         config->dma_config.tx.dma_number,
         config->dma_config.tx.stream_number,
@@ -207,8 +207,8 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
 #endif
 
   } else {
-    mcu_debug_log_info(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_info(
+      SOS_DEBUG_DEVICE,
       "Write->I2S DMA 0x%lX %p %d %d 0x%lX",
       local->i2s_hal_handle.Init.Mode,
       async->buf,
@@ -258,8 +258,8 @@ int mcu_i2s_spi_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
     (async->nbyte / local->size_mult));
 
   if (ret != HAL_OK) {
-    mcu_debug_log_error(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_error(
+      SOS_DEBUG_DEVICE,
       "Failed to start I2S DMA Read (%d, %d) %d/%d",
       ret,
       local->i2s_hal_handle.ErrorCode,

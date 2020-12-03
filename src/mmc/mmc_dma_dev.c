@@ -171,8 +171,8 @@ int mcu_mmc_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
   }
 
   local->transfer_handler.write = 0;
-  mcu_debug_log_error(
-    MCU_DEBUG_DEVICE,
+  sos_debug_log_error(
+    SOS_DEBUG_DEVICE,
     "W->HAL Not OK  %d, 0x%lX (%d + %d > %d?)",
     result,
     local->hal_handle.ErrorCode,
@@ -213,8 +213,8 @@ int mcu_mmc_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
     return 0;
   }
 
-  mcu_debug_log_warning(
-    MCU_DEBUG_DEVICE,
+  sos_debug_log_warning(
+    SOS_DEBUG_DEVICE,
     "R->HAL Not OK %d %d %d 0x%lX",
     async->loc,
     async->nbyte,

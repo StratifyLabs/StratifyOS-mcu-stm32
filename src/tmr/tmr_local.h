@@ -20,7 +20,7 @@
 #ifndef TMR_LOCAL_H_
 #define TMR_LOCAL_H_
 
-#include <mcu/debug.h>
+#include <sos/debug.h>
 #include <mcu/tmr.h>
 
 #include "stm32_local.h"
@@ -37,9 +37,9 @@ enum {
 extern TIM_TypeDef *const tmr_local_regs_table[MCU_TMR_PORTS];
 extern u8 const tmr_local_irqs[MCU_TMR_PORTS];
 extern u32 const tmr_local_channels[MCU_TMR_CHANNELS];
-extern tmr_local_t m_tmr_local[MCU_TMR_PORTS] MCU_SYS_MEM;
+extern tmr_local_t *m_tmr_local[MCU_TMR_PORTS] MCU_SYS_MEM;
 
-#define TMR_DECLARE_LOCAL(x, y) DEVFS_DRIVER_DECLARE_LOCAL(x, y)
+#define TMR_DECLARE_LOCAL(x, y) DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(x)
 
 int tmr_local_open(const devfs_handle_t *handle);
 int tmr_local_close(const devfs_handle_t *handle);

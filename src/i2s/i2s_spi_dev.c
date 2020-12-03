@@ -123,7 +123,7 @@ int mcu_i2s_spi_read(const devfs_handle_t *handle, devfs_async_t *async) {
 
   if (ret != HAL_OK) {
     local->transfer_handler.read = 0;
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2S SPI Read failed");
+    sos_debug_log_error(SOS_DEBUG_DEVICE, "I2S SPI Read failed");
     return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
   }
 

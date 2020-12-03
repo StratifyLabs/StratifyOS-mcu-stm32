@@ -19,7 +19,7 @@
 
 #include "cortexm/cortexm.h"
 #include "mcu/core.h"
-#include "mcu/debug.h"
+#include "sos/debug.h"
 #include "mcu/i2c.h"
 #include "mcu/pio.h"
 #include "stm32_local.h"
@@ -234,12 +234,12 @@ int mcu_i2c_setattr(const devfs_handle_t *handle, void *ctl) {
       do {
         if (__HAL_I2C_GET_FLAG((&local->hal_handle), I2C_FLAG_BUSY)) {
 
-          mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy flag");
+          sos_debug_log_info(SOS_DEBUG_DEVICE, "clear busy flag");
         } else {
-          mcu_debug_log_info(MCU_DEBUG_DEVICE, "I2C not busy");
+          sos_debug_log_info(SOS_DEBUG_DEVICE, "I2C not busy");
         }
         i2c_clear_busy_flag_erratum(port, local);
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "done");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "done");
       } while ((__HAL_I2C_GET_FLAG((&local->hal_handle), I2C_FLAG_BUSY))
                && count++ < 5);
 
@@ -362,7 +362,7 @@ int mcu_i2c_write(const devfs_handle_t *handle, devfs_async_t *async) {
     if (ret == HAL_TIMEOUT) {
       i2c->err = I2C_ERROR_TIMEOUT;
     }
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2C Write Error: %d", ret);
+    sos_debug_log_error(SOS_DEBUG_DEVICE, "I2C Write Error: %d", ret);
   }
 
   i2c->transfer_handler.write = 0;
@@ -403,7 +403,7 @@ int mcu_i2c_read(const devfs_handle_t *handle, devfs_async_t *async) {
     if (ret == HAL_TIMEOUT) {
       i2c->err = I2C_ERROR_TIMEOUT;
     }
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "I2C Read Error: %d", ret);
+    sos_debug_log_error(SOS_DEBUG_DEVICE, "I2C Read Error: %d", ret);
   }
 
   i2c->transfer_handler.read = 0;
@@ -413,7 +413,7 @@ int mcu_i2c_read(const devfs_handle_t *handle, devfs_async_t *async) {
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c) {
   i2c_local_t *local = (i2c_local_t *)hi2c;
 
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "Tx complete");
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "Tx complete");
   // is this a read operation to be continued?
   if (local->transfer_handler.read != 0) {
     if (
@@ -444,7 +444,7 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c) {
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c) {
   i2c_local_t *i2c = (i2c_local_t *)hi2c;
 
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "Rx complete");
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "Rx complete");
 
   devfs_execute_read_handler(
     &i2c->transfer_handler,
@@ -484,7 +484,7 @@ void HAL_I2C_AddrCallback(
     i2c->slave_memory_size,
     I2C_LAST_FRAME);
   if (hal_status != HAL_OK) {
-    // mcu_debug_printf("slave addr call back error %u
+    // sos_debug_printf("slave addr call back error %u
     // %u\n",hal_status,hi2c->State);
   }
 }
@@ -496,7 +496,7 @@ void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c) {
 void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c) {
   i2c_local_t *i2c = (i2c_local_t *)hi2c;
 
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "MEM Tx complete");
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "MEM Tx complete");
 
   // TX complete
   devfs_execute_write_handler(
@@ -508,7 +508,7 @@ void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c) {
 
 void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
   i2c_local_t *i2c = (i2c_local_t *)hi2c;
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "MEM Rx complete");
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "MEM Rx complete");
 
   devfs_execute_read_handler(
     &i2c->transfer_handler,
@@ -532,8 +532,8 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c) {
   }
 
   if (i2c->err != I2C_ERROR_ACK) {
-    mcu_debug_log_info(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_info(
+      SOS_DEBUG_DEVICE,
       "Error %d (%d)",
       hi2c->Mode,
       hi2c->ErrorCode);
@@ -549,7 +549,7 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c) {
 void HAL_I2C_AbortCpltCallback(I2C_HandleTypeDef *hi2c) {
   i2c_local_t *i2c = (i2c_local_t *)hi2c;
 
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "Abort %d", hi2c->Mode);
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "Abort %d", hi2c->Mode);
   devfs_execute_cancel_handler(
     &i2c->transfer_handler,
     0,
@@ -639,7 +639,7 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t *i2c) {
 
   cortexm_delay_us(delay_us);
 #if I2C_CLEAR_BUSY_DEBUG_MESSAGES
-  mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+  sos_debug_log_info(SOS_DEBUG_DEVICE, "clear busy:%d", __LINE__);
 #endif
 #if I2C_WAIT_FOR_LINE_CHANGE
   do {
@@ -650,7 +650,7 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t *i2c) {
 #endif
 
 #if I2C_CLEAR_BUSY_DEBUG_MESSAGES
-  mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+  sos_debug_log_info(SOS_DEBUG_DEVICE, "clear busy:%d", __LINE__);
 #endif
 #if I2C_WAIT_FOR_LINE_CHANGE
   do {
@@ -663,7 +663,7 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t *i2c) {
   //  5. Check SDA Low level in GPIOx_IDR.
   cortexm_delay_us(delay_us);
 #if I2C_CLEAR_BUSY_DEBUG_MESSAGES
-  mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+  sos_debug_log_info(SOS_DEBUG_DEVICE, "clear busy:%d", __LINE__);
 #endif
 #if I2C_WAIT_FOR_LINE_CHANGE
   do {
@@ -676,7 +676,7 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t *i2c) {
   //  7. Check SCL Low level in GPIOx_IDR.
   cortexm_delay_us(delay_us);
 #if I2C_CLEAR_BUSY_DEBUG_MESSAGES
-  mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+  sos_debug_log_info(SOS_DEBUG_DEVICE, "clear busy:%d", __LINE__);
 #endif
 #if I2C_WAIT_FOR_LINE_CHANGE
   do {
@@ -689,7 +689,7 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t *i2c) {
   // 9. Check SCL High level in GPIOx_IDR.
   cortexm_delay_us(delay_us);
 #if I2C_CLEAR_BUSY_DEBUG_MESSAGES
-  mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+  sos_debug_log_info(SOS_DEBUG_DEVICE, "clear busy:%d", __LINE__);
 #endif
 #if I2C_WAIT_FOR_LINE_CHANGE
   do {
@@ -702,7 +702,7 @@ void i2c_clear_busy_flag_erratum(int port, i2c_local_t *i2c) {
   // 11. Check SDA High level in GPIOx_IDR.
   cortexm_delay_us(delay_us);
 #if I2C_CLEAR_BUSY_DEBUG_MESSAGES
-  mcu_debug_log_info(MCU_DEBUG_DEVICE, "clear busy:%d", __LINE__);
+  sos_debug_log_info(SOS_DEBUG_DEVICE, "clear busy:%d", __LINE__);
 #endif
 #if I2C_WAIT_FOR_LINE_CHANGE
   do {

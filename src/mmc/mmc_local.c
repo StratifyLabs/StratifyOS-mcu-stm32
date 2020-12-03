@@ -224,11 +224,11 @@ int mmc_local_setattr(const devfs_handle_t *handle, void *ctl) {
   if (o_flags & MMC_FLAG_RESET) {
     // if the EMMC has a timeout error, this will get it to recover from that
     u32 width = local->hal_handle.Init.BusWide;
-    mcu_debug_log_info(MCU_DEBUG_DEVICE, "Reset EMMC");
+    sos_debug_log_info(SOS_DEBUG_DEVICE, "Reset EMMC");
     HAL_MMC_Abort(&local->hal_handle);
     HAL_MMC_DeInit(&local->hal_handle);
     if (HAL_MMC_Init(&local->hal_handle) != HAL_OK) {
-      mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to reset MMC");
+      sos_debug_log_error(SOS_DEBUG_DEVICE, "failed to reset MMC");
       return SYSFS_SET_RETURN(EIO);
     }
 
@@ -324,11 +324,11 @@ void HAL_MMC_RxCpltCallback(MMC_HandleTypeDef *hmmc) {
 
 void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc) {
   mmc_local_t *local = (mmc_local_t *)hmmc;
-  // mcu_debug_log_warning(MCU_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX 0x%lX",
+  // sos_debug_log_warning(SOS_DEBUG_DEVICE, "MMC Error? 0x%lX 0x%lX 0x%lX",
   // hmmc->ErrorCode, hmmc->hdmatx->ErrorCode, hmmc->hdmarx->ErrorCode);
   if (hmmc->ErrorCode) {
-    mcu_debug_log_warning(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_warning(
+      SOS_DEBUG_DEVICE,
       "MMC Error? 0x%lX",
       hmmc->ErrorCode);
     devfs_execute_cancel_handler(
@@ -342,7 +342,7 @@ void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc) {
 void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc) {
   mmc_local_t *local = (mmc_local_t *)hmmc;
   // abort read and write
-  mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Abort MMC");
+  sos_debug_log_warning(SOS_DEBUG_DEVICE, "Abort MMC");
   devfs_execute_cancel_handler(
     &local->transfer_handler,
     0,
@@ -352,7 +352,7 @@ void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc) {
 
 // mmc actually uses the SDIO -- doesn't have it's own interrupt
 void mcu_core_sdio_isr() {
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "MMC IRQ");
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "MMC IRQ");
   HAL_MMC_IRQHandler(&m_mmc_local[0].hal_handle);
 }
 

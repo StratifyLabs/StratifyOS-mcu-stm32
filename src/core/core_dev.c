@@ -14,9 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>. */
 
-//#include "config.h"
-#include "stm32_flash.h"
 #include <mcu/bootloader.h>
+#include <sos/sos_config.h>
+
+//#include "config.h"
+#include "stm32_config.h"
+#include "stm32_flash.h"
 
 static u32 mcu_core_get_reset_src();
 static int enable_clock_out(int o_flags, int div);
@@ -26,23 +29,15 @@ static void set_deep_sleep_registers();
 static void set_deep_sleep_stop_registers();
 static void set_deep_sleep_standby_registers();
 
-int mcu_core_setpinfunc(const devfs_handle_t *handle, void *arg) {
-  core_pinfunc_t *argp = arg;
-  return mcu_core_set_pinsel_func(
-    &(argp->io),
-    argp->periph_func,
-    argp->periph_port);
-}
-
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   core,
   CORE_VERSION,
   CORE_IOC_IDENT_CHAR,
   I_MCU_TOTAL + I_CORE_TOTAL,
-  mcu_core_setpinfunc,
-  mcu_core_setclkout,
-  mcu_core_setclkdivide,
-  mcu_core_getmcuboardconfig)
+  0,
+  0,
+  0,
+  0)
 
 int mcu_core_open(const devfs_handle_t *handle) { return 0; }
 int mcu_core_close(const devfs_handle_t *handle) { return 0; }
@@ -51,13 +46,13 @@ int mcu_core_getinfo(const devfs_handle_t *handle, void *arg) {
   MCU_UNUSED_ARGUMENT(handle);
   core_info_t *info = arg;
   info->o_flags = 0;
-  info->freq = mcu_board_config.core_cpu_freq;
+  info->freq = sos_config.clock.frequency;
   if (mcu_core_reset_source == CORE_FLAG_IS_RESET_SYSTEM) {
     mcu_core_reset_source = mcu_core_get_reset_src();
   }
   info->o_flags |= mcu_core_reset_source;
 
-  mcu_core_getserialno(&info->serial);
+  stm32_get_serial_number(&info->serial);
 
   return 0;
 }
@@ -131,39 +126,6 @@ int mcu_core_invokebootloader(int port, void *arg) {
   return 0;
 }
 
-int mcu_core_setclkout(const devfs_handle_t *handle, void *arg) {
-  // core_clkout_t * clkout = arg;
-  // return
-  return 0;
-}
-
-int mcu_core_setclkdivide(const devfs_handle_t *handle, void *arg) {
-
-#ifdef __lpc17xx
-  // the errata on the LPC17xx chips prevent this from working correctly
-  return SYSFS_SET_RETURN(ENOTSUP);
-#endif
-
-#ifdef LPCXX7X_8X
-  uint32_t div = (int)arg;
-  uint32_t clksel;
-
-  if ((div >= 1) && (div <= 31)) {
-    clksel = LPC_SC->CCLKSEL & ~0x1F;
-    clksel |= div;
-    LPC_SC->CCLKSEL = clksel;
-  } else {
-    return SYSFS_SET_RETURN(EINVAL);
-  }
-#endif
-
-  return 0;
-}
-
-int mcu_core_getmcuboardconfig(const devfs_handle_t *handle, void *arg) {
-  memcpy(arg, &mcu_board_config, sizeof(mcu_board_config));
-  return 0;
-}
 
 void mcu_set_sleep_mode(int *level) {
   SCB->SCR &= ~(1 << SCB_SCR_SLEEPDEEP_Pos);
@@ -321,7 +283,7 @@ int mcu_core_read(const devfs_handle_t *cfg, devfs_async_t *async) {
 
 void mcu_core_enable_cache() {
 #if USE_CACHE
-  if (mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE) {
+  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
     SCB_EnableICache();
     SCB_EnableDCache();
   }
@@ -330,7 +292,7 @@ void mcu_core_enable_cache() {
 
 void mcu_core_disable_cache() {
 #if USE_CACHE
-  if (mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE) {
+  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
     SCB_DisableICache();
     SCB_DisableDCache();
   }
@@ -339,7 +301,7 @@ void mcu_core_disable_cache() {
 
 void mcu_core_invalidate_instruction_cache() {
 #if USE_CACHE
-  if (mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE) {
+  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
     SCB_InvalidateICache();
   }
 #endif
@@ -347,7 +309,7 @@ void mcu_core_invalidate_instruction_cache() {
 
 void mcu_core_clean_data_cache() {
 #if USE_CACHE
-  if (mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE) {
+  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
     SCB_CleanDCache();
   }
 #endif
@@ -355,7 +317,7 @@ void mcu_core_clean_data_cache() {
 
 void mcu_core_invalidate_data_cache() {
 #if USE_CACHE
-  if (mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE) {
+  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
     SCB_InvalidateDCache();
   }
 #endif

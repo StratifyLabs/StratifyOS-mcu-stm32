@@ -20,7 +20,7 @@
 #include "cortexm/cortexm.h"
 #include "mcu/adc.h"
 #include "mcu/core.h"
-#include "mcu/debug.h"
+#include "sos/debug.h"
 #include "mcu/pio.h"
 #include "stm32_local.h"
 #include <fcntl.h>
@@ -225,7 +225,7 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
     local->hal_handle.Init.NbrOfDiscConversion = 0;
 
     if (local->o_flags & ADC_LOCAL_IS_DMA) {
-      mcu_debug_log_info(MCU_DEBUG_DEVICE, "Set ADC DMA Converter");
+      sos_debug_log_info(SOS_DEBUG_DEVICE, "Set ADC DMA Converter");
       const stm32_adc_dma_config_t *config;
       config = handle->config;
       if (config == 0) {
@@ -327,8 +327,8 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
     local->hal_handle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
 #if !defined STM32L4
     if (o_flags & ADC_FLAG_IS_TRIGGER_TMR) {
-      mcu_debug_log_info(
-        MCU_DEBUG_DEVICE,
+      sos_debug_log_info(
+        SOS_DEBUG_DEVICE,
         "tmr trigger:%d.%d",
         attr->trigger.port,
         attr->trigger.pin);
@@ -464,8 +464,8 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
       }
     }
 
-    mcu_debug_log_info(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_info(
+      SOS_DEBUG_DEVICE,
       "ADC Trig: 0x%X",
       local->hal_handle.Init.ExternalTrigConv);
     if (HAL_ADC_Init(&local->hal_handle) < 0) {
@@ -545,7 +545,7 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc) {
 
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc) {
   adc_local_t *adc = (adc_local_t *)hadc;
-  mcu_debug_log_error(MCU_DEBUG_DEVICE, "ADC Error %d", hadc->ErrorCode);
+  sos_debug_log_error(SOS_DEBUG_DEVICE, "ADC Error %d", hadc->ErrorCode);
 #if defined ADC_SR_OVR
   hadc->Instance->SR &= ~ADC_SR_OVR;
 #endif
@@ -564,7 +564,7 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc) {
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
   // this is DMA only
-  // mcu_debug_printf("h\n");
+  // sos_debug_printf("h\n");
   adc_local_t *local = (adc_local_t *)hadc;
   int result;
   devfs_async_t *async;
@@ -586,7 +586,7 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
   adc_local_t *local = (adc_local_t *)hadc;
-  // mcu_debug_printf("f\n");
+  // sos_debug_printf("f\n");
 
   if (local->o_flags & ADC_LOCAL_IS_DMA) {
     adc_local_t *local = (adc_local_t *)hadc;

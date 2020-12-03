@@ -18,7 +18,7 @@
  */
 
 #include <fcntl.h>
-#include <mcu/debug.h>
+#include <sos/debug.h>
 #include <mcu/pio.h>
 
 #include "uart_local.h"
@@ -42,16 +42,12 @@ int mcu_uart_close(const devfs_handle_t *handle) {
   return uart_local_close(handle);
 }
 
-int mcu_uart_dev_is_powered(const devfs_handle_t *handle) {
-  return (m_uart_local[handle->port].ref_count != 0);
-}
-
 int mcu_uart_getinfo(const devfs_handle_t *handle, void *ctl) {
   return uart_local_getinfo(handle, ctl);
 }
 
 int mcu_uart_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
 
   int result = uart_local_setattr(handle, ctl);
   if (result < 0) {
@@ -92,7 +88,7 @@ int mcu_uart_read(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_uart_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
   int result;
 
   DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);

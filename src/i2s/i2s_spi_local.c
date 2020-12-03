@@ -224,7 +224,7 @@ int i2s_spi_local_setattr(const devfs_handle_t *handle, void *ctl) {
 
     int hal_result;
     if ((hal_result = HAL_I2S_Init(&local->i2s_hal_handle)) != HAL_OK) {
-      mcu_debug_log_error(MCU_DEBUG_DEVICE, "Init I2S failed %d", hal_result);
+      sos_debug_log_error(SOS_DEBUG_DEVICE, "Init I2S failed %d", hal_result);
       return SYSFS_SET_RETURN(EIO);
     }
   }
@@ -246,8 +246,8 @@ void i2s_spi_local_wait_for_errata_level(spi_local_t *local) {
 
     GPIO_TypeDef *gpio = hal_get_pio_regs(local->ws_pin.port);
 
-    mcu_debug_log_info(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_info(
+      SOS_DEBUG_DEVICE,
       "execute I2S slave errata on %d.%d",
       local->ws_pin.port,
       local->ws_pin.pin);
@@ -405,8 +405,8 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s) {
 #else
   status = hi2s->Instance->DR;
 #endif
-  mcu_debug_log_error(
-    MCU_DEBUG_DEVICE,
+  sos_debug_log_error(
+    SOS_DEBUG_DEVICE,
     "I2S Error %d on %p",
     hi2s->ErrorCode,
     hi2s->Instance);

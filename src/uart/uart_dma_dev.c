@@ -36,7 +36,7 @@ int mcu_uart_dma_open(const devfs_handle_t *handle) {
 }
 
 int mcu_uart_dma_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
 
   if (local->ref_count == 1) {
     // disable the DMA
@@ -65,10 +65,6 @@ int mcu_uart_dma_close(const devfs_handle_t *handle) {
   return uart_local_close(handle);
 }
 
-int mcu_uart_dma_dev_is_powered(const devfs_handle_t *handle) {
-  return (m_uart_local[handle->port].ref_count != 0);
-}
-
 int mcu_uart_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
 
   uart_info_t *info = ctl;
@@ -81,22 +77,22 @@ int mcu_uart_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_uart_dma_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
-  const stm32_uart_dma_config_t *config;
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
+  const stm32_uart_dma_config_t *dma_config;
 
   // BSP *MUST* provide DMA configuration information
-  config = handle->config;
-  if (config == 0) {
+  dma_config = handle->config;
+  if (dma_config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
   // setup the DMA for receiving
-  stm32_dma_channel_t *channel = stm32_dma_setattr(&config->dma_config.rx);
+  stm32_dma_channel_t *channel = stm32_dma_setattr(&dma_config->dma_config.rx);
   if (channel != 0) {
     __HAL_LINKDMA((&local->hal_handle), hdmarx, channel->handle);
   }
 
-  channel = stm32_dma_setattr(&config->dma_config.tx);
+  channel = stm32_dma_setattr(&dma_config->dma_config.tx);
   if (channel != 0) {
     __HAL_LINKDMA((&local->hal_handle), hdmatx, channel->handle);
   }
@@ -150,7 +146,7 @@ int mcu_uart_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_uart_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(uart, MCU_UART_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
   int ret;
 
   // write won't be circular like read

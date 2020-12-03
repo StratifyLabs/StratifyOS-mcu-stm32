@@ -20,7 +20,7 @@
 #include "stm32_local.h"
 #include "stm32_pin_local.h"
 #include <mcu/core.h>
-#include <mcu/debug.h>
+#include <sos/debug.h>
 
 int hal_get_alternate_function(
   int gpio_port,
@@ -45,7 +45,7 @@ int hal_get_alternate_function(
   }
 
   if (gpio_port != 0xff) {
-    // mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Failed to resolve pin:%d.%d ->
+    // sos_debug_log_warning(SOS_DEBUG_DEVICE, "Failed to resolve pin:%d.%d ->
     // %d.%d", gpio_port, pin, function, periph_port);
   }
   return -1;

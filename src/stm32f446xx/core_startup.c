@@ -17,8 +17,11 @@
  *
  */
 
+#include <cortexm/cortexm.h>
+#include <cortexm/fault.h>
 #include <mcu/bootloader.h>
 #include <mcu/mcu.h>
+#include <sos/sos_events.h>
 
 #include "../core/core_startup.h"
 #include "stm32_local.h"
@@ -31,19 +34,6 @@ const bootloader_api_t mcu_core_bootloader_api = {
 void mcu_core_default_isr();
 
 void mcu_core_hardware_id() MCU_ALIAS(mcu_core_default_isr);
-
-void mcu_core_reset_handler() __attribute__((section(".reset_vector")));
-void mcu_core_nmi_isr() MCU_WEAK;
-
-void mcu_core_hardfault_handler();
-void mcu_core_memfault_handler();
-void mcu_core_busfault_handler();
-void mcu_core_usagefault_handler();
-
-void mcu_core_svcall_handler();
-void mcu_core_debugmon_handler() MCU_ALIAS(mcu_core_default_isr);
-void mcu_core_pendsv_handler();
-void mcu_core_systick_handler();
 
 // ISR's -- weakly bound to default handler
 _DECLARE_ISR(wwdg);
@@ -136,22 +126,22 @@ _DECLARE_ISR(fmpi2c1_er);
 void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   // Core Level - CM3
   (void *)&_top_of_stack,           // The initial stack pointer
-  mcu_core_reset_handler,           // The reset handler
-  mcu_core_nmi_isr,                 // The NMI handler
-  mcu_core_hardfault_handler,       // The hard fault handler
-  mcu_core_memfault_handler,        // The MPU fault handler
-  mcu_core_busfault_handler,        // The bus fault handler
-  mcu_core_usagefault_handler,      // The usage fault handler
+  cortexm_reset_handler,            // The reset handler
+  cortexm_nmi_handler,              // The NMI handler
+  cortexm_hardfault_handler,        // The hard fault handler
+  cortexm_memfault_handler,         // The MPU fault handler
+  cortexm_busfault_handler,         // The bus fault handler
+  cortexm_usagefault_handler,       // The usage fault handler
   mcu_core_hardware_id,             // Reserved
   0,                                // Reserved
   (void *)&mcu_core_bootloader_api, // Reserved -- this is the kernel signature
                                     // checksum value 0x24
   0,                                // Reserved
-  mcu_core_svcall_handler,          // SVCall handler
-  mcu_core_debugmon_handler,        // Debug monitor handler
+  cortexm_svcall_handler,           // SVCall handler
+  cortexm_debug_monitor_handler,    // Debug monitor handler
   0,                                // Reserved
-  mcu_core_pendsv_handler,          // The PendSV handler
-  mcu_core_systick_handler,         // The SysTick handler
+  cortexm_pendsv_handler,           // The PendSV handler
+  cortexm_systick_handler,          // The SysTick handler
   // Non Cortex M interrupts (device specific interrupts)
 
   _ISR(wwdg), // 0
@@ -252,16 +242,16 @@ void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   _ISR(fmpi2c1_ev),
   _ISR(fmpi2c1_er)};
 
+#if 0
 void mcu_core_reset_handler() {
   core_init();
   cortexm_set_vector_table_addr((void *)mcu_core_vector_table);
   _main(); // This function should never return
-  mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "main");
+  sos_handle_event(SOS_EVENT_ROOT_FATAL, "main");
   while (1) {
     ;
   }
 }
+#endif
 
-void mcu_core_default_isr() {
-  mcu_board_execute_event_handler(MCU_BOARD_CONFIG_EVENT_ROOT_FATAL, "dflt");
-}
+void mcu_core_default_isr() { sos_handle_event(SOS_EVENT_ROOT_FATAL, "dflt"); }

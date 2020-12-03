@@ -19,7 +19,7 @@
 
 #include "cortexm/cortexm.h"
 #include "mcu/core.h"
-#include "mcu/debug.h"
+#include "sos/debug.h"
 #include "mcu/pio.h"
 #include "mcu/qspi.h"
 #include "stm32_local.h"
@@ -111,7 +111,7 @@ int qspi_local_setattr(const devfs_handle_t *handle, void *ctl) {
     // prescalar can be between 0 and 255
     u32 prescalar;
     if (attr->freq) {
-      prescalar = mcu_board_config.core_cpu_freq / attr->freq;
+      prescalar = sos_config.clock.frequency / attr->freq;
       if (prescalar > 255) {
         prescalar = 255;
       }
@@ -361,7 +361,7 @@ int qspi_local_execcommand(const devfs_handle_t *handle, void *ctl) {
 }
 
 void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi) {
-  mcu_debug_printf("error 0x%X\n", hqspi->ErrorCode);
+  sos_debug_printf("error 0x%X\n", hqspi->ErrorCode);
   qspi_local_t *local = (qspi_local_t *)hqspi;
   devfs_execute_cancel_handler(
     &local->transfer_handler,
@@ -371,7 +371,7 @@ void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi) {
 }
 
 void HAL_QSPI_AbortCpltCallback(QSPI_HandleTypeDef *hqspi) {
-  mcu_debug_printf("abort\n");
+  sos_debug_printf("abort\n");
   qspi_local_t *local = (qspi_local_t *)hqspi;
   devfs_execute_cancel_handler(
     &local->transfer_handler,

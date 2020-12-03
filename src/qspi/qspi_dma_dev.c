@@ -19,7 +19,7 @@
 
 #include "cortexm/cortexm.h"
 #include "mcu/core.h"
-#include "mcu/debug.h"
+#include "sos/debug.h"
 #include "mcu/pio.h"
 #include "mcu/qspi.h"
 #include "stm32_local.h"

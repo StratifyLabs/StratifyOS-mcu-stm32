@@ -32,7 +32,7 @@
 #include <cortexm/cortexm.h>
 #include <mcu/core.h>
 #include <mcu/pio.h>
-#include <mcu/debug.h>
+#include <sos/debug.h>
 
 #if defined STM32F4
 //#define STM32_LOCAL_HAS_PERIPH_CLOCK_SELECTOR 1

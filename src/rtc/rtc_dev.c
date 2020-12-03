@@ -262,7 +262,7 @@ int set_alarm(rtc_local_t *local, const rtc_attr_t *attr) {
   // enable the alarm
   if (
     HAL_RTC_SetAlarm_IT(&local->hal_handle, &alarm, RTC_FORMAT_BIN) != HAL_OK) {
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "HAL_RTC_SetAlarm");
+    sos_debug_log_error(SOS_DEBUG_DEVICE, "HAL_RTC_SetAlarm");
     return SYSFS_SET_RETURN(EIO);
   }
 

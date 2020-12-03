@@ -20,14 +20,16 @@
 #ifndef SRC_CORE_CORE_STARTUP_H_
 #define SRC_CORE_CORE_STARTUP_H_
 
-#include <mcu/types.h>
-#include <mcu/mcu.h>
 #include <cortexm/cortexm.h>
+#include <cortexm/task.h>
+#include <mcu/mcu.h>
+#include <mcu/types.h>
 
 void core_init();
 int _main();
 
-#define _DECLARE_ISR(name) void mcu_core_##name##_isr() MCU_ALIAS(mcu_core_default_isr)
+#define _DECLARE_ISR(name)                                                     \
+  void mcu_core_##name##_isr() MCU_ALIAS(mcu_core_default_isr)
 #define _ISR(name) mcu_core_##name##_isr
 
 #endif /* SRC_CORE_CORE_STARTUP_H_ */

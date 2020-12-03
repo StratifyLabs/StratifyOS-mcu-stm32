@@ -92,7 +92,7 @@ stm32_mdma_channel_t * stm32_mdma_set_handle(u32 dma_number, u32 stream_number){
 		stm32_dma_channel_t * channel = &stm32_dma_handle[dma_number].stream[stream_number];
 		channel->interrupt_number = interrupt_number;
 		cortexm_enable_irq( interrupt_number );
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Enable interrupt %d", channel->interrupt_number);
+		sos_debug_log_info(SOS_DEBUG_DEVICE, "Enable interrupt %d", channel->interrupt_number);
 		return channel;
 	}
 
@@ -121,7 +121,7 @@ void stm32_dma_clear_handle(u32 dma_number, u32 stream_number){
 		}
 
 		HAL_DMA_DeInit(&channel->handle);
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Disable interrupt %d", channel->interrupt_number);
+		sos_debug_log_info(SOS_DEBUG_DEVICE, "Disable interrupt %d", channel->interrupt_number);
 		cortexm_enable_irq( channel->interrupt_number );
 		channel->interrupt_number = -1;
 	}
@@ -193,7 +193,7 @@ stm32_mdma_channel_t * stm32_dma_setattr(const stm32_mdma_channel_config_t * con
 
 	int result = HAL_DMA_Init(&channel->handle);
 	if ( result != HAL_OK ){
-		mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to init DMA %d", result);
+		sos_debug_log_error(SOS_DEBUG_DEVICE, "failed to init DMA %d", result);
 		return 0;
 	}
 

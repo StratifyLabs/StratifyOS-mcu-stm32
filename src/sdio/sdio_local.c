@@ -217,8 +217,8 @@ int sdio_local_setattr(const devfs_handle_t *handle, void *ctl) {
       if (
         HAL_SD_ConfigWideBusOperation(&local->hal_handle, SDIO_BUS_WIDE_4B)
         != HAL_OK) {
-        mcu_debug_log_error(
-          MCU_DEBUG_DEVICE,
+        sos_debug_log_error(
+          SOS_DEBUG_DEVICE,
           "failed to config 4 bit width 0x%X",
           local->hal_handle.ErrorCode);
         return SYSFS_SET_RETURN(EIO);
@@ -231,11 +231,11 @@ int sdio_local_setattr(const devfs_handle_t *handle, void *ctl) {
 
 #if 0
 		u32 width = local->hal_handle.Init.BusWide;
-		mcu_debug_log_info(MCU_DEBUG_DEVICE, "Reset SDIO");
+		sos_debug_log_info(SOS_DEBUG_DEVICE, "Reset SDIO");
 		HAL_SD_Abort(&local->hal_handle);
 		HAL_SD_DeInit(&local->hal_handle);
 		if( HAL_SD_Init(&local->hal_handle) != HAL_OK ){
-			mcu_debug_log_error(MCU_DEBUG_DEVICE, "failed to reset SDIO");
+			sos_debug_log_error(SOS_DEBUG_DEVICE, "failed to reset SDIO");
 			return SYSFS_SET_RETURN(EIO);
 		}
 
@@ -330,7 +330,7 @@ void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd) {
   }
 #endif
 
-  // mcu_debug_root_printf("read complete %d 0x%lX %ld\n", hsd->RxXferSize,
+  // sos_debug_root_printf("read complete %d 0x%lX %ld\n", hsd->RxXferSize,
   // hsd->Instance->STA, TIM2->CNT - local->start_time);
   devfs_execute_read_handler(
     &local->transfer_handler,
@@ -341,10 +341,10 @@ void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd) {
 
 void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd) {
   sdio_local_t *local = (sdio_local_t *)hsd;
-  // mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SD Error? 0x%lX 0x%lX %ld",
+  // sos_debug_log_warning(SOS_DEBUG_DEVICE, "SD Error? 0x%lX 0x%lX %ld",
   // hsd->ErrorCode, hsd->hdmatx->ErrorCode, TIM2->CNT - local->start_time);
   if (hsd->ErrorCode) {
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "SD Error 0x%lX", hsd->ErrorCode);
+    sos_debug_log_error(SOS_DEBUG_DEVICE, "SD Error 0x%lX", hsd->ErrorCode);
     devfs_execute_cancel_handler(
       &local->transfer_handler,
       0,
@@ -356,7 +356,7 @@ void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd) {
 void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd) {
   sdio_local_t *local = (sdio_local_t *)hsd;
   // abort read and write
-  mcu_debug_log_warning(MCU_DEBUG_DEVICE, "Abort\n");
+  sos_debug_log_warning(SOS_DEBUG_DEVICE, "Abort\n");
   devfs_execute_cancel_handler(
     &local->transfer_handler,
     0,
@@ -368,26 +368,26 @@ void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd) {
 
 #if MCU_SDIO_PORTS > 1
 void mcu_core_sdmmc1_isr() {
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX",
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "SDIO IRQ 0x%lX",
   // sd_handle[0]->Instance->STA);
   HAL_SD_IRQHandler(&m_sdio_local[0].hal_handle);
 }
 
 void mcu_core_sdmmc2_isr() {
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX",
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "SDIO IRQ 0x%lX",
   // sd_handle[0]->Instance->STA);
   HAL_SD_IRQHandler(&m_sdio_local[1].hal_handle);
 }
 #else
 void mcu_core_sdmmc_isr() {
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX",
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "SDIO IRQ 0x%lX",
   // sd_handle[0]->Instance->STA);
   HAL_SD_IRQHandler(&m_sdio_local[0].hal_handle);
 }
 #endif
 #else
 void mcu_core_sdio_isr() {
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "SDIO IRQ 0x%lX",
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "SDIO IRQ 0x%lX",
   // sd_handle[0]->Instance->STA);
   HAL_SD_IRQHandler(&m_sdio_local[0].hal_handle);
 }

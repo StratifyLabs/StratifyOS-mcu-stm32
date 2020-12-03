@@ -74,8 +74,8 @@ int mcu_spi_write(const devfs_handle_t *handle, devfs_async_t *async) {
     && local->transfer_handler.read) {
 
     if (local->transfer_handler.read->nbyte < async->nbyte) {
-      mcu_debug_log_info(
-        MCU_DEBUG_DEVICE,
+      sos_debug_log_info(
+        SOS_DEBUG_DEVICE,
         "Read bytes error %d < %d",
         local->transfer_handler.read->nbyte,
         async->nbyte);
@@ -93,14 +93,14 @@ int mcu_spi_write(const devfs_handle_t *handle, devfs_async_t *async) {
     if (local->transfer_handler.read == 0) {
       ret = HAL_SPI_Transmit_IT(&local->hal_handle, async->buf, async->nbyte);
     } else {
-      mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI BUSY WRITE FAIL");
+      sos_debug_log_error(SOS_DEBUG_DEVICE, "SPI BUSY WRITE FAIL");
       local->transfer_handler.write = 0;
       return SYSFS_SET_RETURN(EBUSY);
     }
   }
 
   if (ret != HAL_OK) {
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "SPI ERROR:%d", ret);
+    sos_debug_log_error(SOS_DEBUG_DEVICE, "SPI ERROR:%d", ret);
     local->transfer_handler.write = 0;
     return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
   }
@@ -122,8 +122,8 @@ int mcu_spi_read(const devfs_handle_t *handle, devfs_async_t *async) {
 
   if (ret != HAL_OK) {
     local->transfer_handler.read = 0;
-    mcu_debug_log_error(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_error(
+      SOS_DEBUG_DEVICE,
       "read failed:%d",
       local->hal_handle.ErrorCode);
     return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);

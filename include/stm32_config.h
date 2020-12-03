@@ -1,0 +1,58 @@
+#ifndef STM32_CONFIG_H
+#define STM32_CONFIG_H
+
+#include <sdk/types.h>
+
+#include <mcu/uart.h>
+
+void stm32_initialize();
+void stm32_initialize_systick();
+void stm32_get_serial_number(mcu_sn_t *serial_number);
+
+// clock
+void stm32_clock_initialize(
+  int (*handle_match_channel0)(void *, const mcu_event_t *),
+  int (*handle_match_channel1)(void *, const mcu_event_t *),
+  int (*handle_overflow)(void *, const mcu_event_t *));
+void stm32_clock_enable();
+u32 stm32_clock_disable();
+void stm32_clock_set_channel(const mcu_channel_t *channel);
+void stm32_clock_get_channel(mcu_channel_t *channel);
+u32 stm32_clock_microseconds();
+u32 stm32_clock_nanoseconds();
+
+// debug
+void stm32_debug_initialize();
+void stm32_debug_write(const void *buf, int nbyte);
+
+// usb
+int stm32_usb_set_attributes(const devfs_handle_t *handle, void *ctl);
+int stm32_usb_set_action(const devfs_handle_t *handle, mcu_action_t *action);
+void stm32_usb_write_endpoint(
+  const devfs_handle_t *handle,
+  u32 endpoint_num,
+  const void *src,
+  u32 size);
+int stm32_usb_read_endpoint(
+  const devfs_handle_t *handle,
+  u32 endpoint_num,
+  void *dest);
+
+enum {
+  STM32_CONFIG_FLAG_IS_CACHE_ENABLED = (1 << 0),
+  STM32_CONFIG_FLAG_IS_DEBUG_LED_ACTIVE_HIGH = (1 << 1)
+};
+
+typedef struct MCU_PACK {
+  u16 flash_program_millivolts;
+  u16 usb_rx_buffer_size;
+  void *usb_rx_buffer;
+  u16 flags;
+  u16 usb_max_packet_zero;
+  uart_config_t debug_uart_config;
+} stm32_config_t;
+
+// must be defined and provided by board support package
+extern const stm32_config_t stm32_config;
+
+#endif // STM32_CONFIG_H

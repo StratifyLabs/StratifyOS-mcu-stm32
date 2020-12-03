@@ -17,6 +17,8 @@
  *
  */
 
+#include <sos/sos_config.h>
+
 #include "tmr_local.h"
 
 #if MCU_TMR_PORTS > 0
@@ -25,7 +27,7 @@ TIM_TypeDef *const tmr_local_regs_table[MCU_TMR_PORTS] = MCU_TMR_REGS;
 u8 const tmr_local_irqs[MCU_TMR_PORTS] = MCU_TMR_IRQS;
 u32 const tmr_local_channels[MCU_TMR_CHANNELS] = MCU_TMR_CHANNEL_NAMES;
 
-tmr_local_t m_tmr_local[MCU_TMR_PORTS] MCU_SYS_MEM;
+tmr_local_t *m_tmr_local[MCU_TMR_PORTS] MCU_SYS_MEM;
 
 static u8 tmr_local_decode_hal_channel(u8 channel) {
   switch (channel) {
@@ -56,10 +58,10 @@ void clear_actions(tmr_local_t *local) {
 int tmr_local_open(const devfs_handle_t *handle) {
   TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
   if (local->ref_count == 0) {
-    // DEVFS_DRIVER_ASSIGN_STATE_LOCAL(tmr);
+    DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(tmr);
     clear_actions(local);
-    local->hal_handle.Instance = tmr_local_regs_table[port];
-    switch (port) {
+    local->hal_handle.Instance = tmr_local_regs_table[config->port];
+    switch (config->port) {
     default:
       return SYSFS_SET_RETURN(EINVAL);
       TIM1_CASE_CLOCK_ENABLE()
@@ -80,8 +82,8 @@ int tmr_local_open(const devfs_handle_t *handle) {
       TIM16_CASE_CLOCK_ENABLE()
       TIM17_CASE_CLOCK_ENABLE()
     }
-    if (tmr_local_irqs[port] != (u8)-1) {
-      cortexm_enable_irq(tmr_local_irqs[port]);
+    if (tmr_local_irqs[config->port] != (u8)-1) {
+      cortexm_enable_irq(tmr_local_irqs[config->port]);
     }
   }
   local->ref_count++;
@@ -93,11 +95,8 @@ int tmr_local_close(const devfs_handle_t *handle) {
   if (local->ref_count > 0) {
     if (local->ref_count == 1) {
       clear_actions(local);
-      local->hal_handle.Instance = 0;
-      if (tmr_local_irqs[port] != (u8)-1) {
-        cortexm_disable_irq(tmr_local_irqs[port]);
-      }
-      switch (port) {
+
+      switch (DEVFS_DRIVER_PORT(tmr)) {
       default:
         return SYSFS_SET_RETURN(EINVAL);
         TIM1_CASE_CLOCK_DISABLE()
@@ -118,8 +117,14 @@ int tmr_local_close(const devfs_handle_t *handle) {
         TIM16_CASE_CLOCK_DISABLE()
         TIM17_CASE_CLOCK_DISABLE()
       }
-      local->ref_count--;
+      local->hal_handle.Instance = 0;
+      const u8 interrupt_number = tmr_local_irqs[config->port];
+      if (interrupt_number != (u8)-1) {
+        cortexm_disable_irq(interrupt_number);
+      }
+      DEVFS_DRIVER_CLOSE_STATE_LOCAL_V4(tmr);
     }
+    local->ref_count--;
   }
   return 0;
 }
@@ -141,97 +146,7 @@ int tmr_local_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int tmr_local_setattr(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
-
-  const tmr_attr_t *attr = mcu_select_attr(handle, ctl);
-  if (attr == 0) {
-    return -1;
-  }
-
-  u32 o_flags = attr->o_flags;
-  u32 freq = attr->freq;
-
-  if (o_flags & TMR_FLAG_SET_TIMER) {
-
-    if (
-      (o_flags
-       & (TMR_FLAG_IS_SOURCE_CPU | TMR_FLAG_IS_SOURCE_IC0 | TMR_FLAG_IS_SOURCE_IC1))) {
-
-      if (o_flags & TMR_FLAG_IS_SOURCE_CPU) {
-        if (attr->freq == 0) {
-          freq = 1000000;
-        }
-
-      } else {
-        if (o_flags & TMR_FLAG_IS_SOURCE_EDGEFALLING) {
-
-        } else if (o_flags & TMR_FLAG_IS_SOURCE_EDGEBOTH) {
-        }
-      }
-
-      if (o_flags & TMR_FLAG_IS_SOURCE_IC1) {
-      }
-
-      // Set the prescalar so that the freq is correct
-      // get the peripheral clock frequency
-
-      u32 pclk;
-      if ((((u32)local->hal_handle.Instance) & ~0xFFFF) == APB1PERIPH_BASE) {
-        pclk = HAL_RCC_GetPCLK1Freq();
-      } else {
-        pclk = HAL_RCC_GetPCLK2Freq();
-      }
-
-      if (pclk <= mcu_board_config.core_cpu_freq / 2) {
-        // timer clocks are double pclks
-        pclk = pclk * 2;
-      }
-
-      mcu_debug_log_info(MCU_DEBUG_DEVICE, "Use pclk is %ld", pclk);
-
-      if (freq < pclk * 2) {
-        local->hal_handle.Init.Prescaler = ((pclk + freq / 2) / freq) - 1;
-      } else {
-        local->hal_handle.Init.Prescaler = 0;
-      }
-
-      if (local->hal_handle.Init.Prescaler > 0xffff) {
-        local->hal_handle.Init.Prescaler = 0xffff;
-      }
-      mcu_debug_log_info(
-        MCU_DEBUG_DEVICE,
-        "Prescaler:%ld",
-        local->hal_handle.Init.Prescaler);
-
-      if (o_flags & TMR_FLAG_IS_AUTO_RELOAD) {
-        local->hal_handle.Init.Period = attr->period;
-      } else {
-        local->hal_handle.Init.Period = (u32)-1; // set to the max
-      }
-      local->hal_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-
-#if defined TIM_AUTORELOAD_PRELOAD_DISABLE
-      local->hal_handle.Init.RepetitionCounter = 0x00;
-      local->hal_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-#endif
-
-      if (HAL_TIM_Base_Init(&local->hal_handle) != HAL_OK) {
-        return SYSFS_SET_RETURN(EIO);
-      }
-
-      if (o_flags & TMR_FLAG_IS_SOURCE_CPU) {
-        // configure to use the internal clock
-        TIM_ClockConfigTypeDef clock_source_config;
-        clock_source_config.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-        if (
-          HAL_TIM_ConfigClockSource(&local->hal_handle, &clock_source_config)
-          != HAL_OK) {
-          return SYSFS_SET_RETURN(EIO);
-        }
-      }
-    }
-  }
-
+  // attributes should be set by the non-shared part of the driver
   return 0;
 }
 
@@ -394,7 +309,7 @@ int execute_handler(
   tmr_event_t event;
   event.channel.loc = channel;
   event.channel.value = value;
-  return mcu_execute_event_handler(handler, o_events, &event);
+  return devfs_execute_event_handler(handler, o_events, &event);
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
@@ -438,7 +353,7 @@ void HAL_TIM_TriggerCallback(TIM_HandleTypeDef *htim) {}
 void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim) {}
 
 // Four timers with 4 OC's and 2 IC's each
-void tmr_isr(int port) { HAL_TIM_IRQHandler(&m_tmr_local[port].hal_handle); }
+void tmr_isr(int port) { HAL_TIM_IRQHandler(&(m_tmr_local[port]->hal_handle)); }
 
 #if defined TIM1
 void mcu_core_tim1_cc_isr() { tmr_isr(0); }
@@ -466,7 +381,7 @@ void mcu_core_dac_isr() {}
 void mcu_core_tim6_dac_isr() {
   // TIM6 is shared with the DAC
   mcu_core_dac_isr();
-  if (m_tmr_local[5].hal_handle.Instance != 0) {
+  if (m_tmr_local[5]->hal_handle.Instance != NULL) {
     tmr_isr(5);
   }
 }

@@ -83,7 +83,7 @@ int spi_local_close(const devfs_handle_t *handle) {
 #if MCU_I2S_SPI_PORTS > 0
       if (local->o_flags & SPI_LOCAL_IS_I2S) {
         HAL_I2S_DeInit(&local->i2s_hal_handle);
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "Done I2S DeInit");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "Done I2S DeInit");
       } else {
         HAL_SPI_DeInit(&local->hal_handle);
       }
@@ -166,31 +166,31 @@ int spi_local_setattr(const devfs_handle_t *handle, void *ctl) {
       //#endif
 
       // get as close to the target freq as possible without going over
-      mcu_debug_log_info(MCU_DEBUG_DEVICE, "pclk %ld", pclk);
+      sos_debug_log_info(SOS_DEBUG_DEVICE, "pclk %ld", pclk);
       prescalar = pclk / attr->freq;
       if (prescalar <= 2) {
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI PS 2");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI PS 2");
         local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
       } else if (prescalar <= 4) {
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI PS 4");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI PS 4");
         local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
       } else if (prescalar <= 8) {
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI PS 8");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI PS 8");
         local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
       } else if (prescalar <= 16) {
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI PS 16");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI PS 16");
         local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
       } else if (prescalar <= 32) {
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI PS 32");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI PS 32");
         local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
       } else if (prescalar <= 64) {
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI PS 64");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI PS 64");
         local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
       } else if (prescalar <= 128) {
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI PS 128");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI PS 128");
         local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
       } else {
-        mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI PS 256");
+        sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI PS 256");
         local->hal_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
       }
     }
@@ -342,7 +342,7 @@ int spi_local_setaction(const devfs_handle_t *handle, void *ctl) {
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
   // execute the handler
   spi_local_t *spi = (spi_local_t *)hspi;
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI TX DONE:%d,%d", hspi->TxXferSize,
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI TX DONE:%d,%d", hspi->TxXferSize,
   // spi->transfer_handler.write ? spi->transfer_handler.write->nbyte : 0);
   devfs_execute_write_handler(
     &spi->transfer_handler,
@@ -363,7 +363,7 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
   }
 #endif
 
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI RX DONE:%d,%d", hspi->RxXferSize,
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI RX DONE:%d,%d", hspi->RxXferSize,
   // spi->transfer_handler.read ? spi->transfer_handler.read->nbyte : 0);
   devfs_execute_read_handler(
     &spi->transfer_handler,
@@ -384,7 +384,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
   }
 #endif
 
-  // mcu_debug_log_info(MCU_DEBUG_DEVICE, "SPI FD DONE %d", hspi->TxXferSize);
+  // sos_debug_log_info(SOS_DEBUG_DEVICE, "SPI FD DONE %d", hspi->TxXferSize);
   devfs_execute_read_handler(
     &spi->transfer_handler,
     0,
@@ -402,8 +402,8 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) {
 
   clear_overrun_state(spi);
 
-  mcu_debug_log_error(
-    MCU_DEBUG_DEVICE,
+  sos_debug_log_error(
+    SOS_DEBUG_DEVICE,
     "SPI Error:0x%X %p %p",
     hspi->ErrorCode,
     spi->transfer_handler.read,
@@ -419,7 +419,7 @@ void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi) {
 void HAL_SPI_AbortCpltCallback(SPI_HandleTypeDef *hspi) {
   spi_local_t *spi = (spi_local_t *)hspi;
 
-  mcu_debug_log_warning(MCU_DEBUG_DEVICE, "SPI Abort:0x%X", hspi->ErrorCode);
+  sos_debug_log_warning(SOS_DEBUG_DEVICE, "SPI Abort:0x%X", hspi->ErrorCode);
   devfs_execute_cancel_handler(
     &spi->transfer_handler,
     0,

@@ -19,7 +19,7 @@
 
 #include <cortexm/cortexm.h>
 #include <fcntl.h>
-#include <mcu/debug.h>
+#include <sos/debug.h>
 #include <mcu/rng.h>
 
 #include "../hash/hash_local.h"

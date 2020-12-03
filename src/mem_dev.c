@@ -20,7 +20,7 @@
 #include <cortexm/cortexm.h>
 #include <mcu/bootloader.h>
 #include <mcu/core.h>
-#include <mcu/debug.h>
+#include <sos/debug.h>
 #include <mcu/mem.h>
 #include <mcu/wdt.h>
 #include <sos/dev/appfs.h>
@@ -138,8 +138,8 @@ int mcu_mem_erasepage(const devfs_handle_t *handle, void *ctl) {
 
   // protect the OS and the bootloader from being erased
   if (page <= last_boot_page) {
-    mcu_debug_log_error(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_error(
+      SOS_DEBUG_DEVICE,
       "Can't erase page (BOOT) %d in 0x%lX %d",
       page,
       addr,
@@ -148,8 +148,8 @@ int mcu_mem_erasepage(const devfs_handle_t *handle, void *ctl) {
   }
 
   if (stm32_flash_is_flash(addr, page_size) == 0) {
-    mcu_debug_log_error(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_error(
+      SOS_DEBUG_DEVICE,
       "Can't erase page (FLASH) %d in 0x%lX %d",
       page,
       addr,
@@ -158,8 +158,8 @@ int mcu_mem_erasepage(const devfs_handle_t *handle, void *ctl) {
   }
 
   if (stm32_flash_is_code(addr, page_size)) {
-    mcu_debug_log_error(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_error(
+      SOS_DEBUG_DEVICE,
       "Can't erase page (CODE) %d in 0x%lX %d",
       page,
       addr,
@@ -201,8 +201,8 @@ int mcu_mem_writepage(const devfs_handle_t *handle, void *ctl) {
   write_page = stm32_flash_get_sector(wattr->addr);
 
   if (write_page <= last_boot_page) {
-    mcu_debug_log_error(
-      MCU_DEBUG_DEVICE,
+    sos_debug_log_error(
+      SOS_DEBUG_DEVICE,
       "Can't write to 0x%lX boot page %d %d",
       wattr->addr,
       write_page,
@@ -227,7 +227,7 @@ int mcu_mem_writepage(const devfs_handle_t *handle, void *ctl) {
   }
 
   if (stm32_flash_blank_check(wattr->addr, nbyte)) {
-    mcu_debug_log_error(MCU_DEBUG_DEVICE, "not blank 0x%lX", wattr->addr);
+    sos_debug_log_error(SOS_DEBUG_DEVICE, "not blank 0x%lX", wattr->addr);
     return SYSFS_SET_RETURN(EROFS);
   }
 

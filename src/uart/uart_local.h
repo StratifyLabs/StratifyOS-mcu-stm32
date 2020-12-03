@@ -31,16 +31,7 @@
 
 enum { UART_LOCAL_IS_DMA = (1 << 0) };
 
-typedef struct {
-  UART_HandleTypeDef hal_handle;
-  devfs_transfer_handler_t transfer_handler;
-  fifo_state_t fifo_state;
-  const fifo_config_t *fifo_config;
-  u8 ref_count;
-  u8 o_flags;
-} uart_local_t;
-
-extern uart_local_t m_uart_local[MCU_UART_PORTS] MCU_SYS_MEM;
+extern uart_local_t *m_uart_local[MCU_UART_PORTS] MCU_SYS_MEM;
 extern USART_TypeDef *const uart_regs_table[MCU_UART_PORTS];
 extern u8 const uart_irqs[MCU_UART_PORTS];
 
