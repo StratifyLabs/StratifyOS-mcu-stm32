@@ -853,7 +853,7 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
     devfs_execute_write_handler(
       local->transfer_handler + logical_ep,
       &event,
-      0,
+      hpcd->IN_ep[logical_ep].xfer_count,
       0);
   }
 }
