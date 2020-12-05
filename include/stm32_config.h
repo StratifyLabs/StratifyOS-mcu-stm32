@@ -43,13 +43,22 @@ enum {
   STM32_CONFIG_FLAG_IS_DEBUG_LED_ACTIVE_HIGH = (1 << 1)
 };
 
+#define USB_TX_FIFO_WORD_SIZE_COUNT 9
+
+typedef struct {
+  void *rx_buffer;
+  u16 rx_buffer_size;
+  u16 max_packet_zero;
+  u16 rx_fifo_word_size /*! RX FIFO word size for all endpoints (STM32) */;
+  u8 tx_fifo_word_size
+    [USB_TX_FIFO_WORD_SIZE_COUNT] /*! TX FIFO word size (used on STM32) */;
+} stm32_usb_config_t;
+
 typedef struct MCU_PACK {
   u16 flash_program_millivolts;
-  u16 usb_rx_buffer_size;
-  void *usb_rx_buffer;
   u16 flags;
-  u16 usb_max_packet_zero;
   uart_config_t debug_uart_config;
+  stm32_usb_config_t usb;
 } stm32_config_t;
 
 // must be defined and provided by board support package

@@ -26,4 +26,18 @@ typedef struct {
   u8 ref_count;
 } pio_local_t;
 
+typedef struct MCU_PACK {
+  PCD_HandleTypeDef hal_handle;
+  devfs_transfer_handler_t transfer_handler[MCU_USB_ENDPOINT_COUNT];
+  mcu_event_handler_t control_handler;
+  u16 rx_count[MCU_USB_ENDPOINT_COUNT];
+  u16 rx_buffer_offset[MCU_USB_ENDPOINT_COUNT];
+  u16 rx_buffer_used;
+  volatile u32 write_pending;
+  volatile u32 read_ready;
+  mcu_event_handler_t special_event_handler;
+  u8 ref_count;
+  u8 connected;
+} usb_local_t;
+
 #endif // MCU_ARCH_STM32_STM32_DEV_LOCAL_H
