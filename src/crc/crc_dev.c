@@ -27,13 +27,7 @@
 
 #if MCU_CRC_PORTS > 0
 
-typedef struct {
-  CRC_HandleTypeDef hal_handle;
-  u32 value;
-  u8 ref_count;
-} crc_local_t;
-
-static crc_local_t m_crc_local[MCU_CRC_PORTS] MCU_SYS_MEM;
+static crc_state_t m_crc_state_list[MCU_CRC_PORTS] MCU_SYS_MEM;
 CRC_TypeDef *const crc_regs_table[MCU_CRC_PORTS] = MCU_CRC_REGS;
 s8 const crc_irqs[MCU_CRC_PORTS] = MCU_CRC_IRQS;
 
@@ -45,47 +39,47 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_crc_get)
 
 u32 mcu_calc_crc32(u32 seed, u32 polynomial, const u8 *buffer, u32 nbyte) {
-  crc_local_t *local = m_crc_local;
+  crc_state_t *state = m_crc_local;
 
 #if MCU_CRC_API == 1
-  local->hal_handle.Instance = CRC;
-  local->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
-  local->hal_handle.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
-  local->hal_handle.Init.InitValue = seed;
-  local->hal_handle.Init.GeneratingPolynomial = polynomial;
-  local->hal_handle.Init.CRCLength = CRC_POLYLENGTH_32B;
-  local->hal_handle.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
-  local->hal_handle.Init.OutputDataInversionMode
+  state->hal_handle.Instance = CRC;
+  state->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
+  state->hal_handle.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
+  state->hal_handle.Init.InitValue = seed;
+  state->hal_handle.Init.GeneratingPolynomial = polynomial;
+  state->hal_handle.Init.CRCLength = CRC_POLYLENGTH_32B;
+  state->hal_handle.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
+  state->hal_handle.Init.OutputDataInversionMode
     = CRC_OUTPUTDATA_INVERSION_DISABLE;
-  local->hal_handle.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
+  state->hal_handle.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
 #endif
   __HAL_RCC_CRC_CLK_ENABLE();
-  HAL_CRC_Init(&local->hal_handle);
+  HAL_CRC_Init(&state->hal_handle);
 
-  return HAL_CRC_Accumulate(&local->hal_handle, (u32 *)buffer, nbyte);
+  return HAL_CRC_Accumulate(&state->hal_handle, (u32 *)buffer, nbyte);
 }
 
 u16 mcu_calc_crc16(u16 seed, u16 polynomial, const u8 *buffer, u32 nbyte) {
-  crc_local_t *local = m_crc_local;
+  crc_state_t *state = m_crc_local;
 
 #if MCU_CRC_API == 1
-  local->hal_handle.Instance = CRC;
-  local->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
-  local->hal_handle.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
-  local->hal_handle.Init.InitValue = seed;
-  local->hal_handle.Init.GeneratingPolynomial = polynomial;
-  local->hal_handle.Init.CRCLength = CRC_POLYLENGTH_16B;
-  local->hal_handle.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
-  local->hal_handle.Init.OutputDataInversionMode
+  state->hal_handle.Instance = CRC;
+  state->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
+  state->hal_handle.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
+  state->hal_handle.Init.InitValue = seed;
+  state->hal_handle.Init.GeneratingPolynomial = polynomial;
+  state->hal_handle.Init.CRCLength = CRC_POLYLENGTH_16B;
+  state->hal_handle.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
+  state->hal_handle.Init.OutputDataInversionMode
     = CRC_OUTPUTDATA_INVERSION_DISABLE;
-  local->hal_handle.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
+  state->hal_handle.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
 #endif
   __HAL_RCC_CRC_CLK_ENABLE();
-  if (HAL_CRC_Init(&local->hal_handle) != HAL_OK) {
+  if (HAL_CRC_Init(&state->hal_handle) != HAL_OK) {
     return 0xffff;
   }
 
-  return HAL_CRC_Accumulate(&local->hal_handle, (u32 *)buffer, nbyte);
+  return HAL_CRC_Accumulate(&state->hal_handle, (u32 *)buffer, nbyte);
 }
 
 u8 mcu_calc_crc7(u8 seed, u8 polynomial, const u8 *chr, u32 len) {
@@ -110,40 +104,40 @@ u8 mcu_calc_crc7(u8 seed, u8 polynomial, const u8 *chr, u32 len) {
 
 int mcu_crc_open(const devfs_handle_t *handle) {
   DEVFS_DRIVER_DECLARE_LOCAL(crc, MCU_CRC_PORTS);
-  if (local->ref_count == 0) {
+  if (state->ref_count == 0) {
 
-    local->hal_handle.Instance = crc_regs_table[port];
+    state->hal_handle.Instance = crc_regs_table[config->port];
 
-    switch (port) {
+    switch (config->port) {
     case 0:
       __HAL_RCC_CRC_CLK_ENABLE();
       break;
     }
 
-    if (crc_irqs[port] > 0) {
-      cortexm_enable_irq(crc_irqs[port]);
+    if (crc_irqs[config->port] > 0) {
+      cortexm_enable_irq(crc_irqs[config->port]);
     }
   }
-  m_crc_local[port].ref_count++;
+  m_crc_state_list[config->port].ref_count++;
 
   return 0;
 }
 
 int mcu_crc_close(const devfs_handle_t *handle) {
   DEVFS_DRIVER_DECLARE_LOCAL(crc, MCU_CRC_PORTS);
-  if (local->ref_count > 0) {
-    if (local->ref_count == 1) {
-      if (crc_irqs[port] > 0) {
-        cortexm_disable_irq(crc_irqs[port]);
+  if (state->ref_count > 0) {
+    if (state->ref_count == 1) {
+      if (crc_irqs[config->port] > 0) {
+        cortexm_disable_irq(crc_irqs[config->port]);
       }
-      switch (port) {
+      switch (config->port) {
       case 0:
         __HAL_RCC_CRC_CLK_DISABLE();
         break;
       }
-      local->hal_handle.Instance = 0;
+      state->hal_handle.Instance = 0;
     }
-    local->ref_count--;
+    state->ref_count--;
   }
   return 0;
 }
@@ -158,7 +152,7 @@ int mcu_crc_getinfo(const devfs_handle_t *handle, void *ctl) {
 
 int mcu_crc_setattr(const devfs_handle_t *handle, void *ctl) {
   DEVFS_DRIVER_DECLARE_LOCAL(crc, MCU_CRC_PORTS);
-  const crc_attr_t *attr = mcu_select_attr(handle, ctl);
+  const crc_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(crc, ctl);
   if (attr == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
@@ -167,57 +161,57 @@ int mcu_crc_setattr(const devfs_handle_t *handle, void *ctl) {
 
   if (o_flags & CRC_FLAG_ENABLE) {
 #if MCU_CRC_API == 1
-    local->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
-    local->hal_handle.Init.GeneratingPolynomial = attr->seed;
+    state->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
+    state->hal_handle.Init.GeneratingPolynomial = attr->seed;
     if (o_flags & CRC_FLAG_IS_DEFAULT_POLYNOMIAL) {
-      local->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
+      state->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
     }
 
-    local->hal_handle.Init.DefaultPolynomialUse = DEFAULT_INIT_VALUE_DISABLE;
-    local->hal_handle.Init.InitValue = attr->initial_value;
+    state->hal_handle.Init.DefaultPolynomialUse = DEFAULT_INIT_VALUE_DISABLE;
+    state->hal_handle.Init.InitValue = attr->initial_value;
     if (o_flags & CRC_FLAG_IS_DEFAULT_INTIAL_VALUE) {
-      local->hal_handle.Init.DefaultPolynomialUse = DEFAULT_INIT_VALUE_ENABLE;
+      state->hal_handle.Init.DefaultPolynomialUse = DEFAULT_INIT_VALUE_ENABLE;
     }
 
-    local->hal_handle.Init.CRCLength = CRC_POLYLENGTH_32B;
+    state->hal_handle.Init.CRCLength = CRC_POLYLENGTH_32B;
     if (o_flags & CRC_FLAG_IS_7BIT) {
-      local->hal_handle.Init.CRCLength = CRC_POLYLENGTH_7B;
+      state->hal_handle.Init.CRCLength = CRC_POLYLENGTH_7B;
     } else if (o_flags & CRC_FLAG_IS_8BIT) {
-      local->hal_handle.Init.CRCLength = CRC_POLYLENGTH_8B;
+      state->hal_handle.Init.CRCLength = CRC_POLYLENGTH_8B;
     } else if (o_flags & CRC_FLAG_IS_16BIT) {
-      local->hal_handle.Init.CRCLength = CRC_POLYLENGTH_16B;
+      state->hal_handle.Init.CRCLength = CRC_POLYLENGTH_16B;
     }
 
-    local->hal_handle.Init.InputDataInversionMode
+    state->hal_handle.Init.InputDataInversionMode
       = CRC_INPUTDATA_INVERSION_NONE;
     if (o_flags & CRC_FLAG_IS_INVERT_INPUT_8BIT) {
-      local->hal_handle.Init.InputDataInversionMode
+      state->hal_handle.Init.InputDataInversionMode
         = CRC_INPUTDATA_INVERSION_BYTE;
     } else if (o_flags & CRC_FLAG_IS_INVERT_INPUT_16BIT) {
-      local->hal_handle.Init.InputDataInversionMode
+      state->hal_handle.Init.InputDataInversionMode
         = CRC_INPUTDATA_INVERSION_HALFWORD;
     } else if (o_flags & CRC_FLAG_IS_INVERT_INPUT_32BIT) {
-      local->hal_handle.Init.InputDataInversionMode
+      state->hal_handle.Init.InputDataInversionMode
         = CRC_INPUTDATA_INVERSION_WORD;
     }
 
-    local->hal_handle.Init.OutputDataInversionMode
+    state->hal_handle.Init.OutputDataInversionMode
       = CRC_OUTPUTDATA_INVERSION_DISABLE;
     if (o_flags & CRC_FLAG_IS_INVERT_OUTPUT) {
-      local->hal_handle.Init.OutputDataInversionMode
+      state->hal_handle.Init.OutputDataInversionMode
         = CRC_OUTPUTDATA_INVERSION_ENABLE;
     }
 #endif
 
-    local->value = 0UL;
-    if (HAL_CRC_Init(&local->hal_handle) != HAL_OK) {
+    state->value = 0UL;
+    if (HAL_CRC_Init(&state->hal_handle) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
   }
 
   if (o_flags & CRC_FLAG_DISABLE) {
-    local->value = 0UL;
-    if (HAL_CRC_DeInit(&local->hal_handle) != HAL_OK) {
+    state->value = 0UL;
+    if (HAL_CRC_DeInit(&state->hal_handle) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
   }
@@ -228,24 +222,24 @@ int mcu_crc_setattr(const devfs_handle_t *handle, void *ctl) {
 int mcu_crc_setaction(const devfs_handle_t *handle, void *ctl) { return 0; }
 
 int mcu_crc_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  int port = handle->port;
+  int port = config->port;
   int nbyte = async->nbyte;
   if (nbyte > 4) {
     nbyte = 4;
   }
-  memcpy(async->buf, &m_crc_local[port].value, nbyte);
+  memcpy(async->buf, &m_crc_state_list[config->port].value, nbyte);
   return nbyte;
 }
 
 int mcu_crc_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  int port = handle->port;
+  int port = config->port;
   int nbyte = async->nbyte / 4;
   if (async->loc == 0) {
-    m_crc_local[port].value
-      = HAL_CRC_Calculate(&m_crc_local[port].hal_handle, async->buf, nbyte * 4);
+    m_crc_state_list[config->port].value
+      = HAL_CRC_Calculate(&m_crc_state_list[config->port].hal_handle, async->buf, nbyte * 4);
   } else {
-    m_crc_local[port].value = HAL_CRC_Accumulate(
-      &m_crc_local[port].hal_handle,
+    m_crc_state_list[config->port].value = HAL_CRC_Accumulate(
+      &m_crc_state_list[config->port].hal_handle,
       async->buf,
       nbyte * 4);
   }
@@ -255,9 +249,9 @@ int mcu_crc_write(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_crc_get(const devfs_handle_t *handle, void *arg) {
-  int port = handle->port;
+  int port = config->port;
   u32 *value = arg;
-  *value = m_crc_local[port].value;
+  *value = m_crc_state_list[config->port].value;
   return 0;
 }
 

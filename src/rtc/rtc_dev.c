@@ -17,19 +17,13 @@
  *
  */
 
-#include "stm32_local.h"
 #include <mcu/rtc.h>
+
+#include "stm32_local.h"
 
 #if MCU_RTC_PORTS > 0
 
-typedef struct {
-  RTC_HandleTypeDef hal_handle; // must be the first member of the struct
-  mcu_event_handler_t alarm_handler;
-  mcu_event_handler_t count_handler;
-  u8 ref_count;
-} rtc_local_t;
-
-rtc_local_t m_rtc_local[MCU_RTC_PORTS] MCU_SYS_MEM;
+rtc_state_t *m_rtc_state_list[MCU_RTC_PORTS] MCU_SYS_MEM;
 static RTC_TypeDef *const rtc_regs[MCU_RTC_PORTS] = MCU_RTC_REGS;
 static const int rtc_irqs[MCU_RTC_PORTS] = MCU_RTC_IRQS;
 
@@ -63,15 +57,15 @@ static void convert_stm32_to_rtc(
   const RTC_DateTypeDef *source_date,
   rtc_time_t *dest);
 
-static int set_alarm(rtc_local_t *local, const rtc_attr_t *attr);
-static int set_count(rtc_local_t *local, const rtc_attr_t *attr);
+static int set_alarm(rtc_state_t *state, const rtc_attr_t *attr);
+static int set_count(rtc_state_t *state, const rtc_attr_t *attr);
 
 int mcu_rtc_open(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(rtc, MCU_RTC_PORTS);
-  if (port < MCU_RTC_PORTS) {
-    if (local->ref_count == 0) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(rtc);
+  if (config->port < MCU_RTC_PORTS) {
+    if (state->ref_count == 0) {
       // turn on RCC clock
-      switch (port) {
+      switch (config->port) {
       case 0:
 #if defined STM32H7
         __HAL_RCC_RTC_CLK_ENABLE();
@@ -82,14 +76,14 @@ int mcu_rtc_open(const devfs_handle_t *handle) {
 
         break;
       }
-      local->alarm_handler.callback = NULL;
-      local->hal_handle.Instance = rtc_regs[port];
+      state->alarm_handler.callback = NULL;
+      state->hal_handle.Instance = rtc_regs[config->port];
 
       // uses EXTI line 17 -- need to enable on rising edge
 
-      cortexm_enable_irq(rtc_irqs[port]);
+      cortexm_enable_irq(rtc_irqs[config->port]);
     }
-    local->ref_count++;
+    state->ref_count++;
   }
   return 0;
 }
@@ -115,34 +109,34 @@ int mcu_rtc_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_rtc_set(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(rtc, MCU_RTC_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(rtc);
   RTC_TimeTypeDef sTime;
   RTC_DateTypeDef sDate;
   const rtc_time_t *time_p = ctl;
 
   convert_rtc_to_stm32(time_p, &sTime, &sDate);
 
-  if (HAL_RTC_SetTime(&local->hal_handle, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
+  if (HAL_RTC_SetTime(&state->hal_handle, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
     return SYSFS_SET_RETURN(EIO);
   }
 
-  if (HAL_RTC_SetDate(&local->hal_handle, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
+  if (HAL_RTC_SetDate(&state->hal_handle, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
     return SYSFS_SET_RETURN(EIO);
   }
   return 0;
 }
 
 int mcu_rtc_get(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(rtc, MCU_RTC_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(rtc);
   RTC_TimeTypeDef sTime;
   RTC_DateTypeDef sDate;
   rtc_time_t *time_p = ctl;
 
-  if (HAL_RTC_GetTime(&local->hal_handle, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
+  if (HAL_RTC_GetTime(&state->hal_handle, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
     return SYSFS_SET_RETURN(EIO);
   }
 
-  if (HAL_RTC_GetDate(&local->hal_handle, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
+  if (HAL_RTC_GetDate(&state->hal_handle, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
     return SYSFS_SET_RETURN(EIO);
   }
 
@@ -152,12 +146,10 @@ int mcu_rtc_get(const devfs_handle_t *handle, void *ctl) {
 
 int mcu_rtc_setattr(const devfs_handle_t *handle, void *ctl) {
   /*Initialize RTC Only */
-  DEVFS_DRIVER_DECLARE_LOCAL(rtc, MCU_RTC_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(rtc);
   int result;
 
-  const rtc_attr_t *attr;
-  attr = mcu_select_attr(handle, ctl);
-  if (attr == 0) {
+  const rtc_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(rtc, ctl) if (attr == 0) {
     return SYSFS_SET_RETURN(EINVAL);
   }
 
@@ -170,26 +162,26 @@ int mcu_rtc_setattr(const devfs_handle_t *handle, void *ctl) {
     HAL_PWR_EnableBkUpAccess();
 
     __HAL_RCC_RTC_ENABLE();
-    local->hal_handle.Init.HourFormat = RTC_HOURFORMAT_24;
-    local->hal_handle.Init.AsynchPrediv = 127;
-    local->hal_handle.Init.SynchPrediv = 255;
-    local->hal_handle.Init.OutPut = RTC_OUTPUT_DISABLE;
-    local->hal_handle.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
-    local->hal_handle.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+    state->hal_handle.Init.HourFormat = RTC_HOURFORMAT_24;
+    state->hal_handle.Init.AsynchPrediv = 127;
+    state->hal_handle.Init.SynchPrediv = 255;
+    state->hal_handle.Init.OutPut = RTC_OUTPUT_DISABLE;
+    state->hal_handle.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+    state->hal_handle.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
 
-    if ((result = HAL_RTC_Init(&local->hal_handle)) != HAL_OK) {
+    if ((result = HAL_RTC_Init(&state->hal_handle)) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
   }
   if (o_flags & RTC_FLAG_ENABLE_ALARM) {
-    set_alarm(local, attr);
+    set_alarm(state, attr);
   } else if (o_flags & RTC_FLAG_DISABLE_ALARM) {
     // disable the alarm
-    HAL_RTC_DeactivateAlarm(&local->hal_handle, RTC_ALARM_A);
+    HAL_RTC_DeactivateAlarm(&state->hal_handle, RTC_ALARM_A);
   } else if (o_flags & RTC_FLAG_ENABLE_COUNT_EVENT) {
-    set_count(local, attr);
+    set_count(state, attr);
   } else if (o_flags & RTC_FLAG_DISABLE_COUNT_EVENT) {
-    HAL_RTC_DeactivateAlarm(&local->hal_handle, RTC_ALARM_B);
+    HAL_RTC_DeactivateAlarm(&state->hal_handle, RTC_ALARM_B);
   }
 
   return 0;
@@ -197,7 +189,7 @@ int mcu_rtc_setattr(const devfs_handle_t *handle, void *ctl) {
 
 int mcu_rtc_setaction(const devfs_handle_t *handle, void *ctl) {
   mcu_action_t *action = ctl;
-  // assign value to rtc_local[port].alarm_handler
+  // assign value to rtc_state_list[config->port].alarm_handler
   cortexm_set_irq_priority(RTC_Alarm_IRQn, action->prio, action->o_events);
   return 0;
 }
@@ -211,7 +203,7 @@ int mcu_rtc_read(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
-  rtc_local_t *rtc = (rtc_local_t *)hrtc;
+  rtc_state_t *rtc = (rtc_state_t *)hrtc;
   rtc_event_t rtc_data;
   u32 o_events;
   rtc_data.time.time.tm_hour = 0; // set the alarm value
@@ -220,7 +212,7 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc) {
 }
 
 void HAL_RTC_AlarmBEventCallback(RTC_HandleTypeDef *hrtc) {
-  rtc_local_t *rtc = (rtc_local_t *)hrtc;
+  rtc_state_t *rtc = (rtc_state_t *)hrtc;
   rtc_event_t rtc_data;
   u32 o_events;
   rtc_data.time.time.tm_hour = 0; // set the alarm value
@@ -229,10 +221,10 @@ void HAL_RTC_AlarmBEventCallback(RTC_HandleTypeDef *hrtc) {
 }
 
 void mcu_core_rtc_alarm_isr() {
-  HAL_RTC_AlarmIRQHandler(&m_rtc_local[0].hal_handle);
+  HAL_RTC_AlarmIRQHandler(&m_rtc_state_list[0]->hal_handle);
 }
 
-int set_alarm(rtc_local_t *local, const rtc_attr_t *attr) {
+int set_alarm(rtc_state_t *state, const rtc_attr_t *attr) {
   RTC_AlarmTypeDef alarm = {0};
   RTC_DateTypeDef date;
 
@@ -261,7 +253,7 @@ int set_alarm(rtc_local_t *local, const rtc_attr_t *attr) {
 
   // enable the alarm
   if (
-    HAL_RTC_SetAlarm_IT(&local->hal_handle, &alarm, RTC_FORMAT_BIN) != HAL_OK) {
+    HAL_RTC_SetAlarm_IT(&state->hal_handle, &alarm, RTC_FORMAT_BIN) != HAL_OK) {
     sos_debug_log_error(SOS_DEBUG_DEVICE, "HAL_RTC_SetAlarm");
     return SYSFS_SET_RETURN(EIO);
   }
@@ -269,7 +261,7 @@ int set_alarm(rtc_local_t *local, const rtc_attr_t *attr) {
   return SYSFS_RETURN_SUCCESS;
 }
 
-int set_count(rtc_local_t *local, const rtc_attr_t *attr) {
+int set_count(rtc_state_t *state, const rtc_attr_t *attr) {
   RTC_AlarmTypeDef alarm = {0};
   RTC_DateTypeDef date;
 
@@ -300,7 +292,7 @@ int set_count(rtc_local_t *local, const rtc_attr_t *attr) {
 
   // enable the alarm
   if (
-    HAL_RTC_SetAlarm_IT(&local->hal_handle, &alarm, RTC_FORMAT_BIN) != HAL_OK) {
+    HAL_RTC_SetAlarm_IT(&state->hal_handle, &alarm, RTC_FORMAT_BIN) != HAL_OK) {
     return SYSFS_SET_RETURN(EIO);
   }
   return SYSFS_RETURN_SUCCESS;

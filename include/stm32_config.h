@@ -64,4 +64,10 @@ typedef struct MCU_PACK {
 // must be defined and provided by board support package
 extern const stm32_config_t stm32_config;
 
+typedef struct {
+  const char *git_hash;
+} stm32_git_hash;
+
+extern const stm32_git_hash stm32_config_git_hash;
+
 #endif // STM32_CONFIG_H

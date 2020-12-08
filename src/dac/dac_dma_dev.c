@@ -17,8 +17,10 @@
  *
  */
 
-#include "dac_local.h"
 #include <fcntl.h>
+#include <sos/config.h>
+
+#include "dac_local.h"
 
 #if MCU_DAC_PORTS > 0
 
@@ -31,36 +33,36 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_dac_dma_set)
 
 int mcu_dac_dma_open(const devfs_handle_t *handle) {
-  m_dac_local[handle->port].o_flags = DAC_LOCAL_FLAG_IS_DMA;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
+  state->o_flags = DAC_LOCAL_FLAG_IS_DMA;
   return dac_local_open(handle);
 }
 
 int mcu_dac_dma_close(const devfs_handle_t *handle) {
-
-  // cancel DMA operations	adc_local_t * local = adc_local + handle->port;
-  dac_local_t *local = m_dac_local + handle->port;
-  if (local->ref_count == 1) {
+  // cancel DMA operations	adc_local_t * local = adc_local + config->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
+  if (state->ref_count == 1) {
     // disable the DMA
 
-    const stm32_adc_dma_config_t *config;
-    config = handle->config;
+    const stm32_adc_dma_config_t *dma_config = handle->config;
+
     u32 channel;
-    if (handle->port) {
+    if (config->port) {
       channel = DAC_CHANNEL_1;
     } else {
       channel = DAC_CHANNEL_2;
     }
-    HAL_DAC_Stop_DMA(&local->hal_handle, channel);
+    HAL_DAC_Stop_DMA(&state->hal_handle, channel);
     devfs_execute_cancel_handler(
-      &local->transfer_handler,
+      &state->transfer_handler,
       0,
       SYSFS_SET_RETURN(EIO),
       0);
 
     if (config) {
       stm32_dma_clear_handle(
-        config->dma_config.dma_number,
-        config->dma_config.stream_number);
+        dma_config->dma_config.dma_number,
+        dma_config->dma_config.stream_number);
     }
   }
 
@@ -72,46 +74,45 @@ int mcu_dac_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_dac_dma_setattr(const devfs_handle_t *handle, void *ctl) {
-  const stm32_dac_dma_config_t *config = handle->config;
-  dac_local_t *local = m_dac_local + handle->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
 
   if (config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
-  stm32_dma_channel_t *channel = stm32_dma_setattr(&config->dma_config);
+  const stm32_dac_dma_config_t *dma_config = handle->config;
+  stm32_dma_channel_t *channel = stm32_dma_setattr(&dma_config->dma_config);
   if (channel == 0) {
     return SYSFS_SET_RETURN(EIO);
   }
 
-  if (handle->port == 0) {
-    __HAL_LINKDMA((&local->hal_handle), DMA_Handle1, channel->handle);
+  if (config->port == 0) {
+    __HAL_LINKDMA((&state->hal_handle), DMA_Handle1, channel->handle);
   } else {
-    __HAL_LINKDMA((&local->hal_handle), DMA_Handle2, channel->handle);
+    __HAL_LINKDMA((&state->hal_handle), DMA_Handle2, channel->handle);
   }
 
   return dac_local_setattr(handle, ctl);
 }
 
 int mcu_dac_dma_setaction(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   mcu_action_t *action = (mcu_action_t *)ctl;
-  int port = handle->port;
-  dac_local_t *local = m_dac_local + port;
 
   if (action->handler.callback == 0) {
     // if there is an ongoing operation -- cancel it
     if (action->o_events & MCU_EVENT_FLAG_DATA_READY) {
       // execute the read callback if not null
       devfs_execute_read_handler(
-        &local->transfer_handler,
+        &state->transfer_handler,
         0,
         SYSFS_SET_RETURN(EAGAIN),
         MCU_EVENT_FLAG_CANCELED);
-      HAL_DAC_Stop_DMA(&local->hal_handle, DAC_CHANNEL_1);
+      HAL_DAC_Stop_DMA(&state->hal_handle, DAC_CHANNEL_1);
     }
   }
 
-  cortexm_set_irq_priority(m_dac_irqs[port], action->prio, action->o_events);
+  cortexm_set_irq_priority(m_dac_irqs[config->port], action->prio, action->o_events);
   return 0;
 }
 
@@ -128,24 +129,19 @@ int mcu_dac_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_dac_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  int port = handle->port;
-  dac_local_t *local = m_dac_local + port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   u32 channel;
 
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
   if (async->nbyte < 2) {
-    local->transfer_handler.write = 0;
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EINVAL);
   }
 
   async->nbyte &= ~0x01; // align to 2 byte boundary
-  if ((port < MCU_DAC_PORTS)) {
-    channel = m_dac_channels[port];
-  } else {
-    local->transfer_handler.write = 0;
-    return SYSFS_SET_RETURN(ENOSYS);
-  }
+
+  channel = m_dac_channels[config->port];
 
   sos_debug_log_info(
     SOS_DEBUG_DEVICE,
@@ -157,11 +153,11 @@ int mcu_dac_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
 #endif
     channel);
 
-  mcu_core_clean_data_cache_block(async->buf, async->nbyte);
+  sos_config.cache.clean_data_block(async->buf, async->nbyte);
 
   if (
     HAL_DAC_Start_DMA(
-      &local->hal_handle,
+      &state->hal_handle,
       channel,
       async->buf,
 #if defined STM32H7
@@ -169,14 +165,14 @@ int mcu_dac_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
 #else
       async->nbyte / 2,
 #endif
-      dac_local_get_alignment(local))
+      dac_local_get_alignment(state))
     == HAL_OK) {
     // sos_debug_root_printf("wait DMA\n");
     return 0;
   }
 
   // this needs to read 1 byte at a time
-  local->transfer_handler.write = 0;
+  state->transfer_handler.write = 0;
   return SYSFS_SET_RETURN(EIO);
 }
 

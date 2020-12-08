@@ -22,7 +22,7 @@
 
 #include <sos/debug.h>
 
-#include "stm32_dev_local.h"
+#include "stm32_dev_local_conf.h"
 
 typedef struct {
   DMA_HandleTypeDef handle;

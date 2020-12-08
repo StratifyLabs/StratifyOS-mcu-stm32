@@ -27,47 +27,40 @@
 
 #if MCU_RNG_PORTS > 0
 
-typedef struct {
-  RNG_HandleTypeDef hal_handle;
-  devfs_transfer_handler_t transfer_handler;
-  u32 bytes_read;
-  u8 ref_count;
-} rng_local_t;
-
-static rng_local_t rng_local[MCU_RNG_PORTS] MCU_SYS_MEM;
+static rng_state_t *m_rng_state_list[MCU_RNG_PORTS] MCU_SYS_MEM;
 RNG_TypeDef *const rng_regs_table[MCU_RNG_PORTS] = MCU_RNG_REGS;
 s8 const rng_irqs[MCU_RNG_PORTS] = MCU_RNG_IRQS;
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION_MIN(rng, RANDOM_VERSION, RANDOM_IOC_CHAR)
 
 int mcu_rng_open(const devfs_handle_t *handle) {
-  int port = handle->port;
-  if (rng_local[port].ref_count == 0) {
-    rng_local[port].hal_handle.Instance = rng_regs_table[port];
-    switch (port) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(rng);
+  if (state->ref_count == 0) {
+    state->hal_handle.Instance = rng_regs_table[config->port];
+    switch (config->port) {
     case 0:
       __HAL_RCC_RNG_CLK_ENABLE();
       break;
     }
-    cortexm_enable_irq(rng_irqs[port]);
+    cortexm_enable_irq(rng_irqs[config->port]);
   }
-  rng_local[port].ref_count++;
+  state->ref_count++;
   return 0;
 }
 
 int mcu_rng_close(const devfs_handle_t *handle) {
-  int port = handle->port;
-  if (rng_local[port].ref_count > 0) {
-    if (rng_local[port].ref_count == 1) {
-      cortexm_disable_irq(rng_irqs[port]);
-      switch (port) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(rng);
+  if (state->ref_count > 0) {
+    if (state->ref_count == 1) {
+      cortexm_disable_irq(rng_irqs[config->port]);
+      switch (config->port) {
       case 0:
         __HAL_RCC_RNG_CLK_DISABLE();
         break;
       }
-      rng_local[port].hal_handle.Instance = 0;
+      state->hal_handle.Instance = 0;
     }
-    rng_local[port].ref_count--;
+    state->ref_count--;
   }
   return 0;
 }
@@ -81,8 +74,8 @@ int mcu_rng_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_rng_setattr(const devfs_handle_t *handle, void *ctl) {
-  rng_local_t *rng = rng_local + handle->port;
-  const random_attr_t *attr = mcu_select_attr(handle, ctl);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(rng);
+  const random_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(random, ctl);
   if (attr == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
@@ -90,13 +83,13 @@ int mcu_rng_setattr(const devfs_handle_t *handle, void *ctl) {
   u32 o_flags = attr->o_flags;
 
   if (o_flags & RANDOM_FLAG_ENABLE) {
-    if (HAL_RNG_Init(&rng->hal_handle) != HAL_OK) {
+    if (HAL_RNG_Init(&state->hal_handle) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
   }
 
   if (o_flags & RANDOM_FLAG_DISABLE) {
-    if (HAL_RNG_DeInit(&rng->hal_handle) != HAL_OK) {
+    if (HAL_RNG_DeInit(&state->hal_handle) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
   }
@@ -107,13 +100,13 @@ int mcu_rng_setattr(const devfs_handle_t *handle, void *ctl) {
 int mcu_rng_setaction(const devfs_handle_t *handle, void *ctl) { return 0; }
 
 int mcu_rng_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  const int port = handle->port;
-  DEVFS_DRIVER_IS_BUSY(rng_local[port].transfer_handler.read, async);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(rng);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
-  rng_local[port].bytes_read = 0;
+  state->bytes_read = 0;
 
-  if (HAL_RNG_GenerateRandomNumber_IT(&rng_local[port].hal_handle) != HAL_OK) {
-    rng_local[port].transfer_handler.read = 0;
+  if (HAL_RNG_GenerateRandomNumber_IT(&state->hal_handle) != HAL_OK) {
+    state->transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EIO);
   }
 
@@ -125,26 +118,26 @@ int mcu_rng_write(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 void HAL_RNG_ErrorCallback(RNG_HandleTypeDef *hrng) {
-  rng_local_t *rng = (rng_local_t *)hrng;
+  rng_state_t *state = (rng_state_t *)hrng;
   devfs_execute_read_handler(
-    &rng->transfer_handler,
+    &state->transfer_handler,
     0,
     SYSFS_SET_RETURN(EIO),
     MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_CANCELED);
 }
 
 void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef *hrng, uint32_t random32bit) {
-  rng_local_t *rng = (rng_local_t *)hrng;
+  rng_state_t *state = (rng_state_t *)hrng;
 
   memcpy(
-    rng->transfer_handler.read->buf + rng->bytes_read,
+    state->transfer_handler.read->buf + state->bytes_read,
     &random32bit,
     sizeof(uint32_t));
-  rng->bytes_read += sizeof(u32);
+  state->bytes_read += sizeof(u32);
 
-  if (rng->bytes_read == rng->transfer_handler.read->nbyte) {
+  if (state->bytes_read == state->transfer_handler.read->nbyte) {
     devfs_execute_read_handler(
-      &rng->transfer_handler,
+      &state->transfer_handler,
       0,
       0,
       MCU_EVENT_FLAG_DATA_READY);
@@ -154,10 +147,14 @@ void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef *hrng, uint32_t random32bit) {
 }
 
 void mcu_core_hash_isr() {
-  HAL_RNG_IRQHandler(&rng_local[0].hal_handle);
+  if (m_rng_state_list[0]) {
+    HAL_RNG_IRQHandler(&m_rng_state_list[0]->hal_handle);
+  }
 
 #if MCU_HASH_PORTS > 0
-  HAL_HASH_IRQHandler(&m_hash_local[0].hal_handle);
+  if (m_hash_state_list[0]) {
+    HAL_HASH_IRQHandler(&m_hash_state_list[0]->hal_handle);
+  }
 #endif
 }
 

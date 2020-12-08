@@ -31,29 +31,32 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_dac_set)
 
 int mcu_dac_open(const devfs_handle_t *handle) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   int result;
-  m_dac_local[handle->port].o_flags = 0;
+
+  state->o_flags = 0;
 
   result = dac_local_open(handle);
   if (result < 0) {
     return result;
   }
 
-  cortexm_enable_irq(m_dac_irqs[handle->port]);
+  cortexm_enable_irq(m_dac_irqs[config->port]);
 
   return SYSFS_RETURN_SUCCESS;
 }
 
 int mcu_dac_close(const devfs_handle_t *handle) {
   int result;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
 
   result = dac_local_close(handle);
   if (result < 0) {
     return result;
   }
 
-  if (m_dac_local[handle->port].ref_count == 0) {
-    cortexm_enable_irq(m_dac_irqs[handle->port]);
+  if (state->ref_count == 0) {
+    cortexm_enable_irq(m_dac_irqs[config->port]);
   }
 
   return SYSFS_RETURN_SUCCESS;
@@ -68,23 +71,22 @@ int mcu_dac_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_dac_setaction(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   mcu_action_t *action = (mcu_action_t *)ctl;
-  int port = handle->port;
-  dac_local_t *adc = m_dac_local + port;
 
   if (action->handler.callback == 0) {
     // if there is an ongoing operation -- cancel it
     if (action->o_events & MCU_EVENT_FLAG_DATA_READY) {
       // execute the read callback if not null
       devfs_execute_read_handler(
-        &adc->transfer_handler,
+        &state->transfer_handler,
         0,
         SYSFS_SET_RETURN(EAGAIN),
         MCU_EVENT_FLAG_CANCELED);
     }
   }
 
-  cortexm_set_irq_priority(m_dac_irqs[port], action->prio, action->o_events);
+  cortexm_set_irq_priority(m_dac_irqs[config->port], action->prio, action->o_events);
   return 0;
 }
 
@@ -102,11 +104,12 @@ int mcu_dac_read(const devfs_handle_t *handle, devfs_async_t *async) {
 
 int mcu_dac_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   // this driver is only capable of writing a single value -- no interrupt --
   // value is written synchronously
   int result;
   mcu_channel_t mcu_channel;
-  mcu_channel.loc = handle->port;
+  mcu_channel.loc = config->port;
   mcu_channel.value = ((u16 *)async->buf_const)[0];
   result = dac_local_set(handle, &mcu_channel);
   if (result < 0) {

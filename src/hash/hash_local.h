@@ -26,26 +26,9 @@
 
 #if MCU_HASH_PORTS > 0
 
-#define MAX_KEY_SIZE 32
-#define MAX_IV_SIZE 32
-#define MAX_HEADER_SIZE 64
+enum { HASH_LOCAL_IS_DMA = (1 << 0) };
 
-typedef struct {
-	HASH_HandleTypeDef hal_handle;
-	devfs_transfer_handler_t transfer_handler;
-	u32 o_flags;
-	u8 key[MAX_KEY_SIZE];
-	u8 iv[MAX_IV_SIZE];
-	u8 header[MAX_HEADER_SIZE];
-	u8 ref_count;
-} hash_local_t;
-
-enum {
-	HASH_LOCAL_IS_DMA = (1<<0)
-};
-
-
-extern hash_local_t m_hash_local[MCU_HASH_PORTS] MCU_SYS_MEM;
+extern hash_state_t *m_hash_state_list[MCU_HASH_PORTS] MCU_SYS_MEM;
 extern HASH_TypeDef * const hash_regs[MCU_HASH_PORTS];
 extern u8 const hash_irqs[MCU_HASH_PORTS];
 

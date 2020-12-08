@@ -31,7 +31,7 @@ typedef struct {
   GPIO_TypeDef *pio_regs;
 } pio_local_event_handler_t;
 
-static pio_local_t *m_pio_local[MCU_PIO_PORTS] MCU_SYS_MEM;
+static pio_state_t *m_pio_state_list[MCU_PIO_PORTS] MCU_SYS_MEM;
 static GPIO_TypeDef *const m_pio_regs_table[MCU_PIO_PORTS] = MCU_PIO_REGS;
 // static u8 const m_pio_irqs[MCU_PIO_PORTS] = MCU_PIO_IRQS;
 
@@ -75,9 +75,9 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_pio_set)
 
 int mcu_pio_open(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(pio);
-  if (local->ref_count == 0) {
-    DEVFS_DRIVER_ASSIGN_STATE_LOCAL(pio);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(pio);
+  if (state->ref_count == 0) {
+    DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(pio);
     switch (config->port) {
     case 0:
       __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -118,18 +118,18 @@ int mcu_pio_open(const devfs_handle_t *handle) {
 #endif
     }
   }
-  local->ref_count++;
+  state->ref_count++;
   return 0;
 }
 
 int mcu_pio_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(pio);
-  if (local->ref_count > 0) {
-    if (local->ref_count == 1) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(pio);
+  if (state->ref_count > 0) {
+    if (state->ref_count == 1) {
       DEVFS_DRIVER_CLOSE_STATE_LOCAL_V4(pio);
       //
     }
-    local->ref_count--;
+    state->ref_count--;
   }
   return 0;
 }
@@ -151,7 +151,7 @@ int mcu_pio_read(const devfs_handle_t *cfg, devfs_async_t *async) {
 }
 
 int mcu_pio_setaction(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(pio);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(pio);
   const mcu_action_t *action = ctl;
 
   if (action->channel < 16) {
@@ -212,10 +212,14 @@ int mcu_pio_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_pio_setattr(const devfs_handle_t *handle, void *ctl) {
-  int port = handle->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(pio);
+  return hal_pio_setattr(config->port, ctl);
+}
+
+int hal_pio_setattr(int port, void *ctl) {
   pio_attr_t *attr;
   GPIO_InitTypeDef gpio_init;
-  GPIO_TypeDef *regs = m_pio_regs_table[port];
+  GPIO_TypeDef *const regs = m_pio_regs_table[port];
   attr = ctl;
 
   memset(&gpio_init, 0, sizeof(GPIO_InitTypeDef));
@@ -261,34 +265,47 @@ int mcu_pio_setattr(const devfs_handle_t *handle, void *ctl) {
   return 0;
 }
 
-int mcu_pio_setmask(const devfs_handle_t *handle, void *ctl) {
-  int port = handle->port;
+int hal_pio_get(int port, void *ctl) {
+  u32 *value = ctl;
+  if (value) {
+    *value = m_pio_regs_table[port]->IDR;
+    return SYSFS_RETURN_SUCCESS;
+  }
+  return SYSFS_SET_RETURN(EINVAL);
+}
+
+int hal_pio_setmask(int port, void *ctl) {
   GPIO_TypeDef *regs = m_pio_regs_table[port];
   u32 o_pinmask = (u32)ctl;
   HAL_GPIO_WritePin(regs, o_pinmask, GPIO_PIN_SET);
   return 0;
 }
 
-int mcu_pio_clrmask(const devfs_handle_t *handle, void *ctl) {
-  int port = handle->port;
+int hal_pio_clrmask(int port, void *ctl) {
   GPIO_TypeDef *regs = m_pio_regs_table[port];
   u32 o_pinmask = (u32)ctl;
   HAL_GPIO_WritePin(regs, o_pinmask, GPIO_PIN_RESET);
   return 0;
 }
 
+int mcu_pio_setmask(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(pio);
+  return hal_pio_setmask(config->port, ctl);
+}
+
+int mcu_pio_clrmask(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(pio);
+  return hal_pio_clrmask(config->port, ctl);
+}
+
 int mcu_pio_get(const devfs_handle_t *handle, void *ctl) {
-  u32 *value = ctl;
-  if (value) {
-    *value = m_pio_regs_table[handle->port]->IDR;
-    return SYSFS_RETURN_SUCCESS;
-  }
-  return SYSFS_SET_RETURN(EINVAL);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(pio);
+  return hal_pio_get(config->port, ctl);
 }
 
 int mcu_pio_set(const devfs_handle_t *handle, void *ctl) {
-  int port = handle->port;
-  GPIO_TypeDef *regs = m_pio_regs_table[port];
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(pio);
+  GPIO_TypeDef *regs = m_pio_regs_table[config->port];
   regs->ODR = (u32)ctl;
   return 0;
 }

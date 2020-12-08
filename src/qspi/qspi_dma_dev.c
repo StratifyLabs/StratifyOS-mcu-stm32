@@ -17,14 +17,15 @@
  *
  */
 
-#include "cortexm/cortexm.h"
-#include "mcu/core.h"
-#include "sos/debug.h"
-#include "mcu/pio.h"
-#include "mcu/qspi.h"
-#include "stm32_local.h"
+#include <cortexm/cortexm.h>
 #include <fcntl.h>
-#include <sched.h>
+#include <mcu/core.h>
+#include <mcu/dac.h>
+#include <mcu/qspi.h>
+#include <sos/config.h>
+#include <sos/debug.h>
+
+#include "stm32_local.h"
 
 #if MCU_QSPI_PORTS > 0
 
@@ -42,16 +43,16 @@ int mcu_qspi_dma_open(const devfs_handle_t *handle) {
 }
 
 int mcu_qspi_dma_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
 
-  if (local->ref_count == 1) {
+  if (state->ref_count == 1) {
     // disable the DMA
     const stm32_qspi_dma_config_t *config;
 
-    if (local->transfer_handler.read || local->transfer_handler.write) {
-      // HAL_QSPI_DMAStop(&local->hal_handle);
+    if (state->transfer_handler.read || state->transfer_handler.write) {
+      // HAL_QSPI_DMAStop(&state->hal_handle);
       devfs_execute_cancel_handler(
-        &local->transfer_handler,
+        &state->transfer_handler,
         0,
         SYSFS_SET_RETURN(EIO),
         0);
@@ -78,14 +79,13 @@ int mcu_qspi_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_qspi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
-  const stm32_spi_dma_config_t *config;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
 
-  // BSP *MUST* provide DMA configuration information
-  config = handle->config;
-  if (config == 0) {
+  if (handle->config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
+
+  const stm32_spi_dma_config_t *dma_config = handle->config;
 
   // setup the DMA for receiving
 #if MCU_QSPI_API == 1
@@ -114,20 +114,20 @@ int mcu_qspi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
     return SYSFS_SET_RETURN(EIO);
   }
 
-  __HAL_LINKDMA(&local->hal_handle, hmdma, stm32_dma_mdma_handle);
+  __HAL_LINKDMA(&state->hal_handle, hmdma, stm32_dma_mdma_handle);
 #else
-  stm32_dma_channel_t *channel = stm32_dma_setattr(&config->dma_config.rx);
+  stm32_dma_channel_t *channel = stm32_dma_setattr(&dma_config->dma_config.rx);
   if (channel == 0) {
     return SYSFS_SET_RETURN(EIO);
   }
-  __HAL_LINKDMA((&local->hal_handle), hdma, channel->handle);
+  __HAL_LINKDMA((&state->hal_handle), hdma, channel->handle);
 
-  channel = stm32_dma_setattr(&config->dma_config.tx);
+  channel = stm32_dma_setattr(&dma_config->dma_config.tx);
   if (channel == 0) {
     return SYSFS_SET_RETURN(EIO);
   }
 
-  __HAL_LINKDMA((&local->hal_handle), hdma, channel->handle);
+  __HAL_LINKDMA((&state->hal_handle), hdma, channel->handle);
 #endif
 
   return qspi_local_setattr(handle, ctl);
@@ -142,39 +142,39 @@ int mcu_qspi_dma_execcommand(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_qspi_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
 
   // can't read and write at the same time
-  if (local->transfer_handler.write != 0) {
+  if (state->transfer_handler.write != 0) {
     return SYSFS_SET_RETURN(EBUSY);
   }
   // borrow async to qspi->transfer_handler.read
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
-  if (HAL_QSPI_Receive_DMA(&local->hal_handle, async->buf) != HAL_OK) {
-    local->transfer_handler.read = 0;
+  if (HAL_QSPI_Receive_DMA(&state->hal_handle, async->buf) != HAL_OK) {
+    state->transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EIO);
   }
   return 0;
 }
 
 int mcu_qspi_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
 
   // can't read and write at the same time
-  if (local->transfer_handler.read != 0) {
+  if (state->transfer_handler.read != 0) {
     return SYSFS_SET_RETURN(EBUSY);
   }
   // borrow async to qspi->transfer_handler.read
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
 #if defined STM32F7 || defined STM32H7
   // ensure data in cache is written to memory before writing
-  mcu_core_clean_data_cache_block(async->buf, async->nbyte + 31);
+  sos_config.cache.clean_data_block(async->buf, async->nbyte + 31);
 #endif
 
-  if (HAL_QSPI_Transmit_DMA(&local->hal_handle, async->buf) != HAL_OK) {
-    local->transfer_handler.write = 0;
+  if (HAL_QSPI_Transmit_DMA(&state->hal_handle, async->buf) != HAL_OK) {
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EIO);
   }
 

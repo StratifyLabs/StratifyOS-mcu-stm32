@@ -31,7 +31,7 @@
 
 enum { UART_LOCAL_IS_DMA = (1 << 0) };
 
-extern uart_local_t *m_uart_local[MCU_UART_PORTS] MCU_SYS_MEM;
+extern uart_state_t *m_uart_state_list[MCU_UART_PORTS] MCU_SYS_MEM;
 extern USART_TypeDef *const uart_regs_table[MCU_UART_PORTS];
 extern u8 const uart_irqs[MCU_UART_PORTS];
 

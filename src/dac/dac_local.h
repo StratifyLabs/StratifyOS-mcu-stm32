@@ -29,19 +29,10 @@
 
 #define DAC_LOCAL_FLAG_IS_DMA (1<<0)
 
-typedef struct {
-	DAC_HandleTypeDef hal_handle;
-	devfs_transfer_handler_t transfer_handler;
-	int words_written;
-	u32 o_flags;
-	u8 ref_count;
-	stm32_dma_channel_t dma_tx_channel;
-} dac_local_t;
-
 extern DAC_TypeDef * const m_dac_regs_table[MCU_DAC_PORTS];
 extern u8 const m_dac_irqs[MCU_DAC_PORTS];
 extern const u32 m_dac_channels[MCU_DAC_CHANNELS];
-extern dac_local_t m_dac_local[MCU_DAC_PORTS] MCU_SYS_MEM;
+extern dac_state_t *m_dac_state_list[MCU_DAC_PORTS] MCU_SYS_MEM;
 
 int dac_local_open(const devfs_handle_t * handle);
 int dac_local_close(const devfs_handle_t * handle);
@@ -51,7 +42,7 @@ int dac_local_getinfo(const devfs_handle_t * handle, void * ctl);
 int dac_local_set(const devfs_handle_t * handle, void * ctl);
 int dac_local_get(const devfs_handle_t * handle, void * ctl);
 
-u32 dac_local_get_alignment(dac_local_t * dac);
+u32 dac_local_get_alignment(dac_state_t * dac);
 
 
 #endif

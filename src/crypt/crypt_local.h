@@ -26,35 +26,18 @@
 
 #if MCU_CRYPT_PORTS > 0
 
-#define MAX_KEY_SIZE 32
-#define MAX_IV_SIZE 16
-#define MAX_HEADER_SIZE 64
+enum { CRYPT_LOCAL_IS_DMA = (1 << 0) };
 
-typedef struct {
-	CRYP_HandleTypeDef hal_handle;
-	devfs_transfer_handler_t transfer_handler;
-	u32 o_flags;
-	u8 iv[16];
-	u8 header[MAX_HEADER_SIZE];
-	u8 ref_count;
-} crypt_local_t;
-
-enum {
-	CRYPT_LOCAL_IS_DMA = (1<<0)
-};
-
-
-extern crypt_local_t m_crypt_local[MCU_CRYPT_PORTS] MCU_SYS_MEM;
-extern CRYP_TypeDef * const crypt_regs[MCU_CRYPT_PORTS];
+extern crypt_state_t *m_crypt_state_list[MCU_CRYPT_PORTS] MCU_SYS_MEM;
+extern CRYP_TypeDef *const crypt_regs[MCU_CRYPT_PORTS];
 extern u8 const crypt_irqs[MCU_CRYPT_PORTS];
 
-int crypt_local_open(const devfs_handle_t * handle);
-int crypt_local_close(const devfs_handle_t * handle);
-int crypt_local_setattr(const devfs_handle_t * handle, void * ctl);
-int crypt_local_setaction(const devfs_handle_t * handle, void * ctl);
-int crypt_local_getiv(const devfs_handle_t * handle, void * ctl);
+int crypt_local_open(const devfs_handle_t *handle);
+int crypt_local_close(const devfs_handle_t *handle);
+int crypt_local_setattr(const devfs_handle_t *handle, void *ctl);
+int crypt_local_setaction(const devfs_handle_t *handle, void *ctl);
+int crypt_local_getiv(const devfs_handle_t *handle, void *ctl);
 
 #endif
-
 
 #endif /* CRYPT_LOCAL_H_ */

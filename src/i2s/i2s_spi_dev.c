@@ -34,8 +34,8 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
 
 int mcu_i2s_spi_open(const devfs_handle_t *handle) {
   // make sure port supports I2S -- not all ports support I2S
-  spi_local_t *local = m_spi_local + handle->port;
-  local->o_flags = 0;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
+  state->o_flags = 0;
   return i2s_spi_local_open(handle);
 }
 
@@ -67,36 +67,36 @@ int mcu_i2s_spi_setaction(const devfs_handle_t *handle, void *ctl) {
 
 int mcu_i2s_spi_write(const devfs_handle_t *handle, devfs_async_t *async) {
   int ret;
-  spi_local_t *local = m_spi_local + handle->port;
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
-  if (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) {
+  if (state->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) {
 
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
-    if (local->transfer_handler.read->nbyte < async->nbyte) {
+    if (state->transfer_handler.read->nbyte < async->nbyte) {
       return SYSFS_SET_RETURN(EINVAL);
     }
 
     i2s_spi_local_wait_for_errata_level(local);
     ret = HAL_I2SEx_TransmitReceive_IT(
-      &local->i2s_hal_handle,
+      &state->i2s_hal_handle,
       async->buf,
-      local->transfer_handler.read->buf,
-      async->nbyte / local->size_mult);
+      state->transfer_handler.read->buf,
+      async->nbyte / state->size_mult);
 #else
     return SYSFS_SET_RETURN(ENOTSUP);
 #endif
 
   } else {
-    i2s_spi_local_wait_for_errata_level(local);
+    i2s_spi_local_wait_for_errata_level(state);
     ret = HAL_I2S_Transmit_IT(
-      &local->i2s_hal_handle,
+      &state->i2s_hal_handle,
       async->buf,
-      async->nbyte / local->size_mult);
+      async->nbyte / state->size_mult);
   }
 
   if (ret != HAL_OK) {
-    local->transfer_handler.write = 0;
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
   }
 
@@ -105,24 +105,24 @@ int mcu_i2s_spi_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
 int mcu_i2s_spi_read(const devfs_handle_t *handle, devfs_async_t *async) {
   int ret;
-  spi_local_t *local = m_spi_local + handle->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
 
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
-  if (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) {
+  if (state->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) {
     return SYSFS_RETURN_SUCCESS;
   }
 #endif
   // check for overrun
-  i2s_spi_local_wait_for_errata_level(local);
+  i2s_spi_local_wait_for_errata_level(state);
   ret = HAL_I2S_Receive_IT(
-    &local->i2s_hal_handle,
+    &state->i2s_hal_handle,
     async->buf,
-    async->nbyte / local->size_mult);
+    async->nbyte / state->size_mult);
 
   if (ret != HAL_OK) {
-    local->transfer_handler.read = 0;
+    state->transfer_handler.read = 0;
     sos_debug_log_error(SOS_DEBUG_DEVICE, "I2S SPI Read failed");
     return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
   }

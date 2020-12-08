@@ -17,20 +17,22 @@
  *
  */
 
-#include "cortexm/cortexm.h"
-#include "mcu/core.h"
-#include "sos/debug.h"
-#include "mcu/pio.h"
-#include "mcu/qspi.h"
-#include "stm32_local.h"
 #include <fcntl.h>
 #include <sched.h>
+
+#include <cortexm/cortexm.h>
+#include <mcu/pio.h>
+#include <mcu/qspi.h>
+#include <sos/config.h>
+#include <sos/debug.h>
+
+#include "stm32_local.h"
 
 #if MCU_QSPI_PORTS > 0
 
 #include "qspi_local.h"
 
-qspi_local_t m_qspi_local[MCU_QSPI_PORTS] MCU_SYS_MEM;
+qspi_state_t *m_qspi_state_list[MCU_QSPI_PORTS] MCU_SYS_MEM;
 QUADSPI_TypeDef *const qspi_regs_table[MCU_QSPI_PORTS] = MCU_QSPI_REGS;
 u8 const qspi_irqs[MCU_QSPI_PORTS] = MCU_QSPI_IRQS;
 
@@ -43,52 +45,51 @@ static void populate_command(
   int dummy_cycles);
 
 int qspi_local_open(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
 
-  if (local->ref_count == 0) {
-    memset(&local->hal_handle, 0, sizeof(QSPI_HandleTypeDef));
-    local->hal_handle.Instance = qspi_regs_table[port];
+  if (state->ref_count == 0) {
+    DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(qspi);
+    memset(&state->hal_handle, 0, sizeof(QSPI_HandleTypeDef));
+    state->hal_handle.Instance = qspi_regs_table[config->port];
 
-    switch (port) {
+    switch (config->port) {
     case 0:
       __HAL_RCC_QSPI_CLK_ENABLE();
       break;
     }
     // reset HAL UART
-    cortexm_enable_irq(qspi_irqs[port]);
+    cortexm_enable_irq(qspi_irqs[config->port]);
   }
-  local->ref_count++;
+  state->ref_count++;
 
   return 0;
 }
 
 int qspi_local_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
-  if (local->ref_count > 0) {
-    if (local->ref_count == 1) {
-      cortexm_disable_irq(qspi_irqs[port]);
-      switch (port) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
+  if (state->ref_count > 0) {
+    if (state->ref_count == 1) {
+      cortexm_disable_irq(qspi_irqs[config->port]);
+      switch (config->port) {
       case 0:
         __HAL_RCC_QSPI_CLK_DISABLE();
         break;
       }
-      local->hal_handle.Instance = 0;
+      state->hal_handle.Instance = 0;
     }
-    local->ref_count--;
+    state->ref_count--;
   }
   return 0;
 }
 
 int qspi_local_setattr(const devfs_handle_t *handle, void *ctl) {
-  u32 o_flags;
-  qspi_attr_t *attr;
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
-  attr = (qspi_attr_t *)mcu_select_attr(handle, ctl);
-  if (attr == 0) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
+  const qspi_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(qspi, ctl);
+  if (attr == NULL) {
     return SYSFS_SET_RETURN(EINVAL);
   }
-  o_flags = attr->o_flags;
-  local->state = o_flags;
+  const u32 o_flags = attr->o_flags;
+  state->state = o_flags;
   if (o_flags & QSPI_FLAG_SET_MASTER) {
     // uint32_t flash_size = 24;
     __HAL_RCC_QSPI_FORCE_RESET();
@@ -100,7 +101,7 @@ int qspi_local_setattr(const devfs_handle_t *handle, void *ctl) {
         MCU_CONFIG_PIN_ASSIGNMENT(qspi_config_t, handle),
         MCU_PIN_ASSIGNMENT_COUNT(qspi_pin_assignment_t),
         CORE_PERIPH_QSPI,
-        port,
+        config->port,
         0,
         0,
         0)
@@ -119,26 +120,26 @@ int qspi_local_setattr(const devfs_handle_t *handle, void *ctl) {
       prescalar = 0;
     }
 
-    local->hal_handle.Init.ClockPrescaler = prescalar; // need to calculate
-    local->hal_handle.Init.FifoThreshold
+    state->hal_handle.Init.ClockPrescaler = prescalar; // need to calculate
+    state->hal_handle.Init.FifoThreshold
       = 1; // interrupt fires when FIFO is half full
-    local->hal_handle.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_HALFCYCLE;
-    local->hal_handle.Init.FlashSize = 31; /*attribute size 2^size-1*/
-    local->hal_handle.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_2_CYCLE;
-    local->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_0;
+    state->hal_handle.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_HALFCYCLE;
+    state->hal_handle.Init.FlashSize = 31; /*attribute size 2^size-1*/
+    state->hal_handle.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_2_CYCLE;
+    state->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_0;
     if (o_flags & QSPI_FLAG_IS_CLOCK_MODE_3) {
-      local->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_3;
+      state->hal_handle.Init.ClockMode = QSPI_CLOCK_MODE_3;
     }
     // Clock mode QSPI_CLOCK_MODE_3 is double data rate
     if (o_flags & QSPI_FLAG_IS_FLASH_ID_2) {
-      local->hal_handle.Init.FlashID = QSPI_FLASH_ID_2;
-      local->hal_handle.Init.DualFlash = QSPI_DUALFLASH_ENABLE;
+      state->hal_handle.Init.FlashID = QSPI_FLASH_ID_2;
+      state->hal_handle.Init.DualFlash = QSPI_DUALFLASH_ENABLE;
     } else {
       /*by default*/
-      local->hal_handle.Init.FlashID = QSPI_FLASH_ID_1;
-      local->hal_handle.Init.DualFlash = QSPI_DUALFLASH_DISABLE;
+      state->hal_handle.Init.FlashID = QSPI_FLASH_ID_1;
+      state->hal_handle.Init.DualFlash = QSPI_DUALFLASH_DISABLE;
     }
-    if (HAL_QSPI_Init(&local->hal_handle) != HAL_OK) {
+    if (HAL_QSPI_Init(&state->hal_handle) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
 
@@ -159,7 +160,7 @@ int qspi_local_setattr(const devfs_handle_t *handle, void *ctl) {
       s_mem_mapped_cfg.TimeOutPeriod = 0;
 
       if (
-        HAL_QSPI_MemoryMapped(&local->hal_handle, &s_command, &s_mem_mapped_cfg)
+        HAL_QSPI_MemoryMapped(&state->hal_handle, &s_command, &s_mem_mapped_cfg)
         != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
       }
@@ -170,12 +171,15 @@ int qspi_local_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int qspi_local_setaction(const devfs_handle_t *handle, void *ctl) {
-  int port = handle->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
   mcu_action_t *action = ctl;
   if (action->handler.callback != 0) {
     return SYSFS_SET_RETURN(ENOTSUP);
   }
-  cortexm_set_irq_priority(qspi_irqs[port], action->prio, action->o_events);
+  cortexm_set_irq_priority(
+    qspi_irqs[config->port],
+    action->prio,
+    action->o_events);
   return 0;
 }
 
@@ -247,7 +251,7 @@ void populate_command(
 }
 
 int qspi_local_execcommand(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
 
   qspi_command_t *qspi_command = ctl;
   u32 o_flags = qspi_command->o_flags;
@@ -326,11 +330,11 @@ int qspi_local_execcommand(const devfs_handle_t *handle, void *ctl) {
   int result;
   if (
     (result = HAL_QSPI_Command(
-       &local->hal_handle,
+       &state->hal_handle,
        &command,
        HAL_QPSI_TIMEOUT_DEFAULT_VALUE))
     != HAL_OK) {
-    local->transfer_handler.write = 0;
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EIO);
   }
 
@@ -338,17 +342,17 @@ int qspi_local_execcommand(const devfs_handle_t *handle, void *ctl) {
     if (o_flags & QSPI_FLAG_IS_DATA_READ) {
       if (
         HAL_QSPI_Receive(
-          &local->hal_handle,
+          &state->hal_handle,
           qspi_command->data,
           HAL_QPSI_TIMEOUT_DEFAULT_VALUE)
         != HAL_OK) {
-        local->transfer_handler.read = 0;
+        state->transfer_handler.read = 0;
         return SYSFS_SET_RETURN(EIO);
       }
     } else if (o_flags & QSPI_FLAG_IS_DATA_WRITE) {
       if (
         HAL_QSPI_Transmit(
-          &local->hal_handle,
+          &state->hal_handle,
           qspi_command->data,
           HAL_QPSI_TIMEOUT_DEFAULT_VALUE)
         != HAL_OK) {
@@ -362,9 +366,9 @@ int qspi_local_execcommand(const devfs_handle_t *handle, void *ctl) {
 
 void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi) {
   sos_debug_printf("error 0x%X\n", hqspi->ErrorCode);
-  qspi_local_t *local = (qspi_local_t *)hqspi;
+  qspi_state_t *state = (qspi_state_t *)hqspi;
   devfs_execute_cancel_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     SYSFS_SET_RETURN(EIO),
     MCU_EVENT_FLAG_ERROR);
@@ -372,9 +376,9 @@ void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi) {
 
 void HAL_QSPI_AbortCpltCallback(QSPI_HandleTypeDef *hqspi) {
   sos_debug_printf("abort\n");
-  qspi_local_t *local = (qspi_local_t *)hqspi;
+  qspi_state_t *state = (qspi_state_t *)hqspi;
   devfs_execute_cancel_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     SYSFS_SET_RETURN(ECANCELED),
     MCU_EVENT_FLAG_CANCELED);
@@ -384,12 +388,12 @@ void HAL_QSPI_FifoThresholdCallback(QSPI_HandleTypeDef *hqspi) {}
 
 void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi) {
   int ret;
-  qspi_local_t *local = (qspi_local_t *)hqspi;
-  if (local->transfer_handler.read) {
+  qspi_state_t *state = (qspi_state_t *)hqspi;
+  if (state->transfer_handler.read) {
     // command is the start of a read operation -- complete the read
-    // ret = HAL_QSPI_Receive_IT(hqspi, local->transfer_handler.read->buf);
-  } else if (local->transfer_handler.write) {
-    // ret = HAL_QSPI_Transmit_IT(hqspi, local->transfer_handler.write->buf);
+    // ret = HAL_QSPI_Receive_IT(hqspi, state->transfer_handler.read->buf);
+  } else if (state->transfer_handler.write) {
+    // ret = HAL_QSPI_Transmit_IT(hqspi, state->transfer_handler.write->buf);
   }
 
   if (ret != HAL_OK) {
@@ -398,35 +402,35 @@ void HAL_QSPI_CmdCpltCallback(QSPI_HandleTypeDef *hqspi) {
 }
 
 void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi) {
-  qspi_local_t *local = (qspi_local_t *)hqspi;
+  qspi_state_t *state = (qspi_state_t *)hqspi;
   if (
 #if MCU_QSPI_API == 1
-    local->hal_handle.hmdma != 0 &&
+    state->hal_handle.hmdma != 0 &&
 #else
-    local->hal_handle.hdma != 0 &&
+    state->hal_handle.hdma != 0 &&
 #endif
-    local->transfer_handler.read) {
+    state->transfer_handler.read) {
     // pull in values from memory to cache if using DMA
 
     /*
      * reads must be aligned to cache lines
      *
      */
-    mcu_core_invalidate_data_cache_block(
-      local->transfer_handler.read->buf,
-      local->transfer_handler.read->nbyte + 31);
+    sos_config.cache.invalidate_data_block(
+      state->transfer_handler.read->buf,
+      state->transfer_handler.read->nbyte + 31);
   }
   devfs_execute_read_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     hqspi->RxXferCount,
     MCU_EVENT_FLAG_DATA_READY);
 }
 
 void HAL_QSPI_TxCpltCallback(QSPI_HandleTypeDef *hqspi) {
-  qspi_local_t *local = (qspi_local_t *)hqspi;
+  qspi_state_t *state = (qspi_state_t *)hqspi;
   devfs_execute_write_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     hqspi->TxXferCount,
     MCU_EVENT_FLAG_WRITE_COMPLETE);
@@ -441,7 +445,7 @@ void HAL_QSPI_TxHalfCpltCallback(QSPI_HandleTypeDef *hqspi) {
 }
 
 void mcu_core_quadspi_isr() {
-  HAL_QSPI_IRQHandler(&m_qspi_local[0].hal_handle);
+  HAL_QSPI_IRQHandler(&m_qspi_state_list[0]->hal_handle);
 }
 
 #endif

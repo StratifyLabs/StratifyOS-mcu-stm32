@@ -1,4 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert;
+/* Copyright 2011-2021 Tyler Gilbert;
  * This file is part of Stratify OS.
  *
  * Stratify OS is free software: you can redistribute it and/or modify
@@ -17,9 +17,11 @@
  *
  */
 
+#include <mcu/spi.h>
+#include <sos/config.h>
+
 #include "spi_local.h"
 #include "stm32_dma.h"
-#include <mcu/spi.h>
 
 #if MCU_SPI_PORTS > 0
 
@@ -33,35 +35,35 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_spi_dma_swap)
 
 int mcu_spi_dma_open(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
-  local->o_flags = SPI_LOCAL_IS_DMA;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
+  state->o_flags = SPI_LOCAL_IS_DMA;
   return spi_local_open(handle);
 }
 
 int mcu_spi_dma_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
 
-  if (local->ref_count == 1) {
+  if (state->ref_count == 1) {
     // disable the DMA
-    const stm32_spi_dma_config_t *config;
+    const stm32_spi_dma_config_t *dma_config;
 
-    if (local->transfer_handler.read || local->transfer_handler.write) {
-      HAL_SPI_DMAStop(&local->hal_handle);
+    if (state->transfer_handler.read || state->transfer_handler.write) {
+      HAL_SPI_DMAStop(&state->hal_handle);
       devfs_execute_cancel_handler(
-        &local->transfer_handler,
+        &state->transfer_handler,
         0,
         SYSFS_SET_RETURN(EIO),
         0);
     }
 
-    config = handle->config;
+    dma_config = handle->config;
     if (config) {
       stm32_dma_clear_handle(
-        config->dma_config.rx.dma_number,
-        config->dma_config.rx.stream_number);
+        dma_config->dma_config.rx.dma_number,
+        dma_config->dma_config.rx.stream_number);
       stm32_dma_clear_handle(
-        config->dma_config.tx.dma_number,
-        config->dma_config.tx.stream_number);
+        dma_config->dma_config.tx.dma_number,
+        dma_config->dma_config.tx.stream_number);
     }
   }
 
@@ -84,35 +86,36 @@ int mcu_spi_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_spi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
-  const stm32_spi_dma_config_t *config;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
+  const stm32_spi_dma_config_t *dma_config;
 
   // BSP *MUST* provide DMA configuration information
-  config = handle->config;
-  if (config == 0) {
+  dma_config = handle->config;
+  if (dma_config == NULL) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
-  const spi_attr_t *attr = mcu_select_attr(handle, ctl);
-  if (attr == 0) {
+  const spi_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(spi, ctl);
+  if (attr == NULL) {
     return SYSFS_SET_RETURN(EINVAL);
   }
 
   if (attr->o_flags & (SPI_FLAG_SET_MASTER | SPI_FLAG_SET_SLAVE)) {
     // setup the DMA for receiving
-    stm32_dma_channel_t *channel = stm32_dma_setattr(&config->dma_config.rx);
+    stm32_dma_channel_t *channel
+      = stm32_dma_setattr(&dma_config->dma_config.rx);
     if (channel == 0) {
       return SYSFS_SET_RETURN(EIO);
     }
 
-    __HAL_LINKDMA((&local->hal_handle), hdmarx, channel->handle);
+    __HAL_LINKDMA((&state->hal_handle), hdmarx, channel->handle);
 
-    channel = stm32_dma_setattr(&config->dma_config.tx);
+    channel = stm32_dma_setattr(&dma_config->dma_config.tx);
     if (channel == 0) {
       return SYSFS_SET_RETURN(EIO);
     }
 
-    __HAL_LINKDMA((&local->hal_handle), hdmatx, channel->handle);
+    __HAL_LINKDMA((&state->hal_handle), hdmatx, channel->handle);
   }
 
   return spi_local_setattr(handle, ctl);
@@ -136,34 +139,33 @@ int mcu_spi_dma_setaction(const devfs_handle_t *handle, void *ctl) {
 
 int mcu_spi_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
   int ret;
-  DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
-
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
 #if defined STM32F7 || defined STM32H7
-  mcu_core_clean_data_cache_block(async->buf, async->nbyte);
+  sos_config.cache.clean_data_block(async->buf, async->nbyte);
 #endif
 
   if (
-    (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX)
-    && local->transfer_handler.read) {
+    (state->o_flags & SPI_LOCAL_IS_FULL_DUPLEX)
+    && state->transfer_handler.read) {
 
-    if (local->transfer_handler.read->nbyte < async->nbyte) {
+    if (state->transfer_handler.read->nbyte < async->nbyte) {
       return SYSFS_SET_RETURN(EINVAL);
     }
 
     ret = HAL_SPI_TransmitReceive_DMA(
-      &local->hal_handle,
+      &state->hal_handle,
       async->buf,
-      local->transfer_handler.read->buf,
+      state->transfer_handler.read->buf,
       async->nbyte);
 
   } else {
-    ret = HAL_SPI_Transmit_DMA(&local->hal_handle, async->buf, async->nbyte);
+    ret = HAL_SPI_Transmit_DMA(&state->hal_handle, async->buf, async->nbyte);
   }
 
   if (ret != HAL_OK) {
-    local->transfer_handler.write = 0;
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
   }
 
@@ -172,19 +174,18 @@ int mcu_spi_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
 int mcu_spi_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
   int ret;
-  DEVFS_DRIVER_DECLARE_LOCAL(spi, MCU_SPI_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
-
-  if (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) {
+  if (state->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) {
     // just set up the buffer
     ret = HAL_OK;
   } else {
-    ret = HAL_SPI_Receive_DMA(&local->hal_handle, async->buf, async->nbyte);
+    ret = HAL_SPI_Receive_DMA(&state->hal_handle, async->buf, async->nbyte);
   }
 
   if (ret != HAL_OK) {
-    local->transfer_handler.read = 0;
+    state->transfer_handler.read = 0;
     return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
   }
 

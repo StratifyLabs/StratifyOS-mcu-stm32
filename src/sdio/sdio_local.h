@@ -28,28 +28,18 @@
 
 #if MCU_SDIO_PORTS > 0
 
-typedef struct {
-	SD_HandleTypeDef hal_handle; //must be the first member of the struct
-	devfs_transfer_handler_t transfer_handler;
-	//stm32_dma_channel_t dma_rx_channel;
-	//stm32_dma_channel_t dma_tx_channel;
-	u32 o_flags;
-	u8 ref_count;
-} sdio_local_t;
-
-extern SDIO_TypeDef * const sdio_regs[MCU_SDIO_PORTS];
+extern SDIO_TypeDef *const sdio_regs[MCU_SDIO_PORTS];
 extern const int sdio_irqs[MCU_SDIO_PORTS];
-extern sdio_local_t m_sdio_local[MCU_SDIO_PORTS] MCU_SYS_MEM;
+extern sdio_state_t *m_sdio_state_list[MCU_SDIO_PORTS] MCU_SYS_MEM;
 
-int sdio_local_open(const devfs_handle_t * handle);
-int sdio_local_close(const devfs_handle_t * handle);
-int sdio_local_setattr(const devfs_handle_t * handle, void * ctl);
-int sdio_local_getinfo(const devfs_handle_t * handle, void * ctl);
-int sdio_local_getcid(const devfs_handle_t * handle, void * ctl);
-int sdio_local_getcsd(const devfs_handle_t * handle, void * ctl);
-int sdio_local_getstatus(const devfs_handle_t * handle, void * ctl);
+int sdio_local_open(const devfs_handle_t *handle);
+int sdio_local_close(const devfs_handle_t *handle);
+int sdio_local_setattr(const devfs_handle_t *handle, void *ctl);
+int sdio_local_getinfo(const devfs_handle_t *handle, void *ctl);
+int sdio_local_getcid(const devfs_handle_t *handle, void *ctl);
+int sdio_local_getcsd(const devfs_handle_t *handle, void *ctl);
+int sdio_local_getstatus(const devfs_handle_t *handle, void *ctl);
 
 #endif
-
 
 #endif /* SDIO_LOCAL_H_ */

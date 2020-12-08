@@ -28,19 +28,19 @@
 
 #include "uart_local.h"
 
-uart_local_t *m_uart_local[MCU_UART_PORTS] MCU_SYS_MEM;
+uart_state_t *m_uart_state_list[MCU_UART_PORTS] MCU_SYS_MEM;
 
 USART_TypeDef *const uart_regs_table[MCU_UART_PORTS] = MCU_UART_REGS;
 u8 const uart_irqs[MCU_UART_PORTS] = MCU_UART_IRQS;
 
-static void handle_bytes_received(uart_local_t *local, u16 bytes_received);
+static void handle_bytes_received(uart_state_t *state, u16 bytes_received);
 
 int uart_local_open(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
-  if (local->ref_count == 0) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  if (state->ref_count == 0) {
     DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(uart);
 
-    local->hal_handle.Instance = uart_regs_table[config->port];
+    state->hal_handle.Instance = uart_regs_table[config->port];
 
     switch (config->port) {
     case 0:
@@ -95,22 +95,22 @@ int uart_local_open(const devfs_handle_t *handle) {
     // reset HAL UART
     cortexm_enable_irq(uart_irqs[config->port]);
   }
-  local->ref_count++;
+  state->ref_count++;
 
   return 0;
 }
 
 int uart_local_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
 
   // FIFO won't exist on write only devices
-  if (local->fifo_config != 0) {
+  if (state->fifo_config != 0) {
     // unblock the read FIFO
-    fifo_cancel_async_read(&local->fifo_state);
+    fifo_cancel_async_read(&state->fifo_state);
   }
 
-  if (local->ref_count > 0) {
-    if (local->ref_count == 1) {
+  if (state->ref_count > 0) {
+    if (state->ref_count == 1) {
       cortexm_disable_irq(uart_irqs[config->port]);
       switch (config->port) {
       case 0:
@@ -162,16 +162,16 @@ int uart_local_close(const devfs_handle_t *handle) {
         break;
 #endif
       }
-      local->hal_handle.Instance = 0;
+      state->hal_handle.Instance = 0;
       DEVFS_DRIVER_CLOSE_STATE_LOCAL_V4(uart);
     }
-    local->ref_count--;
+    state->ref_count--;
   }
   return 0;
 }
 
 int uart_local_getinfo(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
 
   uart_info_t *info = ctl;
 
@@ -179,10 +179,10 @@ int uart_local_getinfo(const devfs_handle_t *handle, void *ctl) {
                   | UART_FLAG_IS_PARITY_EVEN | UART_FLAG_IS_STOP1
                   | UART_FLAG_IS_STOP2 | UART_FLAG_IS_RX_FIFO;
 
-  if (local->fifo_config) {
+  if (state->fifo_config) {
     fifo_info_t fifo_info;
     info->o_flags |= UART_FLAG_IS_RX_FIFO;
-    fifo_getinfo(&fifo_info, local->fifo_config, &local->fifo_state);
+    fifo_getinfo(&fifo_info, state->fifo_config, &state->fifo_state);
     info->size_ready = fifo_info.size_ready;
     info->size = fifo_info.size;
   } else {
@@ -194,20 +194,20 @@ int uart_local_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
   u32 o_flags;
   u32 freq;
 
-  const uart_attr_t *attr = mcu_select_attr(handle, ctl);
-  if (attr == 0) {
+  const uart_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(uart, ctl);
+  if (attr == NULL) {
     return SYSFS_SET_RETURN(EINVAL);
   }
 
   const uart_config_t *uart_config = handle->config;
   if (uart_config) {
-    local->fifo_config = uart_config->fifo_config;
+    state->fifo_config = uart_config->fifo_config;
   } else {
-    local->fifo_config = 0;
+    state->fifo_config = 0;
   }
 
   o_flags = attr->o_flags;
@@ -218,23 +218,23 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
       freq = 115200;
     }
 
-    local->hal_handle.Init.BaudRate = freq;
+    state->hal_handle.Init.BaudRate = freq;
 
-    local->hal_handle.Init.WordLength = UART_WORDLENGTH_8B;
+    state->hal_handle.Init.WordLength = UART_WORDLENGTH_8B;
     if (attr->width == 9) {
-      local->hal_handle.Init.WordLength = UART_WORDLENGTH_9B;
+      state->hal_handle.Init.WordLength = UART_WORDLENGTH_9B;
     }
 
-    local->hal_handle.Init.StopBits = UART_STOPBITS_1;
+    state->hal_handle.Init.StopBits = UART_STOPBITS_1;
     if (o_flags & UART_FLAG_IS_STOP2) {
-      local->hal_handle.Init.StopBits = UART_STOPBITS_2;
+      state->hal_handle.Init.StopBits = UART_STOPBITS_2;
     }
 
-    local->hal_handle.Init.Parity = UART_PARITY_NONE;
+    state->hal_handle.Init.Parity = UART_PARITY_NONE;
     if (o_flags & UART_FLAG_IS_PARITY_EVEN) {
-      local->hal_handle.Init.Parity = UART_PARITY_EVEN;
+      state->hal_handle.Init.Parity = UART_PARITY_EVEN;
     } else if (o_flags & UART_FLAG_IS_PARITY_ODD) {
-      local->hal_handle.Init.Parity = UART_PARITY_ODD;
+      state->hal_handle.Init.Parity = UART_PARITY_ODD;
     }
 
     const uart_pin_assignment_t *pin_assignment = mcu_select_pin_assignment(
@@ -242,16 +242,16 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
       MCU_CONFIG_PIN_ASSIGNMENT(uart_config_t, handle),
       MCU_PIN_ASSIGNMENT_COUNT(uart_pin_assignment_t));
 
-    local->hal_handle.Init.Mode = UART_MODE_TX_RX;
+    state->hal_handle.Init.Mode = UART_MODE_TX_RX;
     if (pin_assignment) {
       if (pin_assignment->tx.port == 0xff) {
-        local->hal_handle.Init.Mode = UART_MODE_RX;
+        state->hal_handle.Init.Mode = UART_MODE_RX;
       } else if (pin_assignment->rx.port == 0xff) {
-        local->hal_handle.Init.Mode = UART_MODE_TX;
+        state->hal_handle.Init.Mode = UART_MODE_TX;
       }
     }
-    local->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    local->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
+    state->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    state->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
 
     // pin assignments
     if (
@@ -268,15 +268,15 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
       return SYSFS_SET_RETURN(EINVAL);
     }
 
-    if (HAL_UART_Init(&local->hal_handle) != HAL_OK) {
+    if (HAL_UART_Init(&state->hal_handle) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
 
     // enable the idle interrupt and initialize the fifo
-    if (local->fifo_config) {
-      fifo_ioctl_local(local->fifo_config, &local->fifo_state, I_FIFO_INIT, 0);
+    if (state->fifo_config) {
+      fifo_ioctl_local(state->fifo_config, &state->fifo_state, I_FIFO_INIT, 0);
       // enables idle interrupt
-      SET_BIT(local->hal_handle.Instance->CR1, USART_CR1_IDLEIE);
+      SET_BIT(state->hal_handle.Instance->CR1, USART_CR1_IDLEIE);
     }
   }
 
@@ -284,29 +284,29 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_setaction(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
   mcu_action_t *action = (mcu_action_t *)ctl;
 
   if (action->handler.callback == 0) {
     // if there is an ongoing operation -- cancel it
     if (action->o_events & MCU_EVENT_FLAG_DATA_READY) {
       // execute the read callback if not null
-      if (local->fifo_config != 0) {
-        fifo_cancel_async_read(&local->fifo_state);
+      if (state->fifo_config != 0) {
+        fifo_cancel_async_read(&state->fifo_state);
       }
     }
 
     if (action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE) {
 #if defined STM32F4
-      if (local->o_flags & UART_LOCAL_IS_DMA) {
+      if (state->o_flags & UART_LOCAL_IS_DMA) {
         // stop the DMA write but not the DMA read -- there isn't a simple call
         // to do this
       } else {
-        HAL_UART_AbortTransmit_IT(&local->hal_handle);
+        HAL_UART_AbortTransmit_IT(&state->hal_handle);
       }
 #endif
       devfs_execute_write_handler(
-        &local->transfer_handler,
+        &state->transfer_handler,
         0,
         SYSFS_SET_RETURN(EIO),
         MCU_EVENT_FLAG_CANCELED);
@@ -321,10 +321,10 @@ int uart_local_setaction(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_put(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
   u8 c = (u32)ctl;
 
-  if (HAL_UART_Transmit(&local->hal_handle, &c, 1, HAL_MAX_DELAY) != HAL_OK) {
+  if (HAL_UART_Transmit(&state->hal_handle, &c, 1, HAL_MAX_DELAY) != HAL_OK) {
     return SYSFS_SET_RETURN(EIO);
   }
 
@@ -332,7 +332,7 @@ int uart_local_put(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_flush(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
 
   /*
    * The interrupt and DMA reads rely on the head staying
@@ -341,23 +341,23 @@ int uart_local_flush(const devfs_handle_t *handle, void *ctl) {
    * the head when the fifo is flushed.
    *
    */
-  u16 head = local->fifo_state.atomic_position.access.head;
-  fifo_flush(&local->fifo_state);
-  local->fifo_state.atomic_position.access.head = head;
-  local->fifo_state.atomic_position.access.tail = head;
+  u16 head = state->fifo_state.atomic_position.access.head;
+  fifo_flush(&state->fifo_state);
+  state->fifo_state.atomic_position.access.head = head;
+  state->fifo_state.atomic_position.access.tail = head;
 
   return SYSFS_RETURN_SUCCESS;
 }
 
 int uart_local_get(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
 
-  if (local->fifo_config == 0) {
+  if (state->fifo_config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
   // is there a byte on the FIFO to read?
-  int result = fifo_read_buffer(local->fifo_config, &local->fifo_state, ctl, 1);
+  int result = fifo_read_buffer(state->fifo_config, &state->fifo_state, ctl, 1);
   if (result == 1) {
     return SYSFS_RETURN_SUCCESS;
   }
@@ -366,42 +366,42 @@ int uart_local_get(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_STATE_LOCAL_V4(uart);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
 
-  if (local->fifo_config == 0) {
+  if (state->fifo_config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
   // read the fifo, block if no bytes are available
   int result
-    = fifo_read_local(local->fifo_config, &local->fifo_state, async, 0);
+    = fifo_read_local(state->fifo_config, &state->fifo_state, async, 0);
 
   return result;
 }
 
-void handle_bytes_received(uart_local_t *local, u16 bytes_received) {
+void handle_bytes_received(uart_state_t *state, u16 bytes_received) {
 
   // increment the head by the number of bytes received
   for (u16 i = 0; i < bytes_received; i++) {
-    fifo_inc_head(&local->fifo_state, local->fifo_config->size);
+    fifo_inc_head(&state->fifo_state, state->fifo_config->size);
   }
 
   // now tell the fifo the head has been updated so it can return data to the
   // user asynchronously
-  fifo_data_received(local->fifo_config, &local->fifo_state);
+  fifo_data_received(state->fifo_config, &state->fifo_state);
 }
 
 void HAL_UART_RxIdleCallback(UART_HandleTypeDef *huart) {
-  uart_local_t *local = (uart_local_t *)huart;
+  uart_state_t *state = (uart_state_t *)huart;
   u16 bytes_received;
-  u16 head = local->fifo_state.atomic_position.access.head;
+  u16 head = state->fifo_state.atomic_position.access.head;
   if (huart->hdmarx) {
     bytes_received
-      = local->fifo_config->size - __HAL_DMA_GET_COUNTER(huart->hdmarx) - head;
+      = state->fifo_config->size - __HAL_DMA_GET_COUNTER(huart->hdmarx) - head;
   } else {
     bytes_received = (huart->RxXferSize - huart->RxXferCount) - head;
   }
-  handle_bytes_received(local, bytes_received);
+  handle_bytes_received(state, bytes_received);
 }
 
 void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart) {
@@ -409,52 +409,52 @@ void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart) {
   // idle will handle partial reception until complete is called
 
   // allow the caller to get the bytes that have arrived so far
-  uart_local_t *local = (uart_local_t *)huart;
+  uart_state_t *state = (uart_state_t *)huart;
   u16 bytes_received;
-  bytes_received = local->fifo_config->size / 2
-                   - local->fifo_state.atomic_position.access.head;
-  handle_bytes_received(local, bytes_received);
+  bytes_received = state->fifo_config->size / 2
+                   - state->fifo_state.atomic_position.access.head;
+  handle_bytes_received(state, bytes_received);
 }
 
 // called when RX IT is complete or when DMA does full transfer
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-  uart_local_t *local = (uart_local_t *)huart;
+  uart_state_t *state = (uart_state_t *)huart;
   u16 bytes_received;
   bytes_received
-    = local->fifo_config->size - local->fifo_state.atomic_position.access.head;
-  handle_bytes_received(local, bytes_received);
+    = state->fifo_config->size - state->fifo_state.atomic_position.access.head;
+  handle_bytes_received(state, bytes_received);
 
-  if (local->hal_handle.hdmarx == 0) {
+  if (state->hal_handle.hdmarx == 0) {
     // if not in circular DMA mode -- start the next interrupt based read
     HAL_UART_Receive_IT(
-      &local->hal_handle,
-      (u8 *)local->fifo_config->buffer,
-      local->fifo_config->size);
+      &state->hal_handle,
+      (u8 *)state->fifo_config->buffer,
+      state->fifo_config->size);
   }
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-  uart_local_t *local = (uart_local_t *)huart;
+  uart_state_t *state = (uart_state_t *)huart;
   devfs_execute_read_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     SYSFS_SET_RETURN(EIO),
     MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_CANCELED);
   // reset the head
-  fifo_flush(&local->fifo_state);
+  fifo_flush(&state->fifo_state);
   HAL_UART_AbortReceive_IT(huart);
-  if (local->hal_handle.hdmarx == 0) {
+  if (state->hal_handle.hdmarx == 0) {
     // if not in circular DMA mode -- start the next interrupt based read
     HAL_UART_Receive_IT(
-      &local->hal_handle,
-      (u8 *)local->fifo_config->buffer,
-      local->fifo_config->size);
+      &state->hal_handle,
+      (u8 *)state->fifo_config->buffer,
+      state->fifo_config->size);
   } else {
     // if not in circular DMA mode -- start the next interrupt based read
     HAL_UART_Receive_DMA(
-      &local->hal_handle,
-      (u8 *)local->fifo_config->buffer,
-      local->fifo_config->size);
+      &state->hal_handle,
+      (u8 *)state->fifo_config->buffer,
+      state->fifo_config->size);
   }
 }
 
@@ -471,25 +471,25 @@ void HAL_UART_AbortReceiveCpltCallback(UART_HandleTypeDef *huart) {
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-  uart_local_t *local = (uart_local_t *)huart;
+  uart_state_t *state = (uart_state_t *)huart;
   int nbyte = 0;
   // when transfer is complete, count is 0 and size is the original async->nbyte
   // value
   nbyte = huart->TxXferSize - huart->TxXferCount;
   devfs_execute_write_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     nbyte,
     MCU_EVENT_FLAG_DATA_READY);
 }
 
 void mcu_uart_isr(int port) {
-  uart_local_t *local = m_uart_local[port];
-  HAL_UART_IRQHandler(&local->hal_handle);
+  uart_state_t *state = m_uart_state_list[port];
+  HAL_UART_IRQHandler(&state->hal_handle);
 
-  if (__HAL_UART_GET_FLAG(&local->hal_handle, UART_FLAG_IDLE)) {
-    __HAL_UART_CLEAR_IDLEFLAG(&local->hal_handle);
-    HAL_UART_RxIdleCallback((UART_HandleTypeDef *)local);
+  if (__HAL_UART_GET_FLAG(&state->hal_handle, UART_FLAG_IDLE)) {
+    __HAL_UART_CLEAR_IDLEFLAG(&state->hal_handle);
+    HAL_UART_RxIdleCallback(&state->hal_handle);
     return;
   }
 }

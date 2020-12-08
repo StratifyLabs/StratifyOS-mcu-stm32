@@ -10,6 +10,8 @@
 #include "tmr/tmr_local.h"
 #include "uart/uart_local.h"
 
+const stm32_git_hash stm32_config_git_hash = {.git_hash = SOS_GIT_HASH};
+
 extern u32 _unique_id;
 void stm32_get_serial_number(mcu_sn_t *serial_number) {
   const u32 *serial_addr = &_unique_id;
@@ -19,7 +21,7 @@ void stm32_get_serial_number(mcu_sn_t *serial_number) {
   serial_number->sn[3] = 0;
 }
 
-static tmr_local_t m_clock_tmr_state;
+static tmr_state_t m_clock_tmr_state;
 const tmr_config_t m_clock_tmr_config = {
   .port = 1,
   .attr = {
@@ -106,7 +108,7 @@ u32 stm32_clock_microseconds() {
 
 u32 stm32_clock_nanoseconds() { return 0; }
 
-static uart_local_t m_debug_uart_state;
+static uart_state_t m_debug_uart_state;
 
 static const devfs_handle_t m_debug_uart_handle
   = {.state = &m_debug_uart_state, .config = &stm32_config.debug_uart_config};

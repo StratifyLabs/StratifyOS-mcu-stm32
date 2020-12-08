@@ -48,30 +48,33 @@ int mcu_mmc_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_mmc_setaction(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(mmc);
   mcu_action_t *action = ctl;
-  DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 
   if (action->handler.callback == 0) {
     if (action->o_events & MCU_EVENT_FLAG_DATA_READY) {
-      HAL_MMC_Abort_IT(&local->hal_handle);
+      HAL_MMC_Abort_IT(&state->hal_handle);
       devfs_execute_read_handler(
-        &local->transfer_handler,
+        &state->transfer_handler,
         0,
         SYSFS_SET_RETURN(EIO),
         MCU_EVENT_FLAG_CANCELED);
     }
 
     if (action->o_events & MCU_EVENT_FLAG_WRITE_COMPLETE) {
-      HAL_MMC_Abort_IT(&local->hal_handle);
+      HAL_MMC_Abort_IT(&state->hal_handle);
       devfs_execute_write_handler(
-        &local->transfer_handler,
+        &state->transfer_handler,
         0,
         SYSFS_SET_RETURN(EIO),
         MCU_EVENT_FLAG_CANCELED);
     }
   }
 
-  cortexm_set_irq_priority(mmc_irqs[port], action->prio, action->o_events);
+  cortexm_set_irq_priority(
+    mmc_irqs[config->port],
+    action->prio,
+    action->o_events);
   return 0;
 }
 
@@ -88,18 +91,18 @@ int mcu_mmc_getstatus(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_mmc_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(mmc);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
   int loc;
-  if (local->o_flags & MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING) {
+  if (state->o_flags & MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING) {
     loc = async->loc * 512;
   } else {
     loc = async->loc;
   }
   if (
     (HAL_MMC_WriteBlocks_IT(
-      &local->hal_handle,
+      &state->hal_handle,
       async->buf,
       loc,
       async->nbyte / BLOCKSIZE))
@@ -107,24 +110,24 @@ int mcu_mmc_write(const devfs_handle_t *handle, devfs_async_t *async) {
     return 0;
   }
 
-  local->transfer_handler.write = 0;
+  state->transfer_handler.write = 0;
   return SYSFS_SET_RETURN(EIO);
 }
 
 int mcu_mmc_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(mmc);
   int hal_result;
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
   int loc;
-  if (local->o_flags & MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING) {
+  if (state->o_flags & MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING) {
     loc = async->loc * 512;
   } else {
     loc = async->loc;
   }
   if (
     (hal_result = HAL_MMC_ReadBlocks_IT(
-       &local->hal_handle,
+       &state->hal_handle,
        async->buf,
        loc,
        async->nbyte / BLOCKSIZE))
@@ -132,7 +135,7 @@ int mcu_mmc_read(const devfs_handle_t *handle, devfs_async_t *async) {
     return 0;
   }
 
-  local->transfer_handler.read = 0;
+  state->transfer_handler.read = 0;
   return SYSFS_SET_RETURN(EIO);
 }
 

@@ -22,136 +22,134 @@
 
 #if MCU_CRYPT_PORTS > 0
 
-crypt_local_t m_crypt_local[MCU_CRYPT_PORTS] MCU_SYS_MEM;
+crypt_state_t *m_crypt_state_list[MCU_CRYPT_PORTS] MCU_SYS_MEM;
 CRYP_TypeDef *const crypt_regs[MCU_CRYPT_PORTS] = MCU_CRYPT_REGS;
 u8 const crypt_irqs[MCU_CRYPT_PORTS] = MCU_CRYPT_IRQS;
 
 int crypt_local_open(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
-  if (port < MCU_SPI_PORTS) {
-    if (local->ref_count == 0) {
-      // turn on RCC clock
-      switch (port) {
-      case 0:
-        __HAL_RCC_CRYP_CLK_ENABLE();
-        break;
-      }
-      local->transfer_handler.read = NULL;
-      local->transfer_handler.write = NULL;
-      local->hal_handle.Instance = crypt_regs[port];
-      cortexm_enable_irq(crypt_irqs[port]);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crypt);
+  if (state->ref_count == 0) {
+    DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(crypt);
+    // turn on RCC clock
+    switch (config->port) {
+    case 0:
+      __HAL_RCC_CRYP_CLK_ENABLE();
+      break;
     }
-    local->ref_count++;
-    return 0;
+    state->transfer_handler.read = NULL;
+    state->transfer_handler.write = NULL;
+    state->hal_handle.Instance = crypt_regs[config->port];
+    cortexm_enable_irq(crypt_irqs[config->port]);
   }
-
-  return SYSFS_SET_RETURN(EINVAL);
+    state->ref_count++;
+    return 0;
 }
 
 int crypt_local_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
-  if (local->ref_count > 0) {
-    if (local->ref_count == 1) {
-      HAL_CRYP_DeInit(&local->hal_handle);
-      cortexm_disable_irq(crypt_irqs[port]);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crypt);
+  if (state->ref_count > 0) {
+    if (state->ref_count == 1) {
+      HAL_CRYP_DeInit(&state->hal_handle);
+      cortexm_disable_irq(crypt_irqs[config->port]);
       devfs_execute_cancel_handler(
-        &local->transfer_handler,
+        &state->transfer_handler,
         0,
         SYSFS_SET_RETURN(EDEADLK),
         MCU_EVENT_FLAG_CANCELED);
       // turn off RCC clock
-      switch (port) {
+      switch (config->port) {
       case 0:
         __HAL_RCC_CRYP_CLK_DISABLE();
         break;
       }
+      DEVFS_DRIVER_CLOSE_STATE_LOCAL_V4(crypt);
     }
-    local->ref_count--;
+    state->ref_count--;
   }
   return 0;
 }
 
 int crypt_local_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
-  const crypt_attr_t *attr = mcu_select_attr(handle, ctl);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crypt);
+  const crypt_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(crypt, ctl);
   if (attr == 0) {
     return SYSFS_SET_RETURN(EINVAL);
   }
 
-  u32 o_flags = attr->o_flags;
-  local->o_flags = 0;
+  const u32 o_flags = attr->o_flags;
+  state->o_flags = 0;
 
   if (o_flags & CRYPT_FLAG_SET_CIPHER) {
 
-    local->o_flags = o_flags;
+    state->o_flags = o_flags;
 
-    local->hal_handle.Init.DataType = CRYP_DATATYPE_32B;
+    state->hal_handle.Init.DataType = CRYP_DATATYPE_32B;
     if (o_flags & CRYPT_FLAG_IS_DATA_1) {
-      local->hal_handle.Init.DataType = CRYP_DATATYPE_1B;
+      state->hal_handle.Init.DataType = CRYP_DATATYPE_1B;
     } else if (o_flags & CRYPT_FLAG_IS_DATA_8) {
-      local->hal_handle.Init.DataType = CRYP_DATATYPE_8B;
+      state->hal_handle.Init.DataType = CRYP_DATATYPE_8B;
     } else if (o_flags & CRYPT_FLAG_IS_DATA_16) {
-      local->hal_handle.Init.DataType = CRYP_DATATYPE_16B;
+      state->hal_handle.Init.DataType = CRYP_DATATYPE_16B;
     }
 
     u32 key_size = 128 / (16);
-    local->hal_handle.Init.KeySize = CRYP_KEYSIZE_128B;
+    state->hal_handle.Init.KeySize = CRYP_KEYSIZE_128B;
     if (o_flags & CRYPT_FLAG_IS_AES_192) {
-      local->hal_handle.Init.KeySize = CRYP_KEYSIZE_192B;
+      state->hal_handle.Init.KeySize = CRYP_KEYSIZE_192B;
       key_size = 192 / 16;
     } else if (o_flags & CRYPT_FLAG_IS_AES_256) {
-      local->hal_handle.Init.KeySize = CRYP_KEYSIZE_256B;
+      state->hal_handle.Init.KeySize = CRYP_KEYSIZE_256B;
       key_size = 256 / 16;
     }
 
     // Key and initialization vector
-    local->hal_handle.Init.pKey = (u32 *)attr->key;
-    memcpy(local->iv, attr->iv, 16);
+    state->hal_handle.Init.pKey = (u32 *)attr->key;
+    memcpy(state->iv, attr->iv, 16);
 
     u32 *ptr_key = (u32 *)attr->key;
     for (u32 i = 0; i < key_size; i++) {
       ptr_key[i] = __REV(ptr_key[i]);
     }
 
-    u32 *ptr = (u32 *)local->iv;
+    u32 *ptr = (u32 *)state->iv;
     for (u32 i = 0; i < 4; i++) {
       ptr[i] = __REV(ptr[i]);
     }
-    local->hal_handle.Init.pInitVect = (u32 *)local->iv;
+    state->hal_handle.Init.pInitVect = (u32 *)state->iv;
 
     // Algorithm
-    local->hal_handle.Init.Algorithm = CRYP_AES_CTR;
+    state->hal_handle.Init.Algorithm = CRYP_AES_CTR;
     if (o_flags & CRYPT_FLAG_IS_AES_CBC) {
-      local->hal_handle.Init.Algorithm = CRYP_AES_CBC;
+      state->hal_handle.Init.Algorithm = CRYP_AES_CBC;
     } else if (o_flags & CRYPT_FLAG_IS_AES_ECB) {
-      local->hal_handle.Init.Algorithm = CRYP_AES_ECB;
+      state->hal_handle.Init.Algorithm = CRYP_AES_ECB;
     }
 
     // GCM and CCM for CRYPT units that support it (not all chips do)
 #if defined CRYP_CR_ALGOMODE_AES_GCM
     if (o_flags & CRYPT_FLAG_IS_AES_GCM) {
-      local->hal_handle.Init.Algorithm = CRYP_AES_GCM;
+      state->hal_handle.Init.Algorithm = CRYP_AES_GCM;
     }
 
-    local->hal_handle.Init.B0 = 0; // \todo This needs to be updated
+    state->hal_handle.Init.B0 = 0; // \todo This needs to be updated
     if (o_flags & CRYPT_FLAG_IS_AES_CCM) {
-      local->hal_handle.Init.Algorithm = CRYP_AES_CCM;
+      state->hal_handle.Init.Algorithm = CRYP_AES_CCM;
     }
 #else
     // only used with CCM
-    local->hal_handle.Init.B0 = 0;
+    state->hal_handle.Init.B0 = 0;
 #endif
 
     // header buffer
     // header size
-    local->hal_handle.Init.Header = (u32 *)local->header;
-    local->hal_handle.Init.HeaderSize = 0;
+    state->hal_handle.Init.Header = (u32 *)state->header;
+    state->hal_handle.Init.HeaderSize = 0;
 
     // DataWidthUnit
-    local->hal_handle.Init.DataWidthUnit = CRYP_DATAWIDTHUNIT_WORD;
+    state->hal_handle.Init.DataWidthUnit = CRYP_DATAWIDTHUNIT_WORD;
 
     // init if not yet initialized
-    if (HAL_CRYP_Init(&local->hal_handle) != HAL_OK) {
+    if (HAL_CRYP_Init(&state->hal_handle) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
   }
@@ -159,12 +157,12 @@ int crypt_local_setattr(const devfs_handle_t *handle, void *ctl) {
   if (o_flags & CRYPT_FLAG_SET_MODE) {
 
     // assume encryption if decrypt is not specified
-    local->o_flags |= CRYPT_FLAG_IS_ENCRYPT;
-    local->o_flags &= ~CRYPT_FLAG_IS_DECRYPT;
+    state->o_flags |= CRYPT_FLAG_IS_ENCRYPT;
+    state->o_flags &= ~CRYPT_FLAG_IS_DECRYPT;
 
     if (o_flags & CRYPT_FLAG_IS_DECRYPT) {
-      local->o_flags |= CRYPT_FLAG_IS_DECRYPT;
-      local->o_flags &= ~CRYPT_FLAG_IS_ENCRYPT;
+      state->o_flags |= CRYPT_FLAG_IS_DECRYPT;
+      state->o_flags &= ~CRYPT_FLAG_IS_ENCRYPT;
     }
   }
 
@@ -172,22 +170,22 @@ int crypt_local_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int crypt_local_setaction(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crypt);
   mcu_action_t *action = ctl;
 
   if (action->handler.callback == 0) {
-    devfs_execute_cancel_handler(&local->transfer_handler, 0, 0, 0);
+    devfs_execute_cancel_handler(&state->transfer_handler, 0, 0, 0);
   }
 
   // update the priority
-  cortexm_set_irq_priority(crypt_irqs[port], action->prio, action->o_events);
+  cortexm_set_irq_priority(crypt_irqs[config->port], action->prio, action->o_events);
 
   return SYSFS_RETURN_SUCCESS;
 }
 
 int crypt_local_getiv(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(crypt, MCU_CRYPT_PORTS);
-  memcpy(ctl, local->iv, 16);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crypt);
+  memcpy(ctl, state->iv, sizeof(state->iv));
   u32 *ptr = (u32 *)ctl;
   for (u32 i = 0; i < 4; i++) {
     ptr[i] = __REV(ptr[i]);
@@ -196,20 +194,20 @@ int crypt_local_getiv(const devfs_handle_t *handle, void *ctl) {
 }
 
 void HAL_CRYP_InCpltCallback(CRYP_HandleTypeDef *hcryp) {
-  crypt_local_t *local = (crypt_local_t *)hcryp;
+  crypt_state_t *state = (crypt_state_t *)hcryp;
   // execute the callbacks
   devfs_execute_write_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     0,
     MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
 void HAL_CRYP_OutCpltCallback(CRYP_HandleTypeDef *hcryp) {
-  crypt_local_t *local = (crypt_local_t *)hcryp;
+  crypt_state_t *state = (crypt_state_t *)hcryp;
   // execute the callbacks
   devfs_execute_read_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     0,
     MCU_EVENT_FLAG_DATA_READY);
@@ -221,17 +219,17 @@ void HAL_CRYP_OutCpltCallback(CRYP_HandleTypeDef *hcryp) {
 }
 
 void HAL_CRYP_ErrorCallback(CRYP_HandleTypeDef *hcryp) {
-  crypt_local_t *local = (crypt_local_t *)hcryp;
+  crypt_state_t *state = (crypt_state_t *)hcryp;
   devfs_execute_cancel_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     0,
     MCU_EVENT_FLAG_ERROR);
 }
 
 void mcu_core_cryp_isr() {
-  crypt_local_t *local = m_crypt_local + 0;
-  HAL_CRYP_IRQHandler(&local->hal_handle);
+  crypt_state_t *state = m_crypt_state_list[0];
+  HAL_CRYP_IRQHandler(&state->hal_handle);
 }
 
 #endif

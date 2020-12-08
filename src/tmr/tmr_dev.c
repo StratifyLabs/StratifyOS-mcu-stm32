@@ -63,7 +63,7 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
 
   u32 o_flags = attr->o_flags;
   u32 freq = attr->freq;
-  // regs = tmr_local_regs_table[port];
+  // regs = tmr_local_regs_table[config->port];
 
   if (o_flags & TMR_FLAG_SET_TIMER) {
 
@@ -90,7 +90,7 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
       // get the peripheral clock frequency
 
       u32 pclk;
-      if ((((u32)local->hal_handle.Instance) & ~0xFFFF) == APB1PERIPH_BASE) {
+      if ((((u32)state->hal_handle.Instance) & ~0xFFFF) == APB1PERIPH_BASE) {
         pclk = HAL_RCC_GetPCLK1Freq();
       } else {
         pclk = HAL_RCC_GetPCLK2Freq();
@@ -104,38 +104,38 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
       sos_debug_log_info(SOS_DEBUG_DEVICE, "Use pclk is %ld", pclk);
 
       if (freq < pclk * 2) {
-        local->hal_handle.Init.Prescaler = ((pclk + freq / 2) / freq) - 1;
+        state->hal_handle.Init.Prescaler = ((pclk + freq / 2) / freq) - 1;
       } else {
-        local->hal_handle.Init.Prescaler = 0;
+        state->hal_handle.Init.Prescaler = 0;
       }
 
-      if (local->hal_handle.Init.Prescaler > 0xffff) {
-        local->hal_handle.Init.Prescaler = 0xffff;
+      if (state->hal_handle.Init.Prescaler > 0xffff) {
+        state->hal_handle.Init.Prescaler = 0xffff;
       }
       sos_debug_log_info(
         SOS_DEBUG_DEVICE,
         "Prescaler:%ld",
-        local->hal_handle.Init.Prescaler);
+        state->hal_handle.Init.Prescaler);
 
       if (o_flags & TMR_FLAG_IS_SOURCE_COUNTDOWN) {
-        local->hal_handle.Init.CounterMode = TIM_COUNTERMODE_DOWN;
+        state->hal_handle.Init.CounterMode = TIM_COUNTERMODE_DOWN;
       } else {
-        local->hal_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+        state->hal_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
       }
 
       if (o_flags & TMR_FLAG_IS_AUTO_RELOAD) {
-        local->hal_handle.Init.Period = attr->period;
+        state->hal_handle.Init.Period = attr->period;
       } else {
-        local->hal_handle.Init.Period = (u32)-1; // set to the max
+        state->hal_handle.Init.Period = (u32)-1; // set to the max
       }
-      local->hal_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+      state->hal_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 
 #if defined TIM_AUTORELOAD_PRELOAD_DISABLE
-      local->hal_handle.Init.RepetitionCounter = 0x00;
-      local->hal_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+      state->hal_handle.Init.RepetitionCounter = 0x00;
+      state->hal_handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 #endif
 
-      if (HAL_TIM_Base_Init(&local->hal_handle) != HAL_OK) {
+      if (HAL_TIM_Base_Init(&state->hal_handle) != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
       }
 
@@ -144,7 +144,7 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
         TIM_ClockConfigTypeDef clock_source_config;
         clock_source_config.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
         if (
-          HAL_TIM_ConfigClockSource(&local->hal_handle, &clock_source_config)
+          HAL_TIM_ConfigClockSource(&state->hal_handle, &clock_source_config)
           != HAL_OK) {
           return SYSFS_SET_RETURN(EIO);
         }
@@ -179,7 +179,7 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
       }
       if (
         HAL_TIMEx_MasterConfigSynchronization(
-          &local->hal_handle,
+          &state->hal_handle,
           &master_config)
         != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
@@ -238,47 +238,47 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
 
     switch (channel_configure_type) {
     case CHANNEL_TYPE_OUTPUT_COMPARE:
-      ret = HAL_TIM_OC_Init(&local->hal_handle);
+      ret = HAL_TIM_OC_Init(&state->hal_handle);
       if (ret != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
       }
-      ret = HAL_TIM_OC_ConfigChannel(&local->hal_handle, &init_oc, tim_channel);
+      ret = HAL_TIM_OC_ConfigChannel(&state->hal_handle, &init_oc, tim_channel);
       if (ret != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
       }
-      ret = HAL_TIM_OC_Start(&local->hal_handle, tim_channel);
+      ret = HAL_TIM_OC_Start(&state->hal_handle, tim_channel);
       break;
 
     case CHANNEL_TYPE_PWM:
-      ret = HAL_TIM_PWM_Init(&local->hal_handle);
+      ret = HAL_TIM_PWM_Init(&state->hal_handle);
       if (ret != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
       }
       ret
-        = HAL_TIM_PWM_ConfigChannel(&local->hal_handle, &init_oc, tim_channel);
+        = HAL_TIM_PWM_ConfigChannel(&state->hal_handle, &init_oc, tim_channel);
       if (ret != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
       }
-      ret = HAL_TIM_PWM_Start(&local->hal_handle, tim_channel);
+      ret = HAL_TIM_PWM_Start(&state->hal_handle, tim_channel);
       break;
 
     case CHANNEL_TYPE_INPUT_CAPTURE:
       ret = HAL_OK;
-      ret = HAL_TIM_IC_Init(&local->hal_handle);
+      ret = HAL_TIM_IC_Init(&state->hal_handle);
       if (ret != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
       }
-      ret = HAL_TIM_IC_ConfigChannel(&local->hal_handle, &init_ic, tim_channel);
+      ret = HAL_TIM_IC_ConfigChannel(&state->hal_handle, &init_ic, tim_channel);
       if (ret != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
       }
-      ret = HAL_TIM_IC_Start(&local->hal_handle, tim_channel);
+      ret = HAL_TIM_IC_Start(&state->hal_handle, tim_channel);
       break;
 
     case CHANNEL_TYPE_NONE:
-      HAL_TIM_OC_Stop(&local->hal_handle, tim_channel);
-      HAL_TIM_PWM_Stop(&local->hal_handle, tim_channel);
-      HAL_TIM_IC_Stop(&local->hal_handle, tim_channel);
+      HAL_TIM_OC_Stop(&state->hal_handle, tim_channel);
+      HAL_TIM_PWM_Stop(&state->hal_handle, tim_channel);
+      HAL_TIM_IC_Stop(&state->hal_handle, tim_channel);
       ret = HAL_OK;
       break;
     }

@@ -58,7 +58,7 @@ int mcu_core_getinfo(const devfs_handle_t *handle, void *arg) {
 }
 
 int mcu_core_setattr(const devfs_handle_t *handle, void *arg) {
-  int port = handle->port;
+  const int port = 0;
   core_attr_t *attr = arg;
 
   if (attr == 0) {
@@ -272,69 +272,4 @@ int mcu_core_write(const devfs_handle_t *cfg, devfs_async_t *async) {
 
 int mcu_core_read(const devfs_handle_t *cfg, devfs_async_t *async) {
   return SYSFS_SET_RETURN(ENOTSUP);
-}
-
-//--------------------------------CACHE
-// Operations--------------------------------
-
-#if defined STM32F7 || defined STM32H7
-#define USE_CACHE 1
-#endif
-
-void mcu_core_enable_cache() {
-#if USE_CACHE
-  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
-    SCB_EnableICache();
-    SCB_EnableDCache();
-  }
-#endif
-}
-
-void mcu_core_disable_cache() {
-#if USE_CACHE
-  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
-    SCB_DisableICache();
-    SCB_DisableDCache();
-  }
-#endif
-}
-
-void mcu_core_invalidate_instruction_cache() {
-#if USE_CACHE
-  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
-    SCB_InvalidateICache();
-  }
-#endif
-}
-
-void mcu_core_clean_data_cache() {
-#if USE_CACHE
-  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
-    SCB_CleanDCache();
-  }
-#endif
-}
-
-void mcu_core_invalidate_data_cache() {
-#if USE_CACHE
-  if (stm32_config.flags & STM32_CONFIG_FLAG_IS_CACHE_ENABLED) {
-    SCB_InvalidateDCache();
-  }
-#endif
-}
-
-void mcu_core_clean_data_cache_block(void *addr, u32 size) {
-#if USE_CACHE
-  if (mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE) {
-    SCB_CleanDCache_by_Addr(addr, size);
-  }
-#endif
-}
-
-void mcu_core_invalidate_data_cache_block(void *addr, u32 size) {
-#if USE_CACHE
-  if (mcu_board_config.o_flags & MCU_BOARD_CONFIG_FLAG_ENABLE_CACHE) {
-    SCB_InvalidateDCache_by_Addr(addr, size);
-  }
-#endif
 }

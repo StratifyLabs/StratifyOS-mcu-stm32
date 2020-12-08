@@ -30,8 +30,8 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_spi_swap)
 
 int mcu_spi_open(const devfs_handle_t *handle) {
-  spi_local_t *local = m_spi_local + handle->port;
-  local->o_flags = 0;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
+  state->o_flags = 0;
   return spi_local_open(handle);
 }
 
@@ -65,43 +65,43 @@ int mcu_spi_setaction(const devfs_handle_t *handle, void *ctl) {
 
 int mcu_spi_write(const devfs_handle_t *handle, devfs_async_t *async) {
   int ret;
-  spi_local_t *local = m_spi_local + handle->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
 
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
   if (
-    (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX)
-    && local->transfer_handler.read) {
+    (state->o_flags & SPI_LOCAL_IS_FULL_DUPLEX)
+    && state->transfer_handler.read) {
 
-    if (local->transfer_handler.read->nbyte < async->nbyte) {
+    if (state->transfer_handler.read->nbyte < async->nbyte) {
       sos_debug_log_info(
         SOS_DEBUG_DEVICE,
         "Read bytes error %d < %d",
-        local->transfer_handler.read->nbyte,
+        state->transfer_handler.read->nbyte,
         async->nbyte);
       return SYSFS_SET_RETURN(EINVAL);
     }
 
     // execute the TX/RX transfer
     ret = HAL_SPI_TransmitReceive_IT(
-      &local->hal_handle,
+      &state->hal_handle,
       async->buf,
-      local->transfer_handler.read->buf,
+      state->transfer_handler.read->buf,
       async->nbyte);
   } else {
     // this should be busy if a read is in progress
-    if (local->transfer_handler.read == 0) {
-      ret = HAL_SPI_Transmit_IT(&local->hal_handle, async->buf, async->nbyte);
+    if (state->transfer_handler.read == 0) {
+      ret = HAL_SPI_Transmit_IT(&state->hal_handle, async->buf, async->nbyte);
     } else {
       sos_debug_log_error(SOS_DEBUG_DEVICE, "SPI BUSY WRITE FAIL");
-      local->transfer_handler.write = 0;
+      state->transfer_handler.write = 0;
       return SYSFS_SET_RETURN(EBUSY);
     }
   }
 
   if (ret != HAL_OK) {
     sos_debug_log_error(SOS_DEBUG_DEVICE, "SPI ERROR:%d", ret);
-    local->transfer_handler.write = 0;
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
   }
 
@@ -110,22 +110,21 @@ int mcu_spi_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
 int mcu_spi_read(const devfs_handle_t *handle, devfs_async_t *async) {
   int ret;
-  spi_local_t *local = m_spi_local + handle->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
-
-  if (local->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) {
+  if (state->o_flags & SPI_LOCAL_IS_FULL_DUPLEX) {
     ret = HAL_OK;
   } else {
-    ret = HAL_SPI_Receive_IT(&local->hal_handle, async->buf, async->nbyte);
+    ret = HAL_SPI_Receive_IT(&state->hal_handle, async->buf, async->nbyte);
   }
 
   if (ret != HAL_OK) {
-    local->transfer_handler.read = 0;
+    state->transfer_handler.read = 0;
     sos_debug_log_error(
       SOS_DEBUG_DEVICE,
       "read failed:%d",
-      local->hal_handle.ErrorCode);
+      state->hal_handle.ErrorCode);
     return SYSFS_SET_RETURN_WITH_VALUE(EIO, ret);
   }
 

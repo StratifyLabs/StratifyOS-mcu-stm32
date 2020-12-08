@@ -48,25 +48,25 @@ int mcu_hash_setaction(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_hash_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(hash, MCU_HASH_PORTS);
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(hash);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
   // read just sets up the buffer - the action starts when the device is written
   int minimum_size = 0;
-  if (local->o_flags & HASH_FLAG_IS_SHA1) {
+  if (state->o_flags & HASH_FLAG_IS_SHA1) {
     minimum_size = 20;
-  } else if (local->o_flags & HASH_FLAG_IS_MD5) {
+  } else if (state->o_flags & HASH_FLAG_IS_MD5) {
     minimum_size = 16;
-  } else if (local->o_flags & HASH_FLAG_IS_SHA224) {
+  } else if (state->o_flags & HASH_FLAG_IS_SHA224) {
     minimum_size = 28;
-  } else if (local->o_flags & HASH_FLAG_IS_SHA256) {
+  } else if (state->o_flags & HASH_FLAG_IS_SHA256) {
     minimum_size = 32;
   } else {
-    local->transfer_handler.read = 0;
+    state->transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EINVAL);
   }
 
   if (async->nbyte < minimum_size) {
-    local->transfer_handler.read = 0;
+    state->transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EINVAL);
   }
 
@@ -74,62 +74,60 @@ int mcu_hash_read(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_hash_write(const devfs_handle_t *handle, devfs_async_t *async) {
-
-  DEVFS_DRIVER_DECLARE_LOCAL(hash, MCU_HASH_PORTS);
-
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(hash);
   if (async->nbyte == 0) {
     HAL_HASHEx_SHA256_Finish(
-      &local->hal_handle,
-      local->transfer_handler.read->buf,
+      &state->hal_handle,
+      state->transfer_handler.read->buf,
       HAL_MAX_DELAY);
     return 0;
   }
 
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
-  if (local->transfer_handler.read == 0) {
+  if (state->transfer_handler.read == 0) {
     // read must be setup first -- that is where the destination data will go
-    local->transfer_handler.write = 0;
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EINVAL);
   }
 
   int result;
-  if (local->o_flags & HASH_FLAG_IS_SHA1) {
+  if (state->o_flags & HASH_FLAG_IS_SHA1) {
     // nbyte is /4 based on DataWidthUnit
     result = HAL_HASH_SHA1_Start_IT(
-      &local->hal_handle,
+      &state->hal_handle,
       async->buf,
       async->nbyte,
-      local->transfer_handler.read->buf);
-  } else if (local->o_flags & HASH_FLAG_IS_MD5) {
+      state->transfer_handler.read->buf);
+  } else if (state->o_flags & HASH_FLAG_IS_MD5) {
     // nbyte is /4 based on DataWidthUnit
     result = HAL_HASH_MD5_Start_IT(
-      &local->hal_handle,
+      &state->hal_handle,
       async->buf,
       async->nbyte,
-      local->transfer_handler.read->buf);
-  } else if (local->o_flags & HASH_FLAG_IS_SHA224) {
+      state->transfer_handler.read->buf);
+  } else if (state->o_flags & HASH_FLAG_IS_SHA224) {
     // nbyte is /4 based on DataWidthUnit
     result = HAL_HASHEx_SHA224_Start_IT(
-      &local->hal_handle,
+      &state->hal_handle,
       async->buf,
       async->nbyte,
-      local->transfer_handler.read->buf);
-  } else if (local->o_flags & HASH_FLAG_IS_SHA256) {
+      state->transfer_handler.read->buf);
+  } else if (state->o_flags & HASH_FLAG_IS_SHA256) {
     // nbyte is /4 based on DataWidthUnit
     result = HAL_HASHEx_SHA256_Start_IT(
-      &local->hal_handle,
+      &state->hal_handle,
       async->buf,
       async->nbyte,
-      local->transfer_handler.read->buf);
+      state->transfer_handler.read->buf);
   } else {
     // must have set a hash type
-    local->transfer_handler.write = 0;
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EINVAL);
   }
 
   if (result != HAL_OK) {
-    local->transfer_handler.write = 0;
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EIO);
   }
 

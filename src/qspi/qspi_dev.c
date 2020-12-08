@@ -64,35 +64,35 @@ int mcu_qspi_execcommand(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_qspi_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
 
   // can't read and write at the same time
-  if (local->transfer_handler.write != 0) {
+  if (state->transfer_handler.write != 0) {
     return SYSFS_SET_RETURN(EBUSY);
   }
   // borrow async to qspi->transfer_handler.read
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
-  if (HAL_QSPI_Receive_IT(&local->hal_handle, async->buf) != HAL_OK) {
-    local->transfer_handler.read = 0;
+  if (HAL_QSPI_Receive_IT(&state->hal_handle, async->buf) != HAL_OK) {
+    state->transfer_handler.read = 0;
     return SYSFS_SET_RETURN(EIO);
   }
   return 0;
 }
 
 int mcu_qspi_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(qspi, MCU_QSPI_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
   // can't read and write at the same time
-  if (local->transfer_handler.read != 0) {
+  if (state->transfer_handler.read != 0) {
     return SYSFS_SET_RETURN(EBUSY);
   }
 
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
   int result;
   if (
-    (result = HAL_QSPI_Transmit_IT(&local->hal_handle, async->buf)) != HAL_OK) {
-    local->transfer_handler.write = 0;
+    (result = HAL_QSPI_Transmit_IT(&state->hal_handle, async->buf)) != HAL_OK) {
+    state->transfer_handler.write = 0;
     return SYSFS_SET_RETURN(EIO);
   }
 

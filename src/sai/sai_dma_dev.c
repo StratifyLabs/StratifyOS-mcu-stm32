@@ -34,24 +34,23 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_sai_dma_mute,
   mcu_sai_dma_unmute)
 
-sai_dma_local_t sai_dma_local[MCU_SAI_PORTS] MCU_SYS_MEM;
 
 int mcu_sai_dma_open(const devfs_handle_t *handle) {
-  return sai_local_open(&sai_dma_local[handle->port].sai, handle);
+  return sai_local_open(handle);
 }
 
 int mcu_sai_dma_close(const devfs_handle_t *handle) {
-  // same as SPI
-  const u32 port = handle->port;
-  if (sai_dma_local[handle->port].sai.ref_count == 1) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(sai);
+
+  if (state->ref_count == 1) {
     // disable the DMA
     const stm32_sai_dma_config_t *config;
     config = handle->config;
-    HAL_SAI_DMAStop(&sai_dma_local[handle->port].sai.hal_handle);
-    if((sai_dma_local[port].sai.o_flags & SAI_LOCAL_IS_DMA )/*||
-					  (sai_dma_local[port].dma_channel.interrupt_number > 0 )*/){
-      HAL_DMA_DeInit(&sai_dma_local[port].dma_channel.handle);
-      sai_dma_local[port].sai.o_flags = 0;
+    HAL_SAI_DMAStop(&state->hal_handle);
+    if((state->o_flags & SAI_LOCAL_IS_DMA )/*||
+					  (sai_dma_state_list[config->port].dma_channel.interrupt_number > 0 )*/){
+      // HAL_DMA_DeInit(&state->sai);
+      state->o_flags = 0;
     }
 
     if (config) {
@@ -61,7 +60,7 @@ int mcu_sai_dma_close(const devfs_handle_t *handle) {
     }
   }
 
-  sai_local_close(&sai_dma_local[port].sai, handle);
+  sai_local_close(handle);
 
   return 0;
 }
@@ -82,91 +81,81 @@ int mcu_sai_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
 
 int mcu_sai_dma_mute(const devfs_handle_t *handle, void *ctl) {
   return sai_local_mute(
-    (sai_local_t *)(sai_dma_local + handle->port),
     handle,
     ctl);
 }
 
 int mcu_sai_dma_unmute(const devfs_handle_t *handle, void *ctl) {
   return sai_local_unmute(
-    (sai_local_t *)(sai_dma_local + handle->port),
     handle,
     ctl);
 }
 
 int mcu_sai_dma_setattr(const devfs_handle_t *handle, void *ctl) {
-  const u32 port = handle->port;
-  const stm32_sai_dma_config_t *config;
-  const i2s_attr_t *attr = mcu_select_attr(handle, ctl);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(sai);
+  const i2s_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(i2s, ctl);
   if (attr == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
   // setup the DMA
   // BSP *MUST* provide DMA configuration information
-  config = handle->config;
-  if (config == 0) {
+  if (handle->config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
-  sai_dma_local[port].sai.o_flags = SAI_LOCAL_IS_DMA;
-  stm32_dma_channel_t *channel = stm32_dma_setattr(&config->dma_config);
+  const stm32_sai_dma_config_t *dma_config = handle->config;
+
+  state->o_flags = SAI_LOCAL_IS_DMA;
+  stm32_dma_channel_t *channel = stm32_dma_setattr(&dma_config->dma_config);
   if (channel == 0) {
     return SYSFS_SET_RETURN(EIO);
   }
-  sai_dma_local[port].dma_channel.handle = channel->handle;
+  sai_dma_state_list[config->port].dma_channel.handle = channel->handle;
   if (attr->o_flags & I2S_FLAG_IS_RECEIVER) {
-    sai_dma_local[port].sai.o_flags |= SAI_LOCAL_IS_RX;
+    state->o_flags |= SAI_LOCAL_IS_RX;
     sos_debug_log_info(
       SOS_DEBUG_DEVICE,
       "Set I2S DMA as receiver %d.%d.%d",
-      config->dma_config.dma_number,
-      config->dma_config.stream_number,
-      config->dma_config.channel_number);
+      dma_config->dma_config.dma_number,
+      dma_config->dma_config.stream_number,
+      dma_config->dma_config.channel_number);
 
-    __HAL_LINKDMA(
-      (&sai_dma_local[port].sai.hal_handle),
-      hdmarx,
-      channel->handle);
+    __HAL_LINKDMA((&state->hal_handle), hdmarx, channel->handle);
   }
 
   if (attr->o_flags & I2S_FLAG_IS_TRANSMITTER) {
-    sai_dma_local[port].sai.o_flags |= SAI_LOCAL_IS_TX;
+    state->o_flags |= SAI_LOCAL_IS_TX;
 
     sos_debug_log_info(
       SOS_DEBUG_DEVICE,
       "Set I2S DMA as transmitter %d.%d.%d",
-      config->dma_config.dma_number,
-      config->dma_config.stream_number,
-      config->dma_config.channel_number);
+      dma_config->dma_config.dma_number,
+      dma_config->dma_config.stream_number,
+      dma_config->dma_config.channel_number);
     // setup the DMA for transmitting
 
-    __HAL_LINKDMA(
-      (&sai_dma_local[port].sai.hal_handle),
-      hdmatx,
-      channel->handle);
+    __HAL_LINKDMA((&state->hal_handle), hdmatx, channel->handle);
   }
 
-  return sai_local_setattr(&sai_dma_local[handle->port].sai, handle, ctl);
+  return sai_local_setattr(handle, ctl);
 }
 
 int mcu_sai_dma_setaction(const devfs_handle_t *handle, void *ctl) {
-
-  return sai_local_setaction(&sai_dma_local[handle->port].sai, handle, ctl, 9);
+  return sai_local_setaction(handle, ctl, 9);
 }
 
 int mcu_sai_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(sai);
   int result;
-  int port = handle->port;
-  sai_dma_local_t *local = sai_dma_local + port;
-  DEVFS_DRIVER_IS_BUSY(local->sai.transfer_handler.write, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
   result = HAL_SAI_Transmit_DMA(
-    &local->sai.hal_handle,
+    &state->hal_handle,
     async->buf,
-    async->nbyte / local->sai.size_mult);
+    async->nbyte / state->size_mult);
 
   if (result != HAL_OK) {
-    sai_dma_local[port].sai.transfer_handler.write = 0;
+    state->transfer_handler.write = 0;
     if (result == HAL_BUSY) {
       return SYSFS_SET_RETURN(EIO);
     } else if (result == HAL_ERROR) {
@@ -181,30 +170,30 @@ int mcu_sai_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_sai_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(sai);
   int ret;
-  int port = handle->port;
-  sai_dma_local_t *local = sai_dma_local + port;
-  DEVFS_DRIVER_IS_BUSY(local->sai.transfer_handler.read, async);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
   sos_debug_log_info(
     SOS_DEBUG_DEVICE,
     "SAI DMA RX: %p %ld %d ",
     async->buf,
     async->nbyte,
-    local->sai.size_mult);
+    state->size_mult);
+
   ret = HAL_SAI_Receive_DMA(
-    &local->sai.hal_handle,
+    &state->hal_handle,
     async->buf,
-    async->nbyte / local->sai.size_mult);
+    async->nbyte / state->size_mult);
 
   if (ret != HAL_OK) {
     sos_debug_log_error(
       SOS_DEBUG_DEVICE,
       "Failed to start I2S DMA Read (%d, %d) %d/%d",
       ret,
-      local->sai.hal_handle.ErrorCode,
+      state->hal_handle.ErrorCode,
       async->nbyte,
-      local->sai.size_mult);
-    local->sai.transfer_handler.read = 0;
+      state->size_mult);
+    state->transfer_handler.read = 0;
     if (ret == HAL_BUSY) {
       return SYSFS_SET_RETURN(EIO);
     } else if (ret == HAL_ERROR) {

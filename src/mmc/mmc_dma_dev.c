@@ -35,17 +35,16 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
 static int configure_dma(const devfs_handle_t *handle);
 
 int mcu_mmc_dma_open(const devfs_handle_t *handle) {
-  // mmc_local[handle->port].o_flags = MMC_LOCAL_IS_DMA;
+  // mmc_state_list[config->port].o_flags = MMC_LOCAL_IS_DMA;
   return mmc_local_open(handle);
 }
 
 int mcu_mmc_dma_close(const devfs_handle_t *handle) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(mmc);
 
-  DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
-
-  if (local->ref_count == 1) {
+  if (state->ref_count == 1) {
     // disable the DMA
-    if (local->transfer_handler.read || local->transfer_handler.write) {
+    if (state->transfer_handler.read || state->transfer_handler.write) {
       return SYSFS_SET_RETURN(EBUSY);
     }
 
@@ -74,42 +73,44 @@ int mcu_mmc_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
 int configure_dma(const devfs_handle_t *handle) {
 
 #if MCU_SDIO_API == 0
-  DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(mmc);
 
-  const stm32_mmc_dma_config_t *config = handle->config;
-  if (config == 0) {
+  const stm32_mmc_dma_config_t *dma_config = handle->config;
+  if (dma_config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
-  stm32_dma_channel_t *rx_channel = stm32_dma_setattr(&config->dma_config.rx);
+  stm32_dma_channel_t *rx_channel
+    = stm32_dma_setattr(&dma_config->dma_config.rx);
   if (rx_channel == 0) {
     return SYSFS_SET_RETURN(EIO);
   }
 
-  stm32_dma_channel_t *tx_channel = stm32_dma_setattr(&config->dma_config.tx);
+  stm32_dma_channel_t *tx_channel
+    = stm32_dma_setattr(&dma_config->dma_config.tx);
   if (tx_channel == 0) {
     return SYSFS_SET_RETURN(EIO);
   }
 
-  __HAL_LINKDMA((&local->hal_handle), hdmatx, tx_channel->handle);
-  __HAL_LINKDMA((&local->hal_handle), hdmarx, rx_channel->handle);
+  __HAL_LINKDMA((&state->hal_handle), hdmatx, tx_channel->handle);
+  __HAL_LINKDMA((&state->hal_handle), hdmarx, rx_channel->handle);
 #endif
 
   return 0;
 }
 
 int mcu_mmc_dma_setattr(const devfs_handle_t *handle, void *ctl) {
-  const mmc_attr_t *attr = mcu_select_attr(handle, ctl);
-  if (attr == 0) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(mmc);
+  const mmc_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(mmc, ctl);
+  if (attr == NULL) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
   u32 o_flags = attr->o_flags;
-  DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
 
   if (o_flags & MMC_FLAG_SET_INTERFACE) {
 
-    local->o_flags |= MMC_LOCAL_FLAG_IS_DMA;
+    state->o_flags |= MMC_LOCAL_FLAG_IS_DMA;
 
     int result = configure_dma(handle);
     if (result < 0) {
@@ -137,31 +138,31 @@ int mcu_mmc_dma_getstatus(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_mmc_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.write, async);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(mmc);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
   int result;
-  local->hal_handle.ErrorCode = 0;
+  state->hal_handle.ErrorCode = 0;
   int loc;
-  if (local->o_flags & MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING) {
+  if (state->o_flags & MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING) {
     loc = async->loc * 512;
   } else {
     loc = async->loc;
   }
 
 #if MCU_SDIO_API == 0
-  if (local->hal_handle.hdmatx == 0) {
+  if (state->hal_handle.hdmatx == 0) {
     // driver unlinked the DMA object -- relink it here
     configure_dma(handle);
   }
 #endif
 
-  local->hal_handle.TxXferSize
+  state->hal_handle.TxXferSize
     = async
         ->nbyte; // used by the callback but not set by HAL_SD_WriteBlocks_DMA
   if (
     (result = HAL_MMC_WriteBlocks_DMA(
-       &local->hal_handle,
+       &state->hal_handle,
        async->buf,
        loc,
        async->nbyte / BLOCKSIZE))
@@ -170,34 +171,35 @@ int mcu_mmc_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
     return 0;
   }
 
-  local->transfer_handler.write = 0;
+  state->transfer_handler.write = 0;
   sos_debug_log_error(
     SOS_DEBUG_DEVICE,
     "W->HAL Not OK  %d, 0x%lX (%d + %d > %d?)",
     result,
-    local->hal_handle.ErrorCode,
+    state->hal_handle.ErrorCode,
     async->loc,
     async->nbyte / BLOCKSIZE,
-    local->hal_handle.MmcCard.LogBlockNbr);
+    state->hal_handle.MmcCard.LogBlockNbr);
   return SYSFS_SET_RETURN(EIO);
 }
 
 int mcu_mmc_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(mmc, MCU_SDIO_PORTS);
-  int hal_result;
-  DEVFS_DRIVER_IS_BUSY(local->transfer_handler.read, async);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(mmc);
+  DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
-  local->hal_handle.RxXferSize
+  int hal_result;
+
+  state->hal_handle.RxXferSize
     = async->nbyte; // used by the callback but not set by HAL_SD_ReadBlocks_DMA
   int loc;
-  if (local->o_flags & MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING) {
+  if (state->o_flags & MMC_LOCAL_FLAG_IS_BYTE_ADDRESSING) {
     loc = async->loc * 512;
   } else {
     loc = async->loc;
   }
 
 #if MCU_SDIO_API == 0
-  if (local->hal_handle.hdmarx == 0) {
+  if (state->hal_handle.hdmarx == 0) {
     // driver unlinked the DMA object -- relink it here
     configure_dma(handle);
   }
@@ -205,7 +207,7 @@ int mcu_mmc_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
 
   if (
     (hal_result = HAL_MMC_ReadBlocks_DMA(
-       &local->hal_handle,
+       &state->hal_handle,
        async->buf,
        loc,
        async->nbyte / BLOCKSIZE))
@@ -219,9 +221,9 @@ int mcu_mmc_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
     async->loc,
     async->nbyte,
     hal_result,
-    local->hal_handle.ErrorCode);
+    state->hal_handle.ErrorCode);
 
-  local->transfer_handler.read = 0;
+  state->transfer_handler.read = 0;
   return SYSFS_SET_RETURN(EIO);
 }
 

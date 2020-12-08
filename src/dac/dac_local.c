@@ -17,13 +17,15 @@
  *
  */
 
-#include "cortexm/cortexm.h"
-#include "mcu/core.h"
-#include "mcu/dac.h"
-#include "sos/debug.h"
-#include "mcu/pio.h"
-#include "stm32_local.h"
+#include <cortexm/cortexm.h>
 #include <fcntl.h>
+#include <mcu/core.h>
+#include <mcu/dac.h>
+#include <mcu/pio.h>
+#include <sos/config.h>
+#include <sos/debug.h>
+
+#include "stm32_local.h"
 
 #include "dac_local.h"
 
@@ -32,7 +34,7 @@
 DAC_TypeDef *const m_dac_regs_table[MCU_DAC_PORTS] = MCU_DAC_REGS;
 u8 const m_dac_irqs[MCU_DAC_PORTS] = MCU_DAC_IRQS;
 u32 const m_dac_channels[MCU_DAC_CHANNELS] = {DAC_CHANNEL_1, DAC_CHANNEL_2};
-dac_local_t m_dac_local[MCU_DAC_PORTS] MCU_SYS_MEM;
+dac_state_t *m_dac_state_list[MCU_DAC_PORTS] MCU_SYS_MEM;
 
 #if 0
 const u32 dac_channels[MCU_DAC_CHANNELS] = {
@@ -46,13 +48,13 @@ const u32 dac_channels[MCU_DAC_CHANNELS] = {
 #endif
 
 int dac_local_open(const devfs_handle_t *handle) {
-  const u32 port = handle->port;
-  dac_local_t *local = m_dac_local + handle->port;
-  if (local->ref_count == 0) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
+  if (state->ref_count == 0) {
 
-    local->hal_handle.Instance = m_dac_regs_table[port];
+    DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(dac);
+    state->hal_handle.Instance = m_dac_regs_table[config->port];
 
-    switch (port) {
+    switch (config->port) {
     case 0:
 #if defined __HAL_RCC_DAC1_CLK_ENABLE
       __HAL_RCC_DAC1_CLK_ENABLE();
@@ -91,21 +93,19 @@ int dac_local_open(const devfs_handle_t *handle) {
       break;
 #endif
     }
-    cortexm_enable_irq(m_dac_irqs[port]);
+    cortexm_enable_irq(m_dac_irqs[config->port]);
   }
-  local->ref_count++;
+  state->ref_count++;
 
   return 0;
 }
 
 int dac_local_close(const devfs_handle_t *handle) {
-  const u32 port = handle->port;
-  dac_local_t *local = m_dac_local + handle->port;
-
-  if (local->ref_count > 0) {
-    if (local->ref_count == 1) {
-      cortexm_disable_irq(m_dac_irqs[port]);
-      switch (port) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
+  if (state->ref_count > 0) {
+    if (state->ref_count == 1) {
+      cortexm_disable_irq(m_dac_irqs[config->port]);
+      switch (config->port) {
       case 0:
 #if defined __HAL_RCC_DAC1_CLK_DISABLE
         __HAL_RCC_DAC1_CLK_DISABLE();
@@ -133,9 +133,10 @@ int dac_local_close(const devfs_handle_t *handle) {
         break;
 #endif
       }
-      local->hal_handle.Instance = 0;
+      state->hal_handle.Instance = 0;
+      DEVFS_DRIVER_CLOSE_STATE_LOCAL_V4(dac);
     }
-    local->ref_count--;
+    state->ref_count--;
   }
   return 0;
 }
@@ -144,7 +145,7 @@ int dac_local_getinfo(const devfs_handle_t *handle, void *ctl) {
 
   dac_info_t *info = ctl;
   const dac_config_t *config = handle->config;
-  // dac_local_t * local = dac_local + handle->port;
+  // dac_state_t * local = dac_local + config->port;
 
   info->o_flags = DAC_FLAG_IS_LEFT_JUSTIFIED | DAC_FLAG_IS_RIGHT_JUSTIFIED
                   | DAC_FLAG_SET_CONVERTER;
@@ -163,20 +164,17 @@ int dac_local_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int dac_local_setattr(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   u32 o_flags;
-  int port = handle->port;
-  const dac_attr_t *attr;
-  dac_local_t *local = m_dac_local + handle->port;
-
-  attr = mcu_select_attr(handle, ctl);
-  if (attr == 0) {
+  const dac_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(dac, ctl);
+  if (attr == NULL) {
     return SYSFS_SET_RETURN(EINVAL);
   }
 
   o_flags = attr->o_flags;
 
   if (o_flags & DAC_FLAG_SET_CONVERTER) {
-    if (HAL_DAC_Init(&local->hal_handle) != HAL_OK) {
+    if (HAL_DAC_Init(&state->hal_handle) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
   }
@@ -189,7 +187,7 @@ int dac_local_setattr(const devfs_handle_t *handle, void *ctl) {
         MCU_CONFIG_PIN_ASSIGNMENT(dac_config_t, handle),
         MCU_PIN_ASSIGNMENT_COUNT(dac_pin_assignment_t),
         CORE_PERIPH_DAC,
-        port,
+        config->port,
         0,
         0,
         0)
@@ -200,11 +198,7 @@ int dac_local_setattr(const devfs_handle_t *handle, void *ctl) {
     DAC_ChannelConfTypeDef channel_config;
     u32 channel;
 
-    if (port < MCU_DAC_PORTS) {
-      channel = m_dac_channels[port];
-    } else {
-      return SYSFS_SET_RETURN(ENOSYS);
-    }
+    channel = m_dac_channels[config->port];
 
     channel_config.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
     channel_config.DAC_Trigger = DAC_TRIGGER_NONE;
@@ -223,7 +217,7 @@ int dac_local_setattr(const devfs_handle_t *handle, void *ctl) {
       channel_config.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_ENABLE;
     }
 
-    if (local->o_flags & DAC_LOCAL_FLAG_IS_DMA) {
+    if (state->o_flags & DAC_LOCAL_FLAG_IS_DMA) {
       // DMA requires an external trigger
 
       if (o_flags & DAC_FLAG_IS_TRIGGER_EINT) {
@@ -276,10 +270,10 @@ int dac_local_setattr(const devfs_handle_t *handle, void *ctl) {
     sos_debug_log_info(
       SOS_DEBUG_DEVICE,
       "config port:%d channel:0x%X",
-      port,
+      config->port,
       channel);
     if (
-      HAL_DAC_ConfigChannel(&local->hal_handle, &channel_config, channel)
+      HAL_DAC_ConfigChannel(&state->hal_handle, &channel_config, channel)
       != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
@@ -289,22 +283,22 @@ int dac_local_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int dac_local_get(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   u32 channel;
-  dac_local_t *local = m_dac_local + handle->port;
   mcu_channel_t *mcu_channel = ctl;
 
-  if (handle->port < MCU_DAC_PORTS) {
-    channel = m_dac_channels[handle->port];
+  if (config->port < MCU_DAC_PORTS) {
+    channel = m_dac_channels[config->port];
   } else {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
-  mcu_channel->value = HAL_DAC_GetValue(&local->hal_handle, channel);
+  mcu_channel->value = HAL_DAC_GetValue(&state->hal_handle, channel);
 
   return SYSFS_RETURN_SUCCESS;
 }
 
-u32 dac_local_get_alignment(dac_local_t *dac) {
+u32 dac_local_get_alignment(dac_state_t *dac) {
   if (dac->o_flags & DAC_FLAG_IS_LEFT_JUSTIFIED) {
     return DAC_ALIGN_12B_L;
   }
@@ -313,27 +307,27 @@ u32 dac_local_get_alignment(dac_local_t *dac) {
 }
 
 int dac_local_set(const devfs_handle_t *handle, void *ctl) {
-  dac_local_t *local = m_dac_local + handle->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   u32 channel;
   mcu_channel_t *mcu_channel = ctl;
 
-  if (handle->port < MCU_DAC_PORTS) {
-    channel = m_dac_channels[handle->port];
+  if (config->port < MCU_DAC_PORTS) {
+    channel = m_dac_channels[config->port];
   } else {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
   if (
     HAL_DAC_SetValue(
-      &local->hal_handle,
+      &state->hal_handle,
       channel,
-      dac_local_get_alignment(local),
+      dac_local_get_alignment(state),
       mcu_channel->value)
     != HAL_OK) {
     return SYSFS_SET_RETURN(EIO);
   }
 
-  if (HAL_DAC_Start(&local->hal_handle, channel) != HAL_OK) {
+  if (HAL_DAC_Start(&state->hal_handle, channel) != HAL_OK) {
     return SYSFS_SET_RETURN(EIO);
   }
 
@@ -341,7 +335,7 @@ int dac_local_set(const devfs_handle_t *handle, void *ctl) {
 }
 
 void HAL_DAC_ErrorCallback(DAC_HandleTypeDef *hdac) {
-  dac_local_t *dac = (dac_local_t *)hdac;
+  dac_state_t *dac = (dac_state_t *)hdac;
   sos_debug_log_error(SOS_DEBUG_DEVICE, "DAC 1 Error %d", hdac->ErrorCode);
 #if defined DAC_SR_OVR
   hdac->Instance->SR &= ~DAC_SR_OVR;
@@ -362,21 +356,21 @@ void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
 
   // MCU_EVENT_FLAG_HALF_TRANSFER
 
-  dac_local_t *local = (dac_local_t *)hdac;
+  dac_state_t *state = (dac_state_t *)hdac;
 
   // since this is streaming, the transfer handler is restored if requested
-  devfs_async_t *async = local->transfer_handler.write;
+  devfs_async_t *async = state->transfer_handler.write;
   int result;
 
   result = devfs_execute_write_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     2,
     MCU_EVENT_FLAG_LOW | MCU_EVENT_FLAG_WRITE_COMPLETE);
   if (result) {
-    local->transfer_handler.write = async;
-    if (local->hal_handle.DMA_Handle1) {
-      mcu_core_clean_data_cache_block(async->buf, async->nbyte / 2);
+    state->transfer_handler.write = async;
+    if (state->hal_handle.DMA_Handle1) {
+      sos_config.cache.clean_data_block(async->buf, async->nbyte / 2);
     }
   } else {
     HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
@@ -385,19 +379,19 @@ void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
 }
 
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
-  dac_local_t *local = (dac_local_t *)hdac;
-  devfs_async_t *async = local->transfer_handler.write;
+  dac_state_t *state = (dac_state_t *)hdac;
+  devfs_async_t *async = state->transfer_handler.write;
   int result;
 
   result = devfs_execute_write_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     0,
     MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
   if (result) {
-    local->transfer_handler.write = async;
-    if (local->hal_handle.DMA_Handle1) {
-      mcu_core_clean_data_cache_block(
+    state->transfer_handler.write = async;
+    if (state->hal_handle.DMA_Handle1) {
+      sos_config.cache.clean_data_block(
         (char *)async->buf + async->nbyte / 2,
         async->nbyte / 2);
     }
@@ -408,19 +402,19 @@ void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
 }
 
 void HAL_DACEx_ConvCpltCallbackCh2(DAC_HandleTypeDef *hdac) {
-  dac_local_t *local = (dac_local_t *)hdac;
-  devfs_async_t *async = local->transfer_handler.write;
+  dac_state_t *state = (dac_state_t *)hdac;
+  devfs_async_t *async = state->transfer_handler.write;
   int result;
 
   result = devfs_execute_write_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     0,
     MCU_EVENT_FLAG_HIGH | MCU_EVENT_FLAG_WRITE_COMPLETE);
   if (result) {
-    local->transfer_handler.write = async;
-    if (local->hal_handle.DMA_Handle2) {
-      mcu_core_clean_data_cache_block(
+    state->transfer_handler.write = async;
+    if (state->hal_handle.DMA_Handle2) {
+      sos_config.cache.clean_data_block(
         (char *)async->buf + async->nbyte / 2,
         async->nbyte / 2);
     }
@@ -433,21 +427,21 @@ void HAL_DACEx_ConvCpltCallbackCh2(DAC_HandleTypeDef *hdac) {
 void HAL_DACEx_ConvHalfCpltCallbackCh2(DAC_HandleTypeDef *hdac) {
 
   // MCU_EVENT_FLAG_HALF_TRANSFER
-  dac_local_t *local = (dac_local_t *)hdac;
+  dac_state_t *state = (dac_state_t *)hdac;
 
   // since this is streaming, the transfer handler is restored if requested
-  devfs_async_t *async = local->transfer_handler.write;
+  devfs_async_t *async = state->transfer_handler.write;
   int result;
 
   result = devfs_execute_write_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     2,
     MCU_EVENT_FLAG_LOW | MCU_EVENT_FLAG_WRITE_COMPLETE);
   if (result) {
-    local->transfer_handler.write = async;
-    if (local->hal_handle.DMA_Handle2) {
-      mcu_core_clean_data_cache_block(async->buf, async->nbyte / 2);
+    state->transfer_handler.write = async;
+    if (state->hal_handle.DMA_Handle2) {
+      sos_config.cache.clean_data_block(async->buf, async->nbyte / 2);
     }
   } else {
 
@@ -457,17 +451,17 @@ void HAL_DACEx_ConvHalfCpltCallbackCh2(DAC_HandleTypeDef *hdac) {
 }
 
 void HAL_DACEx_ErrorCallbackCh2(DAC_HandleTypeDef *hdac) {
-  dac_local_t *local = (dac_local_t *)hdac;
+  dac_state_t *state = (dac_state_t *)hdac;
   sos_debug_log_error(SOS_DEBUG_DEVICE, "DAC 2 Error %d", hdac->ErrorCode);
 #if defined DAC_SR_OVR
   hdac->Instance->SR &= ~DAC_SR_OVR;
 #endif
   devfs_execute_write_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     SYSFS_SET_RETURN(EIO),
     MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
-  if ((local->o_flags & DAC_LOCAL_FLAG_IS_DMA) == 0) {
+  if ((state->o_flags & DAC_LOCAL_FLAG_IS_DMA) == 0) {
     // HAL_DAC_Stop_IT(hdac);
   } else {
     // HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_2);
@@ -475,10 +469,10 @@ void HAL_DACEx_ErrorCallbackCh2(DAC_HandleTypeDef *hdac) {
 }
 
 void HAL_DACEx_DMAUnderrunCallbackCh2(DAC_HandleTypeDef *hdac) {
-  dac_local_t *local = (dac_local_t *)hdac;
+  dac_state_t *state = (dac_state_t *)hdac;
   sos_debug_log_error(SOS_DEBUG_DEVICE, "DAC Under Error %d", hdac->ErrorCode);
   devfs_execute_write_handler(
-    &local->transfer_handler,
+    &state->transfer_handler,
     0,
     SYSFS_SET_RETURN(EIO),
     MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR);
@@ -487,15 +481,15 @@ void HAL_DACEx_DMAUnderrunCallbackCh2(DAC_HandleTypeDef *hdac) {
 
 // shared with TIM6 -- called from mcu_core_tim6_dac_isr()
 void mcu_core_dac_isr() {
-  if (m_dac_local[0].hal_handle.Instance != 0) {
-    HAL_DAC_IRQHandler(&m_dac_local[0].hal_handle);
+  if (m_dac_state_list[0]->hal_handle.Instance != 0) {
+    HAL_DAC_IRQHandler(&m_dac_state_list[0]->hal_handle);
   }
 #if MCU_DAC_PORTS > 1
-  HAL_DAC_IRQHandler(&m_dac_local[1].hal_handle);
+  HAL_DAC_IRQHandler(&m_dac_state_list[1]->hal_handle);
 #endif
 #if MCU_DAC_PORTS > 2
-  if (m_dac_local[2]) {
-    HAL_DAC_IRQHandler(&m_dac_local[2].hal_handle);
+  if (m_dac_state_list[2]) {
+    HAL_DAC_IRQHandler(&m_dac_state_list[2]->hal_handle);
   }
 #endif
 }

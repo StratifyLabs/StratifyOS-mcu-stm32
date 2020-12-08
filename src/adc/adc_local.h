@@ -24,14 +24,6 @@
 #include "stm32_local.h"
 #include <mcu/adc.h>
 
-typedef struct {
-  ADC_HandleTypeDef hal_handle;
-  devfs_transfer_handler_t transfer_handler;
-  int words_read;
-  u32 o_flags;
-  u8 ref_count;
-} adc_local_t;
-
 enum {
   ADC_LOCAL_IS_DMA = (1 << 0),
   ADC_LOCAL_IS_I2S = (1 << 1),
@@ -42,7 +34,7 @@ extern ADC_TypeDef *const adc_regs_table[MCU_ADC_PORTS];
 extern u8 const adc_irqs[MCU_ADC_PORTS];
 extern const u32 adc_channels[MCU_ADC_CHANNELS];
 
-extern adc_local_t m_adc_local[MCU_ADC_PORTS] MCU_SYS_MEM;
+extern adc_state_t *m_adc_state_list[MCU_ADC_PORTS] MCU_SYS_MEM;
 
 int adc_local_open(const devfs_handle_t *handle);
 int adc_local_close(const devfs_handle_t *handle);
