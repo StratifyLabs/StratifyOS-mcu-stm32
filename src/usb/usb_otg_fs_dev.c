@@ -23,6 +23,7 @@
 #include <mcu/core.h>
 #include <mcu/pio.h>
 #include <mcu/usb.h>
+#include <sos/config.h>
 #include <sos/debug.h>
 #include <sos/sos_events.h>
 #include <usbd/types.h>
@@ -78,7 +79,6 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
 
 int mcu_usb_open(const devfs_handle_t *handle) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
-  u32 port = config->port;
   if (state->ref_count == 0) {
     DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(usb);
     // Set callbacks to NULL
@@ -86,7 +86,7 @@ int mcu_usb_open(const devfs_handle_t *handle) {
     clear_callbacks(state);
     state->hal_handle.Instance = usb_regs_table[config->port];
 
-    if (port == 0) {
+    if (config->port == 0) {
 #if MCU_USB_API > 0
       __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
 #else
@@ -205,11 +205,11 @@ int mcu_usb_setattr(const devfs_handle_t *handle, void *ctl) {
     }
     state->hal_handle.Init.dma_enable = DISABLE;
     state->hal_handle.Init.ep0_mps = DEP0CTL_MPS_64;
-    if (attr->max_packet_size <= 8) {
+    if (sos_config.usb.control_endpoint_max_size <= 8) {
       state->hal_handle.Init.ep0_mps = DEP0CTL_MPS_8;
-    } else if (attr->max_packet_size <= 16) {
+    } else if (sos_config.usb.control_endpoint_max_size <= 16) {
       state->hal_handle.Init.ep0_mps = DEP0CTL_MPS_16;
-    } else if (attr->max_packet_size <= 32) {
+    } else if (sos_config.usb.control_endpoint_max_size <= 32) {
       state->hal_handle.Init.ep0_mps = DEP0CTL_MPS_32;
     }
 
@@ -245,9 +245,7 @@ int mcu_usb_setattr(const devfs_handle_t *handle, void *ctl) {
     }
 #endif
 
-    SOS_DEBUG_LINE_TRACE();
     if (HAL_PCD_Init(&state->hal_handle) != HAL_OK) {
-      SOS_DEBUG_LINE_TRACE();
       return SYSFS_SET_RETURN(EIO);
     }
 
@@ -731,7 +729,6 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd) {
 
   // Setup data is in hpcd->Setup buffer at this point
 
-  sos_debug_printf("pcd setup\n");
   // copy setup data to ep0 data buffer
   state->read_ready |= (1 << 0);
   dest_buffer = stm32_config.usb.rx_buffer + state->rx_buffer_offset[0];
@@ -848,9 +845,8 @@ void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {}
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd) {
   int i;
 
-  SOS_DEBUG_LINE_TRACE();
   usb_state_t *usb = (usb_state_t *)hpcd;
-  const u32 mps = stm32_config.usb.max_packet_zero;
+  const u32 mps = sos_config.usb.control_endpoint_max_size;
   usb->connected = 1;
   usb->rx_buffer_used = mps;
   memset(usb->rx_buffer_offset, 0, MCU_USB_ENDPOINT_COUNT * sizeof(u16));
@@ -873,9 +869,9 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd) {
 #endif
 
 #if 0
-	//this causes problems when USB cable is removed -- don't do it
-	HAL_PCD_EP_Close(hpcd, 0x00);
-	HAL_PCD_EP_Close(hpcd, 0x80);
+  // this causes problems when USB cable is removed -- don't do it
+  HAL_PCD_EP_Close(hpcd, 0x00);
+  HAL_PCD_EP_Close(hpcd, 0x80);
 #endif
 }
 

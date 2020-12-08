@@ -48,7 +48,6 @@ enum {
 typedef struct {
   void *rx_buffer;
   u16 rx_buffer_size;
-  u16 max_packet_zero;
   u16 rx_fifo_word_size /*! RX FIFO word size for all endpoints (STM32) */;
   u8 tx_fifo_word_size
     [USB_TX_FIFO_WORD_SIZE_COUNT] /*! TX FIFO word size (used on STM32) */;
