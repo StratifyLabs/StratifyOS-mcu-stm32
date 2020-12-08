@@ -618,8 +618,8 @@ void i2c_clear_busy_flag_erratum(int port, i2c_state_t *i2c) {
   sda_pio_attr.o_pinmask = (1 << i2c->pin_assignment.sda.pin);
   hal_pio_setattr(sda_port, &sda_pio_attr);
 
-  hal_pio_setattr(scl_port, (void *)scl_pio_attr.o_pinmask);
-  hal_pio_setattr(sda_port, (void *)sda_pio_attr.o_pinmask);
+  hal_pio_setmask(scl_port, (void *)scl_pio_attr.o_pinmask);
+  hal_pio_setmask(sda_port, (void *)sda_pio_attr.o_pinmask);
 
   // 3. Check SCL and SDA High level in GPIOx_IDR.
 
