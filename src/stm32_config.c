@@ -126,6 +126,24 @@ void stm32_debug_write(const void *buf, int nbyte) {
   }
 }
 
+void stm32_pio_set_attributes(int port, const pio_attr_t *attr) {
+  hal_pio_setattr(port, (void *)attr);
+}
+
+void stm32_pio_write(int port, u32 mask, int value) {
+  if (value) {
+    hal_pio_setmask(port, (void *)mask);
+  } else {
+    hal_pio_clrmask(port, (void *)mask);
+  }
+}
+
+u32 stm32_pio_read(int port, u32 mask) {
+  u32 value;
+  hal_pio_get(port, &value);
+  return (mask & value);
+}
+
 int stm32_usb_set_attributes(const devfs_handle_t *handle, void *ctl) {
   return mcu_usb_setattr(handle, ctl);
 }

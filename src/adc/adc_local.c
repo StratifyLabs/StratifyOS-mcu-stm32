@@ -205,19 +205,23 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
 
   if (o_flags & ADC_FLAG_SET_CONVERTER) {
 
-#if MCU_ADC_API == 0
-    state->hal_handle.Init.DMAContinuousRequests = DISABLE;
-#else
+    // set DISABLE for all defaults
+    memset(&state->hal_handle.Init, 0, sizeof(state->hal_handle.Init));
 
-#endif
-    state->hal_handle.Init.ContinuousConvMode = DISABLE;
     state->hal_handle.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-    // scan mode only works with DMA (see adc_dma_dev.c for options)
-    state->hal_handle.Init.ScanConvMode = DISABLE;
-    // don't support discontinuous conversions
-    // ENABLE or DISABLE
-    state->hal_handle.Init.DiscontinuousConvMode = DISABLE;
-    state->hal_handle.Init.NbrOfDiscConversion = 0;
+    state->hal_handle.Init.NbrOfConversion = 1;
+
+#if defined ADC_LEFTBITSHIFT_NONE
+    state->hal_handle.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
+#endif
+
+#if defined ADC_OVR_DATA_PRESERVED
+    state->hal_handle.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+#endif
+
+#if defined ADC_CONVERSIONDATA_DR
+    state->hal_handle.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
+#endif
 
     if (state->o_flags & ADC_LOCAL_IS_DMA) {
       sos_debug_log_info(SOS_DEBUG_DEVICE, "Set ADC DMA Converter");
@@ -256,10 +260,10 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
       // ADC_EOC_SEQ_CONV
       // ADC_EOC_SINGLE_CONV
       // ADC_EOC_SINGLE_SEQ_CONV
-      state->hal_handle.Init.EOCSelection
-        = ADC_EOC_SEQ_CONV; // DMA needs to use end of sequence
-      state->hal_handle.Init.ScanConvMode
-        = ENABLE; // always do scan mode with DMA
+      // DMA needs to use end of sequence
+      state->hal_handle.Init.EOCSelection = ADC_EOC_SEQ_CONV;
+      // always do scan mode with DMA
+      state->hal_handle.Init.ScanConvMode = ENABLE;
     }
 
 #if defined ADC_DATAALIGN_LEFT
@@ -271,15 +275,16 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
     }
 #endif
 
-    state->hal_handle.Init.ClockPrescaler
-      = ADC_CLOCK_SYNC_PCLK_DIV4; // set based on the frequency
+    // set based on the frequency
+    state->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+    state->hal_handle.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
 
     // ADC_RESOLUTION_12B
     // ADC_RESOLUTION_10B
     // ADC_RESOLUTION_8B
     // ADC_RESOLUTION_6B
-    state->hal_handle.Init.Resolution
-      = ADC_RESOLUTION_12B; // default is max resolution
+    // default resolution
+    state->hal_handle.Init.Resolution = ADC_RESOLUTION_12B;
 #if defined ADC_RESOLUTION_6B
     if (attr->width == 6) {
       state->hal_handle.Init.Resolution = ADC_RESOLUTION_6B;
@@ -559,7 +564,6 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc) {
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
   // this is DMA only
-  // sos_debug_printf("h\n");
   adc_state_t *state = (adc_state_t *)hadc;
   int result;
   devfs_async_t *async;
@@ -581,7 +585,6 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
   adc_state_t *state = (adc_state_t *)hadc;
-  // sos_debug_printf("f\n");
 
   if (state->o_flags & ADC_LOCAL_IS_DMA) {
     int result;
@@ -624,19 +627,22 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 }
 
 void mcu_core_adc_isr() {
-  if (m_adc_state_list[0]->hal_handle.Instance) {
+  if (m_adc_state_list[0]) {
     HAL_ADC_IRQHandler(&m_adc_state_list[0]->hal_handle);
   }
 #if MCU_ADC_PORTS > 1
-  if (m_adc_state_list[1]->hal_handle.Instance) {
+  if (m_adc_state_list[1]) {
     HAL_ADC_IRQHandler(&m_adc_state_list[1]->hal_handle);
   }
 #endif
+}
+
 #if MCU_ADC_PORTS > 2
-  if (m_adc_state_list[2]->hal_handle.Instance) {
+void mcu_core_adc3_isr() {
+  if (m_adc_state_list[2]) {
     HAL_ADC_IRQHandler(&m_adc_state_list[2]->hal_handle);
   }
-#endif
 }
+#endif
 
 #endif

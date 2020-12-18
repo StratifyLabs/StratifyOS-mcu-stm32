@@ -383,7 +383,7 @@ void mcu_core_dac_isr() {}
 void mcu_core_tim6_dac_isr() {
   // TIM6 is shared with the DAC
   mcu_core_dac_isr();
-  if (m_tmr_state_list[5]->hal_handle.Instance != NULL) {
+  if (m_tmr_state_list[5] != NULL) {
     tmr_isr(5);
   }
 }

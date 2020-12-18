@@ -60,7 +60,6 @@ int mcu_mem_getinfo(const devfs_handle_t *handle, void *ctl) {
   info->ram_size = SRAM_SIZE;
   info->usage = mcu_ram_usage_table;
   info->usage_size = APPFS_RAM_USAGE_WORDS(MCU_RAM_PAGES) * sizeof(u32);
-  info->system_ram_page = 0;
   return 0;
 }
 int mcu_mem_setattr(const devfs_handle_t *handle, void *ctl) { return 0; }

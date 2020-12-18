@@ -128,30 +128,26 @@ int mcu_dac_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
   return SYSFS_SET_RETURN(ENOTSUP);
 }
 
+#if defined STM32H7
+#define MIN_DAC_SIZE 4
+#else
+#define MIN_DAC_SIZE 2
+#endif
+
 int mcu_dac_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   u32 channel;
 
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
-  if (async->nbyte < 2) {
-    state->transfer_handler.write = 0;
+  if (async->nbyte < MIN_DAC_SIZE) {
+    state->transfer_handler.write = NULL;
     return SYSFS_SET_RETURN(EINVAL);
   }
 
   async->nbyte &= ~0x01; // align to 2 byte boundary
 
   channel = m_dac_channels[config->port];
-
-  sos_debug_log_info(
-    SOS_DEBUG_DEVICE,
-    "DAC DMA write %d words on channel 0x%X",
-#if defined STM32H7
-    async->nbyte / 4,
-#else
-    async->nbyte / 2,
-#endif
-    channel);
 
   sos_config.cache.clean_data_block(async->buf, async->nbyte);
 
@@ -160,19 +156,14 @@ int mcu_dac_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
       &state->hal_handle,
       channel,
       async->buf,
-#if defined STM32H7
-      async->nbyte / 4,
-#else
-      async->nbyte / 2,
-#endif
+      async->nbyte / MIN_DAC_SIZE,
       dac_local_get_alignment(state))
     == HAL_OK) {
-    // sos_debug_root_printf("wait DMA\n");
     return 0;
   }
 
   // this needs to read 1 byte at a time
-  state->transfer_handler.write = 0;
+  state->transfer_handler.write = NULL;
   return SYSFS_SET_RETURN(EIO);
 }
 

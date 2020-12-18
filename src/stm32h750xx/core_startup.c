@@ -324,8 +324,8 @@ void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   mcu_core_default_isr,
   _ISR(sdmmc2), // 124
   _ISR(hsem1),  // 125
-  _ISR(adc3),   // 127
   mcu_core_default_isr,
+  _ISR(adc3),          // 127
   _ISR(dmamux2),       // 128
   _ISR(bdma_channel0), // 129
   _ISR(bdma_channel1), // 130

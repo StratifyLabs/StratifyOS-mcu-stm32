@@ -72,7 +72,7 @@ int mcu_adc_read(const devfs_handle_t *handle, devfs_async_t *async) {
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
   if (async->nbyte < 2) {
-    state->transfer_handler.read = 0;
+    state->transfer_handler.read = NULL;
     return SYSFS_SET_RETURN(EINVAL);
   }
 
@@ -80,13 +80,27 @@ int mcu_adc_read(const devfs_handle_t *handle, devfs_async_t *async) {
   // group
   if ((u32)async->loc < MCU_ADC_CHANNELS) {
     // configure the channel to read
-    ADC_ChannelConfTypeDef channel_config;
-    channel_config.Offset = 0;
+    ADC_ChannelConfTypeDef channel_config = {0};
     channel_config.Channel = adc_channels[async->loc];
+#if defined ADC_REGULAR_RANK_1
+    channel_config.Rank = ADC_REGULAR_RANK_1;
+#else
     channel_config.Rank = 1;
+#endif
 #if defined ADC_SAMPLETIME_15CYCLES
     channel_config.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+#elif defined ADC_SAMPLETIME_32CYCLES_5
+    channel_config.SamplingTime = ADC_SAMPLETIME_32CYCLES_5;
 #endif
+
+#if defined ADC_SINGLE_ENDED
+    channel_config.SingleDiff = ADC_SINGLE_ENDED;
+#endif
+
+#if defined ADC_OFFSET_NONE
+    channel_config.OffsetNumber = ADC_OFFSET_NONE;
+#endif
+
     if (HAL_ADC_ConfigChannel(&state->hal_handle, &channel_config) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
@@ -100,7 +114,7 @@ int mcu_adc_read(const devfs_handle_t *handle, devfs_async_t *async) {
   }
 
   // this needs to read 1 byte at a time
-  state->transfer_handler.read = 0;
+  state->transfer_handler.read = NULL;
   return SYSFS_SET_RETURN(EIO);
 }
 

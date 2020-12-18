@@ -77,7 +77,7 @@ int mcu_spi_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
   info->o_flags = SPI_FLAG_SET_MASTER | SPI_FLAG_IS_MODE0 | SPI_FLAG_IS_MODE1
                   | SPI_FLAG_IS_MODE2 | SPI_FLAG_IS_MODE3
                   | SPI_FLAG_IS_FORMAT_SPI | SPI_FLAG_IS_FORMAT_TI
-                  | SPI_FLAG_IS_FULL_DUPLEX | SPI_FLAG_IS_HALF_DUPLEX;
+                  | SPI_FLAG_SET_FULL_DUPLEX | SPI_FLAG_SET_HALF_DUPLEX;
 
   info->o_events = MCU_EVENT_FLAG_DATA_READY | MCU_EVENT_FLAG_WRITE_COMPLETE
                    | MCU_EVENT_FLAG_CANCELED | MCU_EVENT_FLAG_ERROR;

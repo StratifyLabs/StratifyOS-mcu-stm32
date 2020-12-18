@@ -20,15 +20,19 @@
 #ifndef ADC_LOCAL_H_
 #define ADC_LOCAL_H_
 
+#include <mcu/adc.h>
+
+#include "stm32_dev_local.h"
 #include "stm32_dma.h"
 #include "stm32_local.h"
-#include <mcu/adc.h>
 
 enum {
   ADC_LOCAL_IS_DMA = (1 << 0),
   ADC_LOCAL_IS_I2S = (1 << 1),
   ADC_LOCAL_IS_FULL_DUPLEX = (1 << 2)
 };
+
+#if MCU_ADC_PORTS > 0
 
 extern ADC_TypeDef *const adc_regs_table[MCU_ADC_PORTS];
 extern u8 const adc_irqs[MCU_ADC_PORTS];
@@ -41,4 +45,5 @@ int adc_local_close(const devfs_handle_t *handle);
 int adc_local_setattr(const devfs_handle_t *handle, void *ctl);
 int adc_local_getinfo(const devfs_handle_t *handle, void *ctl);
 
+#endif
 #endif /* ADC_LOCAL_H_ */

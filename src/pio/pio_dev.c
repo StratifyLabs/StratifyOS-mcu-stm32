@@ -217,11 +217,9 @@ int mcu_pio_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int hal_pio_setattr(int port, void *ctl) {
-  GPIO_InitTypeDef gpio_init;
+  GPIO_InitTypeDef gpio_init = {0};
   GPIO_TypeDef *const regs = m_pio_regs_table[port];
   pio_attr_t *attr = ctl;
-
-  memset(&gpio_init, 0, sizeof(GPIO_InitTypeDef));
 
   // decode the direction
   gpio_init.Mode = GPIO_MODE_INPUT;

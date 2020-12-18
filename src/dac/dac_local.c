@@ -150,14 +150,14 @@ int dac_local_getinfo(const devfs_handle_t *handle, void *ctl) {
   info->o_flags = DAC_FLAG_IS_LEFT_JUSTIFIED | DAC_FLAG_IS_RIGHT_JUSTIFIED
                   | DAC_FLAG_SET_CONVERTER;
   info->o_events = MCU_EVENT_FLAG_DATA_READY;
-  // info->maximum = 0xffff; //max value
+  info->maximum = (1 << 12) - 1; // max value
   info->freq = 1000000; // max frequency
-  // info->bytes_per_sample = 2;
+  info->bytes_per_sample = 2;
 
   if (config) {
-    // info->reference_mv = config->reference_mv;
+    info->reference_mv = config->reference_mv;
   } else {
-    // info->reference_mv = 0;
+    info->reference_mv = 3000;
   }
 
   return SYSFS_RETURN_SUCCESS;
@@ -181,6 +181,18 @@ int dac_local_setattr(const devfs_handle_t *handle, void *ctl) {
 
   if (o_flags & DAC_FLAG_SET_CHANNELS) {
     // pin assignments
+
+    sos_debug_printf(
+      "PA:%d.%d %d.%d %d.%d %d.%d\n",
+      attr->pin_assignment.channel[0].port,
+      attr->pin_assignment.channel[0].pin,
+      attr->pin_assignment.channel[1].port,
+      attr->pin_assignment.channel[1].pin,
+      attr->pin_assignment.channel[2].port,
+      attr->pin_assignment.channel[2].pin,
+      attr->pin_assignment.channel[3].port,
+      attr->pin_assignment.channel[3].pin);
+
     if (
       mcu_set_pin_assignment(
         &(attr->pin_assignment),
@@ -309,7 +321,7 @@ u32 dac_local_get_alignment(dac_state_t *dac) {
 int dac_local_set(const devfs_handle_t *handle, void *ctl) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(dac);
   u32 channel;
-  mcu_channel_t *mcu_channel = ctl;
+  const mcu_channel_t *mcu_channel = ctl;
 
   if (config->port < MCU_DAC_PORTS) {
     channel = m_dac_channels[config->port];
@@ -317,6 +329,10 @@ int dac_local_set(const devfs_handle_t *handle, void *ctl) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
+  sos_debug_printf(
+    "set channel value to %d.%d\n",
+    mcu_channel->loc,
+    mcu_channel->value);
   if (
     HAL_DAC_SetValue(
       &state->hal_handle,
@@ -481,7 +497,7 @@ void HAL_DACEx_DMAUnderrunCallbackCh2(DAC_HandleTypeDef *hdac) {
 
 // shared with TIM6 -- called from mcu_core_tim6_dac_isr()
 void mcu_core_dac_isr() {
-  if (m_dac_state_list[0]->hal_handle.Instance != 0) {
+  if (m_dac_state_list[0] != 0) {
     HAL_DAC_IRQHandler(&m_dac_state_list[0]->hal_handle);
   }
 #if MCU_DAC_PORTS > 1

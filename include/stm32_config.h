@@ -4,6 +4,7 @@
 #include <sdk/types.h>
 
 #include <mcu/uart.h>
+#include <sos/dev/pio.h>
 
 void stm32_initialize();
 void stm32_initialize_systick();
@@ -24,6 +25,11 @@ u32 stm32_clock_nanoseconds();
 // debug
 void stm32_debug_initialize();
 void stm32_debug_write(const void *buf, int nbyte);
+
+// pio
+void stm32_pio_set_attributes(int port, const pio_attr_t *attr);
+void stm32_pio_write(int port, u32 mask, int value);
+u32 stm32_pio_read(int port, u32 mask);
 
 // usb
 int stm32_usb_set_attributes(const devfs_handle_t *handle, void *ctl);
@@ -56,6 +62,7 @@ typedef struct {
 typedef struct MCU_PACK {
   u16 flash_program_millivolts;
   u16 flags;
+  u32 oscillator_frequency;
   uart_config_t debug_uart_config;
   stm32_usb_config_t usb;
 } stm32_config_t;
