@@ -17,15 +17,16 @@
  *
  */
 
-#include "cortexm/cortexm.h"
-#include "mcu/adc.h"
-#include "mcu/core.h"
-#include "sos/debug.h"
-#include "mcu/pio.h"
-#include "stm32_local.h"
 #include <fcntl.h>
 
+#include <cortexm/cortexm.h>
+#include <mcu/adc.h>
+#include <mcu/core.h>
+#include <mcu/pio.h>
+#include <sos/debug.h>
+
 #include "adc_local.h"
+#include "stm32_local.h"
 
 #if MCU_ADC_PORTS > 0
 
@@ -34,6 +35,27 @@ u8 const adc_irqs[MCU_ADC_PORTS] = MCU_ADC_IRQS;
 adc_state_t *m_adc_state_list[MCU_ADC_PORTS] MCU_SYS_MEM;
 
 const u32 adc_channels[MCU_ADC_CHANNELS] = MCU_ADC_CHANNEL_VALUES;
+
+#if defined ADC_REGULAR_RANK_1
+const u32 rank_table[16] = {
+  ADC_REGULAR_RANK_1,
+  ADC_REGULAR_RANK_2,
+  ADC_REGULAR_RANK_3,
+  ADC_REGULAR_RANK_4,
+  ADC_REGULAR_RANK_5,
+  ADC_REGULAR_RANK_6,
+  ADC_REGULAR_RANK_7,
+  ADC_REGULAR_RANK_8,
+  ADC_REGULAR_RANK_9,
+  ADC_REGULAR_RANK_10,
+  ADC_REGULAR_RANK_11,
+  ADC_REGULAR_RANK_12,
+  ADC_REGULAR_RANK_13,
+  ADC_REGULAR_RANK_14,
+  ADC_REGULAR_RANK_15,
+  ADC_REGULAR_RANK_16};
+
+#endif
 
 int adc_local_open(const devfs_handle_t *handle) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(adc);
@@ -244,10 +266,12 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
         if (attr->channel_count && attr->channel_count <= 16) {
           state->hal_handle.Init.NbrOfConversion = attr->channel_count;
         } else {
+          SOS_DEBUG_LINE_TRACE();
           return SYSFS_SET_RETURN(EINVAL);
         }
       } else {
         // scan mode is always on for DMA based operations
+        SOS_DEBUG_LINE_TRACE();
         return SYSFS_SET_RETURN(EINVAL);
       }
 
@@ -352,6 +376,7 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
           break;
 #endif
         default:
+          SOS_DEBUG_LINE_TRACE();
           return SYSFS_SET_RETURN(EINVAL);
         }
 #if defined ADC_EXTERNALTRIGCONV_T2_TRGO
@@ -426,9 +451,19 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
             = ADC_EXTERNALTRIGCONV_T8_TRGO;
           break;
 #endif
+#if defined ADC_EXTERNALTRIG_T8_TRGO
+        case 0:
+          state->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T8_TRGO;
+          break;
+#endif
 #if defined ADC_EXTERNALTRIGCONV_T8_CC1
         case 1:
           state->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T8_CC1;
+          break;
+#endif
+#if defined ADC_EXTERNALTRIG_T8_TRGO2
+        case 1:
+          state->hal_handle.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T8_TRGO2;
           break;
 #endif
         default:
@@ -471,6 +506,12 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
     if (HAL_ADC_Init(&state->hal_handle) < 0) {
       return SYSFS_SET_RETURN(EIO);
     }
+
+#if defined ADC_MODE_INDEPENDENT
+    ADC_MultiModeTypeDef multimode = {0};
+    multimode.Mode = ADC_MODE_INDEPENDENT;
+    HAL_ADCEx_MultiModeConfigChannel(&state->hal_handle, &multimode);
+#endif
   }
 
   if ((o_flags & ADC_FLAG_SET_CHANNELS) && (o_flags & ADC_FLAG_IS_GROUP)) {
@@ -490,6 +531,9 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
     if (channel_config.Rank > 16) {
       channel_config.Rank = 16;
     }
+#if defined ADC_REGULAR_RANK_1
+    channel_config.Rank = rank_table[channel_config.Rank - 1];
+#endif
 
 #if defined STM32L4
 
@@ -529,6 +573,14 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
       channel_config.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
     }
 #endif
+#endif
+
+#if defined ADC_SINGLE_ENDED
+    channel_config.SingleDiff = ADC_SINGLE_ENDED;
+#endif
+
+#if defined ADC_OFFSET_NONE
+    channel_config.OffsetNumber = ADC_OFFSET_NONE;
 #endif
 
     if (HAL_ADC_ConfigChannel(&state->hal_handle, &channel_config) != HAL_OK) {

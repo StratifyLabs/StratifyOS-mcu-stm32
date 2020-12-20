@@ -23,7 +23,7 @@ void stm32_get_serial_number(mcu_sn_t *serial_number) {
 
 static tmr_state_t m_clock_tmr_state;
 const tmr_config_t m_clock_tmr_config = {
-  .port = 1,
+  .port = 4,
   .attr = {
     .o_flags
     = TMR_FLAG_SET_TIMER | TMR_FLAG_IS_SOURCE_CPU | TMR_FLAG_IS_AUTO_RELOAD,
@@ -37,6 +37,7 @@ const tmr_config_t m_clock_tmr_config = {
 
 static const devfs_handle_t m_clock_tmr_handle
   = {.state = &m_clock_tmr_state, .config = &m_clock_tmr_config};
+
 void stm32_clock_initialize(
   int (*handle_match_channel0)(void *context, const mcu_event_t *data),
   int (*handle_match_channel1)(void *context, const mcu_event_t *data),
