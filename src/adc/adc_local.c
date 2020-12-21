@@ -264,14 +264,13 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
       if (o_flags & ADC_FLAG_IS_SCAN_MODE) {
         // up to 1 to 16 conversions
         if (attr->channel_count && attr->channel_count <= 16) {
+          sos_debug_printf("channel count %d\n", attr->channel_count);
           state->hal_handle.Init.NbrOfConversion = attr->channel_count;
         } else {
-          SOS_DEBUG_LINE_TRACE();
           return SYSFS_SET_RETURN(EINVAL);
         }
       } else {
         // scan mode is always on for DMA based operations
-        SOS_DEBUG_LINE_TRACE();
         return SYSFS_SET_RETURN(EINVAL);
       }
 
@@ -285,6 +284,10 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
       // ADC_EOC_SINGLE_CONV
       // ADC_EOC_SINGLE_SEQ_CONV
       // DMA needs to use end of sequence
+#if defined ADC_CONVERSIONDATA_DMA_CIRCULAR
+      state->hal_handle.Init.ConversionDataManagement
+        = ADC_CONVERSIONDATA_DMA_CIRCULAR;
+#endif
       state->hal_handle.Init.EOCSelection = ADC_EOC_SEQ_CONV;
       // always do scan mode with DMA
       state->hal_handle.Init.ScanConvMode = ENABLE;
@@ -376,7 +379,6 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
           break;
 #endif
         default:
-          SOS_DEBUG_LINE_TRACE();
           return SYSFS_SET_RETURN(EINVAL);
         }
 #if defined ADC_EXTERNALTRIGCONV_T2_TRGO
@@ -516,8 +518,7 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
 
   if ((o_flags & ADC_FLAG_SET_CHANNELS) && (o_flags & ADC_FLAG_IS_GROUP)) {
 
-    ADC_ChannelConfTypeDef channel_config;
-    channel_config.Channel = 0;
+    ADC_ChannelConfTypeDef channel_config = {0};
     if (attr->channel < MCU_ADC_CHANNELS) {
       channel_config.Channel = adc_channels[attr->channel];
     } else {
@@ -617,11 +618,8 @@ void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc) {
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
   // this is DMA only
   adc_state_t *state = (adc_state_t *)hadc;
-  int result;
-  devfs_async_t *async;
-
-  async = state->transfer_handler.read;
-  result = devfs_execute_read_handler(
+  devfs_async_t *async = state->transfer_handler.read;
+  int result = devfs_execute_read_handler(
     &state->transfer_handler,
     0,
     0,
@@ -637,13 +635,9 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
   adc_state_t *state = (adc_state_t *)hadc;
-
   if (state->o_flags & ADC_LOCAL_IS_DMA) {
-    int result;
-    devfs_async_t *async;
-
-    async = state->transfer_handler.read;
-    result = devfs_execute_read_handler(
+    devfs_async_t *async = state->transfer_handler.read;
+    int result = devfs_execute_read_handler(
       &state->transfer_handler,
       0,
       0,

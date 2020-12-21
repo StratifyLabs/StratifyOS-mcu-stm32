@@ -131,7 +131,7 @@ int mcu_adc_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
   if (async->nbyte < 2) {
-    state->transfer_handler.read = 0;
+    state->transfer_handler.read = NULL;
     return SYSFS_SET_RETURN(EINVAL);
   }
 
@@ -177,7 +177,7 @@ int mcu_adc_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
     return 0;
   }
 
-  state->transfer_handler.read = 0;
+  state->transfer_handler.read = NULL;
   return SYSFS_SET_RETURN(EIO);
 }
 
