@@ -264,7 +264,6 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
       if (o_flags & ADC_FLAG_IS_SCAN_MODE) {
         // up to 1 to 16 conversions
         if (attr->channel_count && attr->channel_count <= 16) {
-          sos_debug_printf("channel count %d\n", attr->channel_count);
           state->hal_handle.Init.NbrOfConversion = attr->channel_count;
         } else {
           return SYSFS_SET_RETURN(EINVAL);
@@ -672,6 +671,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
   }
 }
 
+// for ADC 1 and 2
 void mcu_core_adc_isr() {
   if (m_adc_state_list[0]) {
     HAL_ADC_IRQHandler(&m_adc_state_list[0]->hal_handle);
