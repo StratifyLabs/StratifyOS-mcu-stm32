@@ -37,6 +37,9 @@ int mcu_rng_open(const devfs_handle_t *handle) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(rng);
   if (state->ref_count == 0) {
     state->hal_handle.Instance = rng_regs_table[config->port];
+    DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(rng);
+    state->transfer_handler.read = NULL;
+    state->transfer_handler.write = NULL;
     switch (config->port) {
     case 0:
       __HAL_RCC_RNG_CLK_ENABLE();
@@ -59,6 +62,7 @@ int mcu_rng_close(const devfs_handle_t *handle) {
         break;
       }
       state->hal_handle.Instance = 0;
+      DEVFS_DRIVER_CLOSE_STATE_LOCAL_V4(rng);
     }
     state->ref_count--;
   }
@@ -89,6 +93,7 @@ int mcu_rng_setattr(const devfs_handle_t *handle, void *ctl) {
   }
 
   if (o_flags & RANDOM_FLAG_DISABLE) {
+    SOS_DEBUG_LINE_TRACE();
     if (HAL_RNG_DeInit(&state->hal_handle) != HAL_OK) {
       return SYSFS_SET_RETURN(EIO);
     }
@@ -101,12 +106,18 @@ int mcu_rng_setaction(const devfs_handle_t *handle, void *ctl) { return 0; }
 
 int mcu_rng_read(const devfs_handle_t *handle, devfs_async_t *async) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(rng);
+
+  if (async->nbyte & 0x03) {
+    return SYSFS_SET_RETURN(EINVAL);
+  }
+
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
+  // need to operate on 4 byte boundaries
   state->bytes_read = 0;
 
   if (HAL_RNG_GenerateRandomNumber_IT(&state->hal_handle) != HAL_OK) {
-    state->transfer_handler.read = 0;
+    state->transfer_handler.read = NULL;
     return SYSFS_SET_RETURN(EIO);
   }
 
@@ -119,6 +130,7 @@ int mcu_rng_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
 void HAL_RNG_ErrorCallback(RNG_HandleTypeDef *hrng) {
   rng_state_t *state = (rng_state_t *)hrng;
+  SOS_DEBUG_LINE_TRACE();
   devfs_execute_read_handler(
     &state->transfer_handler,
     0,

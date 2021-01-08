@@ -152,12 +152,27 @@ int mcu_uart_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
   // write won't be circular like read
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
-  ret = HAL_UART_Transmit_DMA(&state->hal_handle, async->buf, async->nbyte);
+#if 0
+  sos_debug_printf("w:\n");
+  for (u32 i = 0; i < async->nbyte; i++) {
+    if (i && (i % 16 == 0)) {
+      sos_debug_printf("\n");
+    }
+    sos_debug_printf("%02x ", ((char *)async->buf)[i]);
+  }
+  sos_debug_printf("\n");
+#endif
+
+  if (state->hal_handle.hdmatx) {
+    ret = HAL_UART_Transmit_DMA(&state->hal_handle, async->buf, async->nbyte);
+  } else {
+    ret = HAL_UART_Transmit_IT(&state->hal_handle, async->buf, async->nbyte);
+  }
   if (ret == HAL_OK) {
     return 0;
   }
 
-  state->transfer_handler.write = 0;
+  state->transfer_handler.write = NULL;
   return SYSFS_SET_RETURN(EIO);
 }
 
