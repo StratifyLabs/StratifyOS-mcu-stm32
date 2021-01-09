@@ -390,7 +390,7 @@ int uart_local_read(const devfs_handle_t *handle, devfs_async_t *async) {
 
     // if there aren't enough to fulfill the request
     // the timeout will kick in later
-    if (bytes_ready > async->nbyte) {
+    if (bytes_ready >= async->nbyte) {
       handle_bytes_received(state, bytes_ready);
     }
   }
