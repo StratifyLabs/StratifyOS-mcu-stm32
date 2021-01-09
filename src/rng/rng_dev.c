@@ -111,12 +111,16 @@ int mcu_rng_read(const devfs_handle_t *handle, devfs_async_t *async) {
     return SYSFS_SET_RETURN(EINVAL);
   }
 
+  if (state->transfer_handler.read) {
+    sos_debug_printf("RNG is busy %p\n", state->transfer_handler.read);
+  }
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
   // need to operate on 4 byte boundaries
   state->bytes_read = 0;
 
   if (HAL_RNG_GenerateRandomNumber_IT(&state->hal_handle) != HAL_OK) {
+    sos_debug_printf("EIO here %d\n", state->hal_handle.ErrorCode);
     state->transfer_handler.read = NULL;
     return SYSFS_SET_RETURN(EIO);
   }
@@ -131,11 +135,10 @@ int mcu_rng_write(const devfs_handle_t *handle, devfs_async_t *async) {
 void HAL_RNG_ErrorCallback(RNG_HandleTypeDef *hrng) {
   rng_state_t *state = (rng_state_t *)hrng;
   SOS_DEBUG_LINE_TRACE();
-  devfs_execute_read_handler(
-    &state->transfer_handler,
-    0,
-    SYSFS_SET_RETURN(EIO),
-    MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_CANCELED);
+  hrng->State = HAL_RNG_STATE_READY;
+
+  sos_debug_printf("RNG ERROR: %d\n", hrng->ErrorCode);
+  // TODO error
 }
 
 void HAL_RNG_ReadyDataCallback(RNG_HandleTypeDef *hrng, uint32_t random32bit) {

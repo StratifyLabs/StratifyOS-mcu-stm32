@@ -158,7 +158,7 @@ int mcu_uart_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
     if (i && (i % 16 == 0)) {
       sos_debug_printf("\n");
     }
-    sos_debug_printf("%02x ", ((char *)async->buf)[i]);
+    sos_debug_printf("%02X ", ((char *)async->buf)[i]);
   }
   sos_debug_printf("\n");
 #endif

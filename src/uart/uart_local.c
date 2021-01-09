@@ -279,7 +279,14 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
     if (state->fifo_config) {
       fifo_ioctl_local(state->fifo_config, &state->fifo_state, I_FIFO_INIT, 0);
       // enables idle interrupt
+#if defined USART_CR1_RTOIE
+      // config timeout for a half second
+      HAL_UART_ReceiverTimeout_Config(&state->hal_handle, freq / 20);
+      HAL_UART_EnableReceiverTimeout(&state->hal_handle);
+      SET_BIT(state->hal_handle.Instance->CR1, USART_CR1_RTOIE);
+#else
       SET_BIT(state->hal_handle.Instance->CR1, USART_CR1_IDLEIE);
+#endif
     }
   }
 
@@ -399,6 +406,8 @@ void handle_bytes_received(uart_state_t *state, u16 bytes_received) {
   fifo_data_received(state->fifo_config, &state->fifo_state);
 }
 
+#define SHOW_DMA_FIFO_PROGRESS 0
+
 void HAL_UART_RxIdleCallback(UART_HandleTypeDef *huart) {
   uart_state_t *state = (uart_state_t *)huart;
   u16 bytes_received;
@@ -409,8 +418,7 @@ void HAL_UART_RxIdleCallback(UART_HandleTypeDef *huart) {
 
 #if SHOW_DMA_FIFO_PROGRESS
     sos_debug_printf(
-      "i: %d - %d - %d\n",
-      state->fifo_config->size,
+      "i: %d - %d\n",
       __HAL_DMA_GET_COUNTER(huart->hdmarx),
       head);
 #endif
@@ -431,10 +439,7 @@ void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart) {
                    - state->fifo_state.atomic_position.access.head;
   handle_bytes_received(state, bytes_received);
 #if SHOW_DMA_FIFO_PROGRESS
-  sos_debug_printf(
-    "h: %d - %d\n",
-    state->fifo_config->size / 2,
-    state->fifo_state.atomic_position.access.head);
+  sos_debug_printf("h: %d\n", state->fifo_state.atomic_position.access.head);
 #endif
 }
 
@@ -447,10 +452,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
   handle_bytes_received(state, bytes_received);
 
 #if SHOW_DMA_FIFO_PROGRESS
-  sos_debug_printf(
-    "f: %d - %d\n",
-    state->fifo_config->size,
-    state->fifo_state.atomic_position.access.head);
+  sos_debug_printf("f: %d\n", state->fifo_state.atomic_position.access.head);
 #endif
 
   if (state->hal_handle.hdmarx == NULL) {
@@ -464,7 +466,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
   uart_state_t *state = (uart_state_t *)huart;
-  SOS_DEBUG_LINE_TRACE();
+
+#if defined USART_CR1_RTOIE
+  // not an error
+  if (huart->ErrorCode == HAL_UART_ERROR_RTO) {
+    HAL_UART_RxIdleCallback(&state->hal_handle);
+    return;
+  }
+#endif
+
+  sos_debug_printf("Error is %d\n", huart->ErrorCode);
   devfs_execute_read_handler(
     &state->transfer_handler,
     0,
@@ -517,11 +528,13 @@ void mcu_uart_isr(int port) {
   uart_state_t *state = m_uart_state_list[port];
   HAL_UART_IRQHandler(&state->hal_handle);
 
+#if !defined USART_CR1_RTOIE
   if (__HAL_UART_GET_FLAG(&state->hal_handle, UART_FLAG_IDLE)) {
     __HAL_UART_CLEAR_IDLEFLAG(&state->hal_handle);
     HAL_UART_RxIdleCallback(&state->hal_handle);
     return;
   }
+#endif
 }
 
 #if defined USART1

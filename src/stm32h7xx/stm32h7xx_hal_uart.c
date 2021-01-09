@@ -2245,6 +2245,8 @@ void HAL_UART_IRQHandler(UART_HandleTypeDef *huart)
       __HAL_UART_CLEAR_FLAG(huart, UART_CLEAR_RTOF);
 
       huart->ErrorCode |= HAL_UART_ERROR_RTO;
+      HAL_UART_ErrorCallback(huart);
+      return;
     }
 
     /* Call UART Error Call back function if need be ----------------------------*/
