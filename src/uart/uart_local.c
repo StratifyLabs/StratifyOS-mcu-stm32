@@ -281,7 +281,7 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
       // enables idle interrupt
 #if defined USART_CR1_RTOIE
       // config timeout for a half second
-      HAL_UART_ReceiverTimeout_Config(&state->hal_handle, freq / 20);
+      HAL_UART_ReceiverTimeout_Config(&state->hal_handle, freq / 50);
       HAL_UART_EnableReceiverTimeout(&state->hal_handle);
       SET_BIT(state->hal_handle.Instance->CR1, USART_CR1_RTOIE);
 #else
@@ -382,6 +382,19 @@ int uart_local_read(const devfs_handle_t *handle, devfs_async_t *async) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
+  // check the DMA for enough bytes to fulfill the request
+  if (state->hal_handle.hdmarx) {
+    u16 bytes_ready = state->fifo_config->size
+                      - __HAL_DMA_GET_COUNTER(state->hal_handle.hdmarx)
+                      - state->fifo_state.atomic_position.access.head;
+
+    // if there aren't enough to fulfill the request
+    // the timeout will kick in later
+    if (bytes_ready > async->nbyte) {
+      handle_bytes_received(state, bytes_ready);
+    }
+  }
+
   // read the fifo, block if no bytes are available
   int result
     = fifo_read_local(state->fifo_config, &state->fifo_state, async, 0);
@@ -470,6 +483,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 #if defined USART_CR1_RTOIE
   // not an error
   if (huart->ErrorCode == HAL_UART_ERROR_RTO) {
+    sos_debug_printf("idle\n");
     HAL_UART_RxIdleCallback(&state->hal_handle);
     return;
   }
@@ -484,14 +498,13 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
   // reset the head
   fifo_flush(&state->fifo_state);
   HAL_UART_AbortReceive_IT(huart);
-  if (state->hal_handle.hdmarx == 0) {
+  if (state->hal_handle.hdmarx == NULL) {
     // if not in circular DMA mode -- start the next interrupt based read
     HAL_UART_Receive_IT(
       &state->hal_handle,
       (u8 *)state->fifo_config->buffer,
       state->fifo_config->size);
   } else {
-    // if not in circular DMA mode -- start the next interrupt based read
     HAL_UART_Receive_DMA(
       &state->hal_handle,
       (u8 *)state->fifo_config->buffer,
