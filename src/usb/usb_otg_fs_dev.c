@@ -19,16 +19,14 @@
 
 #include <cortexm/cortexm.h>
 #include <fcntl.h>
-#include <mcu/boot_debug.h>
 #include <mcu/core.h>
 #include <mcu/pio.h>
 #include <mcu/usb.h>
 #include <sos/config.h>
 #include <sos/debug.h>
-#include <sos/sos_events.h>
+#include <sos/events.h>
 #include <usbd/types.h>
 
-#include "stm32_config.h"
 #include "stm32_local.h"
 
 #if MCU_USB_PORTS > 0

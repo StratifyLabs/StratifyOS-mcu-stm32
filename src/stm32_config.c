@@ -5,7 +5,6 @@
 #include <sos/dev/tmr.h>
 #include <sos/fs/devfs.h>
 
-#include "stm32_config.h"
 #include "stm32_local.h"
 #include "tmr/tmr_local.h"
 #include "uart/uart_local.h"

@@ -17,7 +17,7 @@
 #ifndef MCU_STM32H750XX_H_
 #define MCU_STM32H750XX_H_
 
-#include <mcu/types.h>
+#include <sdk/types.h>
 #include "cmsis/stm32h7xx.h"
 #include "cmsis/stm32h750xx.h"
 

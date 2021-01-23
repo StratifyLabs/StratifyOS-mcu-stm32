@@ -23,7 +23,7 @@
 #include <cortexm/cortexm.h>
 #include <cortexm/task.h>
 #include <mcu/mcu.h>
-#include <mcu/types.h>
+#include <sdk/types.h>
 
 void core_init();
 int _main();

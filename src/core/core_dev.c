@@ -14,11 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include <mcu/bootloader.h>
-#include <sos/sos_config.h>
+#include <sos/config.h>
 
 //#include "config.h"
-#include "stm32_config.h"
+#include "stm32/stm32_config.h"
 #include "stm32_flash.h"
 
 static u32 mcu_core_get_reset_src();
@@ -249,21 +248,6 @@ int enable_clock_out(int o_flags, int div) { return 0; }
 
 void mcu_core_set_nvic_priority(int irq, int prio) {
   NVIC_SetPriority((IRQn_Type)irq, prio);
-}
-
-void mcu_core_get_bootloader_api(void *args) {
-  void *ptr;
-  u32 *value = (u32 *)(MCU_FLASH_START + 36);
-
-  if (*value != 0) {
-    memcpy(
-      &ptr,
-      (void *)(MCU_FLASH_START + 36),
-      sizeof(void *));                           // get pointer to boot api
-    memcpy(args, ptr, sizeof(bootloader_api_t)); // copy boot api
-  } else {
-    memset(args, 0, sizeof(bootloader_api_t));
-  }
 }
 
 int mcu_core_write(const devfs_handle_t *cfg, devfs_async_t *async) {

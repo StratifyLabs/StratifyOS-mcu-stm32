@@ -20,17 +20,19 @@
 #ifndef STM32_LOCAL_H_
 #define STM32_LOCAL_H_
 
-#include <mcu/types.h>
+#include <sdk/types.h>
 #include <mcu/core.h>
 
 #define USE_FULL_LL_DRIVER
 
-#include "stm32_arch.h"
+#include "stm32/stm32_arch.h"
+#include "stm32/stm32_config.h"
 #include "stm32_dev_local.h"
 
-#include <fcntl.h>
 #include <cortexm/cortexm.h>
+#include <fcntl.h>
 #include <mcu/core.h>
+#include <mcu/mcu.h>
 #include <mcu/pio.h>
 #include <sos/debug.h>
 

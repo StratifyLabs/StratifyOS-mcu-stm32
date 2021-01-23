@@ -17,9 +17,7 @@
  *
  */
 
-#include <mcu/boot_debug.h>
 
-#include "stm32_config.h"
 #include "stm32_flash.h"
 
 #if defined STM32_FLASH_LAYOUT_32_32_32_32_128_256_256_256

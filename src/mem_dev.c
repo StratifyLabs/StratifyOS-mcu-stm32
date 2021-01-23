@@ -18,11 +18,10 @@
  */
 
 #include <cortexm/cortexm.h>
-#include <mcu/bootloader.h>
+#include <device/mem.h>
 #include <mcu/core.h>
-#include <sos/debug.h>
-#include <mcu/mem.h>
 #include <mcu/wdt.h>
+#include <sos/debug.h>
 #include <sos/dev/appfs.h>
 
 #include "stm32_flash.h"

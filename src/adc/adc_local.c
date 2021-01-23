@@ -303,7 +303,6 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
 
     // set based on the frequency
     state->hal_handle.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-    state->hal_handle.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
 
     // ADC_RESOLUTION_12B
     // ADC_RESOLUTION_10B

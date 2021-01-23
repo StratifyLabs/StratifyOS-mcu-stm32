@@ -17,10 +17,12 @@
  *
  */
 
-#include "stm32_flash.h"
-#include <mcu/bootloader.h>
 #include <mcu/flash.h>
+#include <mcu/mcu.h>
+#include <sos/dev/bootloader.h>
 #include <string.h>
+
+#include "stm32_flash.h"
 
 static int get_last_boot_page() {
   if (MCU_FLASH_CODE_START == MCU_FLASH_START) {
@@ -28,13 +30,13 @@ static int get_last_boot_page() {
     return stm32_flash_get_sector(MCU_FLASH_CODE_END);
   }
 
-  bootloader_api_t api;
-  mcu_core_get_bootloader_api(&api);
+  bootloader_api_t *api = mcu_core_get_bootloader_api();
 
-  if (api.code_size > 0) { // zero means there is no bootloader installed
-    return stm32_flash_get_sector(api.code_size);
+  if (api && api->code_size > 0) {
+    return stm32_flash_get_sector(api->code_size);
   }
 
+  // zero means there is no bootloader installed
   return -1;
 }
 

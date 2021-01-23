@@ -17,7 +17,7 @@
 #ifndef MCU_STM32F401XC_H_
 #define MCU_STM32F401XC_H_
 
-#include <mcu/types.h>
+#include <sdk/types.h>
 #include "cmsis/stm32f4xx.h"
 #include "cmsis/stm32f411xe.h"
 

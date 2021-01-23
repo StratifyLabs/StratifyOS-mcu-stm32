@@ -14,12 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>. */
 
-#ifndef MCU_STM32F723XX_H_
-#define MCU_STM32F723XX_H_
+#ifndef MCU_STM32F401XC_H_
+#define MCU_STM32F401XC_H_
 
-#include <mcu/types.h>
-#include "cmsis/stm32f7xx.h"
-#include "cmsis/stm32f723xx.h"
+#include <sdk/types.h>
+#include "cmsis/stm32f4xx.h"
+#include "cmsis/stm32f429xx.h"
 
 
 #define MCU_NO_HARD_FAULT 1
@@ -54,9 +54,9 @@
 #define MCU_CORE_PORTS 1
 #define MCU_EEPROM_PORTS 0
 #define MCU_SPI_API 0
-#define MCU_SPI_PORTS 5
-#define MCU_SPI_REGS { SPI1, SPI2, SPI3, SPI4, SPI5 }
-#define MCU_SPI_IRQS { SPI1_IRQn, SPI2_IRQn, SPI3_IRQn, SPI4_IRQn, SPI5_IRQn }
+#define MCU_SPI_PORTS 6
+#define MCU_SPI_REGS { SPI1, SPI2, SPI3, SPI4, SPI5, SPI6 }
+#define MCU_SPI_IRQS { SPI1_IRQn, SPI2_IRQn, SPI3_IRQn, SPI4_IRQn, SPI5_IRQn, SPI6_IRQn }
 
 //I2S is available on 2 SPI ports
 #define MCU_I2S_SPI_PORTS 2
@@ -67,30 +67,16 @@
 #define MCU_I2S_ON_SPI5 0
 #define MCU_I2S_ON_SPI6 0
 
-#define MCU_SAI_API 1
-#define MCU_SAI_PORTS 4
-//#define MCU_SAI_REGS { SAI1, SAI2 }
-#define MCU_SAI_REGS { SAI1_Block_A, SAI1_Block_B, SAI2_Block_A, SAI2_Block_B }
+#define MCU_SAI_API 0
+#define MCU_SAI_PORTS 0
+#define MCU_SAI_REGS { SAI1 }
+#define MCU_SAI_IRQS { SAI1_IRQn }
 
-#define MCU_SAI_IRQS { SAI1_IRQn, SAI1_IRQn, SAI2_IRQn, SAI2_IRQn}
 
 #define MCU_SDIO_API 0
-#define MCU_SDIO_PORTS 2
-#define MCU_SDIO_REGS { SDMMC1, SDMMC2 }
-#define MCU_SDIO_IRQS { SDMMC1_IRQn, SDMMC2_IRQn }
-
-#define MCU_QSPI_API 0
-#define MCU_QSPI_PORTS 1
-#define MCU_QSPI_REGS { QUADSPI }
-#define MCU_QSPI_IRQS { QUADSPI_IRQn }
-
-#define MCU_FMC_API 0
-#define MCU_FMC_PORTS 2
-#define MCU_FMC_IRQS { FMC_IRQn, FMC_IRQn }
-#define FMC_PSRAM_BANK1_BASE  ((uint32_t)(0x60000000))
-#define FMC_PSRAM_BANK2_BASE  ((uint32_t)(0x64000000))
-#define FMC_PSRAM_BANK3_BASE  ((uint32_t)(0x68000000))
-#define FMC_PSRAM_BANK4_BASE  ((uint32_t)(0x6C000000))
+#define MCU_SDIO_PORTS 1
+#define MCU_SDIO_REGS { SDIO }
+#define MCU_SDIO_IRQS { SDIO_IRQn }
 
 #define MCU_TMR_API 0
 #define MCU_TMR_PORTS 14
@@ -99,8 +85,8 @@
 #define MCU_TMR_CHANNELS 4
 #define MCU_TMR_CHANNEL_NAMES { TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4 }
 
-#define MCU_PIO_PORTS 9
-#define MCU_PIO_REGS { GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, GPIOF, GPIOG, GPIOH, GPIOI}
+#define MCU_PIO_PORTS 8
+#define MCU_PIO_REGS { GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, 0, 0, GPIOH }
 #define MCU_PIO_IRQS { 0 }
 
 #define MCU_UART_PORTS 8
@@ -108,18 +94,22 @@
 #define MCU_UART_IRQS { USART1_IRQn, USART2_IRQn, USART3_IRQn, UART4_IRQn, UART5_IRQn, USART6_IRQn, UART7_IRQn, UART8_IRQn }
 
 #define MCU_USB_API 1
-#define MCU_USB_PORTS 2
-#define MCU_USB_REGS { USB_OTG_FS, USB_OTG_HS }
-#define MCU_USB_IRQS { OTG_FS_IRQn, OTG_HS_IRQn }
+#define MCU_USB_PORTS 1
+#define MCU_USB_REGS { USB_OTG_FS }
+#define MCU_USB_IRQS { OTG_FS_IRQn }
 
-#define MCU_USB_ENDPOINT_COUNT 9
+#define MCU_RTC_PORTS 1
+#define MCU_RTC_REGS { RTC }
+#define MCU_RTC_IRQS { RTC_Alarm_IRQn }
 
-#define MCU_LAST_IRQ SDMMC2_IRQn
+#define MCU_USB_ENDPOINT_COUNT 4
+
+#define MCU_LAST_IRQ DMA2D_IRQn
 #define MCU_MIDDLE_IRQ_PRIORITY 8
 
-#define MCU_RAM_PAGES 176
-#define MCU_DELAY_FACTOR 3
-#define MCU_TOTAL_PINS (9*16)
+#define MCU_RAM_PAGES 56
+#define MCU_DELAY_FACTOR 12
+#define MCU_TOTAL_PINS (10*16+8)
 
 
 

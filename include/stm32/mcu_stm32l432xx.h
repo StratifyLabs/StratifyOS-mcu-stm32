@@ -17,7 +17,7 @@
 #ifndef MCU_STM32L432XX_H_
 #define MCU_STM32L432XX_H_
 
-#include <mcu/types.h>
+#include <sdk/types.h>
 #include "cmsis/stm32l4xx.h"
 #include "cmsis/stm32l432xx.h"
 

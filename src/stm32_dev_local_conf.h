@@ -1,7 +1,7 @@
 #ifndef MCU_ARCH_STM32_STM32_DEV_LOCAL_CONF_H
 #define MCU_ARCH_STM32_STM32_DEV_LOCAL_CONF_H
 
-#include "stm32_arch.h"
+#include "stm32/stm32_arch.h"
 
 #if defined STM32F2
 #include "stm32f2xx/stm32f2xx_hal_conf.h"

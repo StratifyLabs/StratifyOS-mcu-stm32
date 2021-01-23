@@ -17,7 +17,7 @@
  *
  */
 
-#include <sos/sos_config.h>
+#include <sos/config.h>
 
 #include "tmr_local.h"
 

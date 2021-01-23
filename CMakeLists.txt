@@ -16,9 +16,9 @@ if(SOS_IS_ARM)
 #Add sources to the project
 sos_sdk_add_subdirectory(SOURCE_LIST ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SHARED_SOURCELIST ${SOURCE_LIST}
-	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32_arch.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32_config.h
-	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32_state_types.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32/stm32_arch.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32/stm32_config.h
+	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32/stm32_state_types.h
 	${CMAKE_CURRENT_SOURCE_DIR}/README.md)
 
 file(GLOB STM32F2XX_LDSCRIPT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ldscript/stm32f2*")
@@ -63,12 +63,19 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 
 	file(GLOB FAMILY_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/${FAMILY}xx/*)
 	file(GLOB VARIANT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/${VARIANT}/*.c")
-	file(GLOB VARIANT_HEADERS	${CMAKE_CURRENT_SOURCE_DIR}/include/*${VARIANT}.h ${CMAKE_CURRENT_SOURCE_DIR}/include/cmsis/${STM32_FAMILY}.h ${CMAKE_CURRENT_SOURCE_DIR}/include/cmsis/${STM32_VARIANT}.h)
+	file(GLOB VARIANT_HEADERS
+		${CMAKE_CURRENT_SOURCE_DIR}/include/stm32/*${VARIANT}.h
+		${CMAKE_CURRENT_SOURCE_DIR}/include/stm32/cmsis/${STM32_FAMILY}.h
+		${CMAKE_CURRENT_SOURCE_DIR}/include/stm32/cmsis/${STM32_VARIANT}.h)
 	file(GLOB LDSCRIPT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ldscript/${FAMILY}*")
 
 	set(SOURCELIST ${SHARED_SOURCELIST} ${FAMILY_SOURCES} ${VARIANT_SOURCES} ${VARIANT_HEADERS} ${LDSCRIPT_SOURCES})
 	set(DEFINITIONS __${VARIANT} ${VARIANT_DEFINE}=1 MCU_ARCH_STM32)
-	set(INCLUDE_DIRECTORIES include src src/${FAMILY} ${FAMILY}  include/cmsis)
+	set(INCLUDE_DIRECTORIES
+		${CMAKE_CURRENT_SOURCE_DIR}/include
+		${CMAKE_CURRENT_SOURCE_DIR}/src
+		${CMAKE_CURRENT_SOURCE_DIR}/src/${FAMILY}xx
+		${CMAKE_CURRENT_SOURCE_DIR}/include/stm32/cmsis)
 
 	sos_sdk_library_target(RELEASE StratifyOS ${VARIANT} release ${ARCH})
 	sos_sdk_library_target(DEBUG StratifyOS ${VARIANT} debug ${ARCH})
@@ -169,25 +176,25 @@ file(GLOB STM32F4XX_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32f4xx/*.h)
 file(GLOB STM32F7XX_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32f7xx/*.h)
 file(GLOB STM32H7XX_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32h7xx/*.h)
 
-install(FILES ${STM32F2XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f2xx)
-install(FILES ${STM32F3XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f3xx)
-install(FILES ${STM32L4XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32l4xx)
-install(FILES ${STM32F4XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f4xx)
-install(FILES ${STM32F7XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32f7xx)
-install(FILES ${STM32H7XX_HEADERS} DESTINATION include/mcu/arch/stm32/stm32h7xx)
+install(FILES ${STM32F2XX_HEADERS} DESTINATION include/stm32/stm32f2xx)
+install(FILES ${STM32F3XX_HEADERS} DESTINATION include/stm32/stm32f3xx)
+install(FILES ${STM32L4XX_HEADERS} DESTINATION include/stm32/stm32l4xx)
+install(FILES ${STM32F4XX_HEADERS} DESTINATION include/stm32/stm32f4xx)
+install(FILES ${STM32F7XX_HEADERS} DESTINATION include/stm32/stm32f7xx)
+install(FILES ${STM32H7XX_HEADERS} DESTINATION include/stm32/stm32h7xx)
 install(FILES
 	${CMAKE_CURRENT_SOURCE_DIR}/src/stm32_dev_local.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/stm32_dev_local_conf.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/stm32_dma.h
 	DESTINATION
-	include/mcu/arch/stm32)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32f2xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32f2xx/Legacy)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32h7xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32h7xx/Legacy)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32f7xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32f7xx/Legacy)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32l4xx/Legacy/stm32_hal_legacy.h DESTINATION include/mcu/arch/stm32/stm32l4xx/Legacy)
+	include/stm32)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32f2xx/Legacy/stm32_hal_legacy.h DESTINATION include/stm32/stm32f2xx/Legacy)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32h7xx/Legacy/stm32_hal_legacy.h DESTINATION include/stm32/stm32h7xx/Legacy)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32f7xx/Legacy/stm32_hal_legacy.h DESTINATION include/stm32/stm32f7xx/Legacy)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/stm32l4xx/Legacy/stm32_hal_legacy.h DESTINATION include/stm32/stm32l4xx/Legacy)
 
 
-install(DIRECTORY include/ DESTINATION include/mcu/arch/stm32)
+install(DIRECTORY include/ DESTINATION include/stm32)
 install(DIRECTORY ldscript/ DESTINATION lib/ldscripts)
 
 else()

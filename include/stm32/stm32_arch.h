@@ -37,7 +37,7 @@
 #include <mcu/qspi.h>
 #include <mcu/sdio.h>
 #include <mcu/spi.h>
-#include <mcu/types.h>
+#include <sdk/types.h>
 #include <mcu/uart.h>
 
 #if defined __stm32f205xx

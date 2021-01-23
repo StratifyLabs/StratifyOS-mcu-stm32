@@ -26,13 +26,7 @@
 #include "core/core_startup.h"
 #include "stm32_local.h"
 
-const bootloader_api_t mcu_core_bootloader_api MCU_WEAK;
-const bootloader_api_t mcu_core_bootloader_api = {
-  .code_size = 0,
-};
-
 void mcu_core_default_isr();
-
 void mcu_core_hardware_id() MCU_ALIAS(mcu_core_default_isr);
 void mcu_core_nmi_isr() MCU_WEAK;
 
@@ -179,23 +173,23 @@ _DECLARE_ISR(wakup_pin);      // 149
 
 void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   // Core Level - CM3
-  (void *)&_top_of_stack,           // The initial stack pointer
-  cortexm_reset_handler,            // The reset handler
-  mcu_core_nmi_isr,                 // The NMI handler
-  cortexm_hardfault_handler,        // The hard fault handler
-  cortexm_memfault_handler,         // The MPU fault handler
-  cortexm_busfault_handler,         // The bus fault handler
-  cortexm_usagefault_handler,       // The usage fault handler
-  mcu_core_hardware_id,             // Reserved
-  0,                                // Reserved
-  (void *)&mcu_core_bootloader_api, // Reserved -- this is the kernel signature
-                                    // checksum value 0x24
-  0,                                // Reserved
-  cortexm_svcall_handler,           // SVCall handler
-  cortexm_debug_monitor_handler,    // Debug monitor handler
-  0,                                // Reserved
-  cortexm_pendsv_handler,           // The PendSV handler
-  cortexm_systick_handler,          // The SysTick handler
+  (void *)&_top_of_stack,        // The initial stack pointer
+  cortexm_reset_handler,         // The reset handler
+  mcu_core_nmi_isr,              // The NMI handler
+  cortexm_hardfault_handler,     // The hard fault handler
+  cortexm_memfault_handler,      // The MPU fault handler
+  cortexm_busfault_handler,      // The bus fault handler
+  cortexm_usagefault_handler,    // The usage fault handler
+  sos_config.sys.hardware_id,    // Reserved
+  0,                             // Reserved
+  (void *)&sos_config.boot.api,  // Reserved -- this is the kernel signature
+                                 // checksum value 0x24
+  0,                             // Reserved
+  cortexm_svcall_handler,        // SVCall handler
+  cortexm_debug_monitor_handler, // Debug monitor handler
+  0,                             // Reserved
+  cortexm_pendsv_handler,        // The PendSV handler
+  cortexm_systick_handler,       // The SysTick handler
   // Non Cortex M interrupts (device specific interrupts)
 
   _ISR(wwdg), // 0

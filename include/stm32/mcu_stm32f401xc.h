@@ -17,9 +17,9 @@
 #ifndef MCU_STM32F401XC_H_
 #define MCU_STM32F401XC_H_
 
-#include <mcu/types.h>
+#include <sdk/types.h>
 #include "cmsis/stm32f4xx.h"
-#include "cmsis/stm32f401xe.h"
+#include "cmsis/stm32f401xc.h"
 
 
 #define MCU_NO_HARD_FAULT 1
@@ -77,7 +77,6 @@
 #define MCU_TMR_CHANNELS 4
 #define MCU_TMR_CHANNEL_NAMES { TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4 }
 
-
 #define MCU_PIO_PORTS 8
 #define MCU_PIO_REGS { GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, 0, 0, GPIOH }
 #define MCU_PIO_IRQS { 0 }
@@ -87,6 +86,7 @@
 #define MCU_UART_IRQS { USART1_IRQn, USART2_IRQn, -1, -1, -1, USART6_IRQn }
 
 #define MCU_USB_API 1
+#define MCU_USB_ENDPOINT_COUNT 4
 #define MCU_USB_PORTS 1
 #define MCU_USB_REGS { USB_OTG_FS }
 #define MCU_USB_IRQS { OTG_FS_IRQn }
@@ -97,8 +97,6 @@
 #define MCU_RTC_PORTS 1
 #define MCU_RTC_REGS { RTC }
 #define MCU_RTC_IRQS { RTC_Alarm_IRQn }
-
-#define MCU_USB_ENDPOINT_COUNT 4
 
 #define MCU_LAST_IRQ SPI4_IRQn
 #define MCU_MIDDLE_IRQ_PRIORITY 8
