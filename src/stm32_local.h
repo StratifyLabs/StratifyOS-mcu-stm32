@@ -25,9 +25,9 @@
 
 #define USE_FULL_LL_DRIVER
 
-#include "stm32/stm32_arch.h"
-#include "stm32/stm32_config.h"
-#include "stm32_dev_local.h"
+#include "stm32_arch.h"
+#include "stm32_config.h"
+#include "stm32_types.h"
 
 #include <cortexm/cortexm.h>
 #include <fcntl.h>

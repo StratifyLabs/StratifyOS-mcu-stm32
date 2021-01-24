@@ -10,6 +10,12 @@ void stm32_initialize();
 void stm32_initialize_systick();
 void stm32_get_serial_number(mcu_sn_t *serial_number);
 
+// mcu
+int stm32_mcu_set_pin_function(
+  const mcu_pin_t *pin,
+  int periph,
+  int periph_port);
+
 // clock
 void stm32_clock_initialize(
   int (*handle_match_channel0)(void *, const mcu_event_t *),

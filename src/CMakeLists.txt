@@ -56,8 +56,8 @@ set(SOURCES
 	mem_dev.c
 	mpu_dev.c
 	wdt.c
-	stm32_dev_local.h
-	stm32_dev_local_conf.h
+	stm32_types.h
+	stm32_types_conf.h
 	stm32_local.h
 	stm32_flash.h
 	stm32_pin_local.h

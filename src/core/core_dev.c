@@ -1,23 +1,9 @@
-/* Copyright 2011-2017 Tyler Gilbert;
- * This file is part of Stratify OS.
- *
- * Stratify OS is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Stratify OS is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>. */
+// Copyright 2011-2021 Tyler Gilbert and Stratify Labs, Inc; see LICENSE.md
 
 #include <sos/config.h>
 
 //#include "config.h"
-#include "stm32/stm32_config.h"
+#include "stm32_config.h"
 #include "stm32_flash.h"
 
 static u32 mcu_core_get_reset_src();
@@ -119,7 +105,7 @@ int mcu_core_reset(int port, void *arg) {
 
 int mcu_core_invokebootloader(int port, void *arg) {
   bootloader_api_t api;
-  mcu_core_get_bootloader_api(&api);
+  mcu_get_bootloader_api(&api);
   cortexm_delay_ms(500);
   api.exec(0);
   return 0;

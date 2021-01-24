@@ -1,3 +1,4 @@
+// Copyright 2011-2021 Tyler Gilbert and Stratify Labs, Inc; see LICENSE.md
 
 #include <mcu/usb.h>
 
@@ -33,6 +34,13 @@ const tmr_config_t m_clock_tmr_config = {
       .channel[1] = {0xff, 0xff},
       .channel[2] = {0xff, 0xff},
       .channel[3] = {0xff, 0xff}}}};
+
+int stm32_mcu_set_pin_function(
+  const mcu_pin_t *pin,
+  int periph,
+  int periph_port) {
+  return mcu_core_set_pinsel_func(pin, periph, periph_port);
+}
 
 static const devfs_handle_t m_clock_tmr_handle
   = {.state = &m_clock_tmr_state, .config = &m_clock_tmr_config};

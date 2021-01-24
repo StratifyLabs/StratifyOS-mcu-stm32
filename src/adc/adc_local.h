@@ -22,9 +22,9 @@
 
 #include <mcu/adc.h>
 
-#include "stm32_dev_local.h"
 #include "stm32_dma.h"
 #include "stm32_local.h"
+#include "stm32_types.h"
 
 enum {
   ADC_LOCAL_IS_DMA = (1 << 0),

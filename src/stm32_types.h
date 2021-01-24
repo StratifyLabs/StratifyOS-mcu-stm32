@@ -1,10 +1,10 @@
-#ifndef MCU_ARCH_STM32_STM32_DEV_LOCAL_H
-#define MCU_ARCH_STM32_STM32_DEV_LOCAL_H
+#ifndef STM32_STM32_TYPES_H
+#define STM32_STM32_TYPES_H
 
 #include <device/fifo.h>
 #include <sos/dev/i2c.h>
 
-#include "stm32_dev_local_conf.h"
+#include "stm32_types_conf.h"
 
 // local types
 
@@ -202,4 +202,4 @@ typedef struct {
 } usb_state_t;
 #endif
 
-#endif // MCU_ARCH_STM32_STM32_DEV_LOCAL_H
+#endif // STM32_STM32_TYPES_H

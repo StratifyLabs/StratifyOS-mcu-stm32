@@ -1,21 +1,4 @@
-/* Copyright 2011-2016 Tyler Gilbert;
- * This file is part of Stratify OS.
- *
- * Stratify OS is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Stratify OS is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Stratify OS.  If not, see <http://www.gnu.org/licenses/>.
- *
- *
- */
+// Copyright 2011-2021 Tyler Gilbert and Stratify Labs, Inc; see LICENSE.md
 
 #include <mcu/flash.h>
 #include <mcu/mcu.h>
@@ -30,7 +13,7 @@ static int get_last_boot_page() {
     return stm32_flash_get_sector(MCU_FLASH_CODE_END);
   }
 
-  bootloader_api_t *api = mcu_core_get_bootloader_api();
+  bootloader_api_t *api = mcu_get_bootloader_api();
 
   if (api && api->code_size > 0) {
     return stm32_flash_get_sector(api->code_size);
