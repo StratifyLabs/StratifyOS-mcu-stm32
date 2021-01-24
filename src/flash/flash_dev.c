@@ -2,6 +2,7 @@
 
 #include <mcu/flash.h>
 #include <mcu/mcu.h>
+#include <sos/debug.h>
 #include <sos/dev/bootloader.h>
 #include <string.h>
 
@@ -10,15 +11,18 @@
 static int get_last_boot_page() {
   if (MCU_FLASH_CODE_START == MCU_FLASH_START) {
     // this is the bootloader
+    SOS_DEBUG_LINE_TRACE();
     return stm32_flash_get_sector(MCU_FLASH_CODE_END);
   }
 
-  bootloader_api_t *api = mcu_get_bootloader_api();
+  bootloader_api_t *api = cortexm_get_bootloader_api();
 
   if (api && api->code_size > 0) {
+    SOS_DEBUG_LINE_TRACE();
     return stm32_flash_get_sector(api->code_size);
   }
 
+  SOS_DEBUG_LINE_TRACE();
   // zero means there is no bootloader installed
   return -1;
 }

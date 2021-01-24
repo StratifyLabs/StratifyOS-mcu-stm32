@@ -104,7 +104,7 @@ int mcu_core_reset(int port, void *arg) {
 }
 
 int mcu_core_invokebootloader(int port, void *arg) {
-  bootloader_api_t *api = mcu_get_bootloader_api();
+  bootloader_api_t *api = cortexm_get_bootloader_api();
   if (api == NULL) {
     return SYSFS_SET_RETURN(ENOTSUP);
   }

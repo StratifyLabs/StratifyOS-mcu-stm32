@@ -11,8 +11,6 @@
 
 void mcu_core_default_isr();
 
-void sos_hardware_id() MCU_ALIAS(mcu_core_default_isr);
-
 // ISR's -- weakly bound to default handler
 _DECLARE_ISR(wwdg);
 _DECLARE_ISR(pvd);
@@ -110,7 +108,7 @@ void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   cortexm_memfault_handler,      // The MPU fault handler
   cortexm_busfault_handler,      // The bus fault handler
   cortexm_usagefault_handler,    // The usage fault handler
-  sos_hardware_id,               // Reserved
+  (void *)&_sos_hardware_id,     // Reserved
   0,                             // Reserved
   (void *)&sos_config.boot.api,  // Reserved -- this is the kernel signature
                                  // checksum value 0x24

@@ -271,10 +271,9 @@ int is_ram(int addr, int size) {
 }
 
 int get_last_boot_page() {
-  bootloader_api_t *api = mcu_get_bootloader_api();
-
-  if (api && api->code_size > 0) { // zero means there is no bootloader
-                                   // installed
+  bootloader_api_t *api = cortexm_get_bootloader_api();
+  // NULL means there is no bootloader installed
+  if (api && api->code_size > 0) {
     return stm32_flash_get_sector(api->code_size);
   }
 
