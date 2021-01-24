@@ -104,10 +104,12 @@ int mcu_core_reset(int port, void *arg) {
 }
 
 int mcu_core_invokebootloader(int port, void *arg) {
-  bootloader_api_t api;
-  mcu_get_bootloader_api(&api);
+  bootloader_api_t *api = mcu_get_bootloader_api();
+  if (api == NULL) {
+    return SYSFS_SET_RETURN(ENOTSUP);
+  }
   cortexm_delay_ms(500);
-  api.exec(0);
+  api->exec(NULL);
   return 0;
 }
 
