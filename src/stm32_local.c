@@ -50,7 +50,7 @@ void stm32_initialize_systick() {
 
   cortexm_set_systick_reload(0x00ffffff);
   cortexm_start_systick();
-  SystemCoreClock = sos_config.clock.frequency;
+  SystemCoreClock = sos_config.sys.core_clock_frequency;
 
   /* Configure Flash prefetch */
 #if (PREFETCH_ENABLE != 0U)

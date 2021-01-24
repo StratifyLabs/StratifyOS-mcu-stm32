@@ -95,7 +95,7 @@ int qspi_local_setattr(const devfs_handle_t *handle, void *ctl) {
     // prescalar can be between 0 and 255
     u32 prescalar;
     if (attr->freq) {
-      prescalar = sos_config.clock.frequency / attr->freq;
+      prescalar = sos_config.sys.core_clock_frequency / attr->freq;
       if (prescalar > 255) {
         prescalar = 255;
       }

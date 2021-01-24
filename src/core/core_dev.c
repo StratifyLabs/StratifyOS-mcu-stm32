@@ -31,7 +31,7 @@ int mcu_core_getinfo(const devfs_handle_t *handle, void *arg) {
   MCU_UNUSED_ARGUMENT(handle);
   core_info_t *info = arg;
   info->o_flags = 0;
-  info->freq = sos_config.clock.frequency;
+  info->freq = sos_config.sys.core_clock_frequency;
   if (mcu_core_reset_source == CORE_FLAG_IS_RESET_SYSTEM) {
     mcu_core_reset_source = mcu_core_get_reset_src();
   }

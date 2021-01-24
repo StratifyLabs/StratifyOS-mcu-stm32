@@ -11,6 +11,10 @@ include(sos-sdk)
 set(SOS_NAME sos)
 project(StratifyOS-mcu-stm32 C ASM)
 
+if(NOT API_IS_SDK)
+	include(StratifyOS)
+endif()
+
 if(SOS_IS_ARM)
 
 #Add sources to the project
@@ -90,6 +94,17 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 	# create debug as a copy of release
 	add_library(${DEBUG_TARGET} STATIC)
 	sos_sdk_copy_target(${RELEASE_TARGET} ${DEBUG_TARGET})
+
+	target_link_libraries(${RELEASE_TARGET}
+		PUBLIC
+		StratifyOS_mcu_release_${ARCH}
+		)
+
+	target_link_libraries(${DEBUG_TARGET}
+		PUBLIC
+		StratifyOS_mcu_debug_${ARCH}
+		)
+
 
 	# Add SOS SDK build settings to targets
 	sos_sdk_library("${RELEASE_OPTIONS}")

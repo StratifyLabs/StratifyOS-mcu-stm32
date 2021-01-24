@@ -62,7 +62,7 @@ int mcu_tmr_pwm_setattr(const devfs_handle_t *handle, void *ctl) {
       pclk = HAL_RCC_GetPCLK2Freq();
     }
 
-    if (pclk <= sos_config.clock.frequency / 2) {
+    if (pclk <= sos_config.sys.core_clock_frequency / 2) {
       // timer clocks are double pclks
       pclk = pclk * 2;
     }
