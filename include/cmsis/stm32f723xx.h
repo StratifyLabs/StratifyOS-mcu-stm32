@@ -179,7 +179,7 @@ typedef enum
 #endif
 #define __ICACHE_PRESENT          1       /*!< CM7 instruction cache present                 */
 #define __DCACHE_PRESENT          1       /*!< CM7 data cache present                        */
-#include <mcu/arch/cmsis/core_cm7.h>                    /*!< Cortex-M7 processor and core peripherals      */
+#include <sos/arch/cmsis/core_cm7.h>                    /*!< Cortex-M7 processor and core peripherals      */
 #include "system_stm32f7xx.h"
 #include <stdint.h>
 

@@ -19,16 +19,13 @@
 
 #include <cortexm/cortexm.h>
 #include <cortexm/fault.h>
-#include <mcu/bootloader.h>
-#include <mcu/mcu.h>
 #include <sos/events.h>
+#include <sos/symbols.h>
 
 #include "core/core_startup.h"
 #include "stm32_local.h"
 
 void mcu_core_default_isr();
-void mcu_core_hardware_id() MCU_ALIAS(mcu_core_default_isr);
-void mcu_core_nmi_isr() MCU_WEAK;
 
 // ISR's -- weakly bound to default handler
 _DECLARE_ISR(wwdg); // 0
@@ -175,12 +172,12 @@ void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   // Core Level - CM3
   (void *)&_top_of_stack,        // The initial stack pointer
   cortexm_reset_handler,         // The reset handler
-  mcu_core_nmi_isr,              // The NMI handler
+  cortexm_nmi_handler,           // The NMI handler
   cortexm_hardfault_handler,     // The hard fault handler
   cortexm_memfault_handler,      // The MPU fault handler
   cortexm_busfault_handler,      // The bus fault handler
   cortexm_usagefault_handler,    // The usage fault handler
-  sos_config.sys.hardware_id,    // Reserved
+  (void *)&_sos_hardware_id,     // Reserved
   0,                             // Reserved
   (void *)&sos_config.boot.api,  // Reserved -- this is the kernel signature
                                  // checksum value 0x24
