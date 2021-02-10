@@ -22,8 +22,7 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_crc_get)
 
 u32 mcu_calc_crc32(u32 seed, u32 polynomial, const u8 *buffer, u32 nbyte) {
-  crc_state_t *state = m_crc_local;
-
+  crc_state_t * state = NULL;
 #if MCU_CRC_API == 1
   state->hal_handle.Instance = CRC;
   state->hal_handle.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
@@ -43,7 +42,7 @@ u32 mcu_calc_crc32(u32 seed, u32 polynomial, const u8 *buffer, u32 nbyte) {
 }
 
 u16 mcu_calc_crc16(u16 seed, u16 polynomial, const u8 *buffer, u32 nbyte) {
-  crc_state_t *state = m_crc_local;
+  crc_state_t * state = NULL;
 
 #if MCU_CRC_API == 1
   state->hal_handle.Instance = CRC;
@@ -66,6 +65,7 @@ u16 mcu_calc_crc16(u16 seed, u16 polynomial, const u8 *buffer, u32 nbyte) {
 }
 
 u8 mcu_calc_crc7(u8 seed, u8 polynomial, const u8 *chr, u32 len) {
+  crc_state_t * state = NULL;
   int i, a;
   unsigned char crc, data;
 
@@ -86,7 +86,7 @@ u8 mcu_calc_crc7(u8 seed, u8 polynomial, const u8 *chr, u32 len) {
 }
 
 int mcu_crc_open(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(crc, MCU_CRC_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crc);
   if (state->ref_count == 0) {
 
     state->hal_handle.Instance = crc_regs_table[config->port];
@@ -107,7 +107,7 @@ int mcu_crc_open(const devfs_handle_t *handle) {
 }
 
 int mcu_crc_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_LOCAL(crc, MCU_CRC_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crc);
   if (state->ref_count > 0) {
     if (state->ref_count == 1) {
       if (crc_irqs[config->port] > 0) {
@@ -134,7 +134,7 @@ int mcu_crc_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_crc_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_LOCAL(crc, MCU_CRC_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crc);
   const crc_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(crc, ctl);
   if (attr == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
@@ -205,24 +205,24 @@ int mcu_crc_setattr(const devfs_handle_t *handle, void *ctl) {
 int mcu_crc_setaction(const devfs_handle_t *handle, void *ctl) { return 0; }
 
 int mcu_crc_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  int port = config->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crc);
   int nbyte = async->nbyte;
   if (nbyte > 4) {
     nbyte = 4;
   }
-  memcpy(async->buf, &m_crc_state_list[config->port].value, nbyte);
+  memcpy(async->buf, &(state->value), nbyte);
   return nbyte;
 }
 
 int mcu_crc_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  int port = config->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crc);
   int nbyte = async->nbyte / 4;
   if (async->loc == 0) {
     m_crc_state_list[config->port].value
-      = HAL_CRC_Calculate(&m_crc_state_list[config->port].hal_handle, async->buf, nbyte * 4);
+      = HAL_CRC_Calculate(&state->hal_handle, async->buf, nbyte * 4);
   } else {
-    m_crc_state_list[config->port].value = HAL_CRC_Accumulate(
-      &m_crc_state_list[config->port].hal_handle,
+    state->value = HAL_CRC_Accumulate(
+      &state->hal_handle,
       async->buf,
       nbyte * 4);
   }
@@ -232,9 +232,9 @@ int mcu_crc_write(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_crc_get(const devfs_handle_t *handle, void *arg) {
-  int port = config->port;
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(crc);
   u32 *value = arg;
-  *value = m_crc_state_list[config->port].value;
+  *value = state->value;
   return 0;
 }
 

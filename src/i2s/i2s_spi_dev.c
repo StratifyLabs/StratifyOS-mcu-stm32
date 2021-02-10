@@ -60,7 +60,7 @@ int mcu_i2s_spi_write(const devfs_handle_t *handle, devfs_async_t *async) {
       return SYSFS_SET_RETURN(EINVAL);
     }
 
-    i2s_spi_local_wait_for_errata_level(local);
+    i2s_spi_local_wait_for_errata_level(state);
     ret = HAL_I2SEx_TransmitReceive_IT(
       &state->i2s_hal_handle,
       async->buf,

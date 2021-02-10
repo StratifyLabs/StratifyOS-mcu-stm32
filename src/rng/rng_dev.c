@@ -102,7 +102,6 @@ int mcu_rng_read(const devfs_handle_t *handle, devfs_async_t *async) {
   state->bytes_read = 0;
 
   if (HAL_RNG_GenerateRandomNumber_IT(&state->hal_handle) != HAL_OK) {
-    sos_debug_printf("EIO here %d\n", state->hal_handle.ErrorCode);
     state->transfer_handler.read = NULL;
     return SYSFS_SET_RETURN(EIO);
   }
@@ -118,7 +117,7 @@ void HAL_RNG_ErrorCallback(RNG_HandleTypeDef *hrng) {
   rng_state_t *state = (rng_state_t *)hrng;
   hrng->State = HAL_RNG_STATE_READY;
 
-  sos_debug_printf("RNG ERROR: %d\n", hrng->ErrorCode);
+  //sos_debug_printf("RNG ERROR: %d\n", hrng->ErrorCode);
   // TODO error
 }
 

@@ -100,7 +100,7 @@ _DECLARE_ISR(fmpi2c1_ev);
 _DECLARE_ISR(fmpi2c1_er);
 
 void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
-  // Core Level - CM3
+  // Core Level
   (void *)&_top_of_stack,        // The initial stack pointer
   cortexm_reset_handler,         // The reset handler
   cortexm_nmi_handler,           // The NMI handler
