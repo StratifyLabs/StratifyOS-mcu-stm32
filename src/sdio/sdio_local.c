@@ -161,7 +161,6 @@ int sdio_local_setattr(const devfs_handle_t *handle, void *ctl) {
       u32 divider_value = HAL_RCC_GetHCLKFreq() / attr->freq;
       if (divider_value > 0) {
         state->hal_handle.Init.ClockDiv = divider_value - 1;
-        sos_debug_printf("clock div %d\n", state->hal_handle.Init.ClockDiv);
       }
 #else
       // this is probably wrong -- should be HCLK like above, need to verify
@@ -193,10 +192,6 @@ int sdio_local_setattr(const devfs_handle_t *handle, void *ctl) {
 
     int hal_result;
     if ((hal_result = HAL_SD_Init(&state->hal_handle)) != HAL_OK) {
-      sos_debug_printf(
-        "hal result: %d, %d\n",
-        hal_result,
-        state->hal_handle.ErrorCode);
       return SYSFS_SET_RETURN(EIO);
     }
 
