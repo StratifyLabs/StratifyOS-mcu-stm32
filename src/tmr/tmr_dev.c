@@ -235,7 +235,6 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
       break;
 
     case CHANNEL_TYPE_PWM:
-      SOS_DEBUG_LINE_TRACE();
       ret = HAL_TIM_PWM_Init(&state->hal_handle);
       if (ret != HAL_OK) {
         return SYSFS_SET_RETURN(EIO);
@@ -243,7 +242,6 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
       ret
         = HAL_TIM_PWM_ConfigChannel(&state->hal_handle, &init_oc, tim_channel);
       if (ret != HAL_OK) {
-        SOS_DEBUG_LINE_TRACE();
         return SYSFS_SET_RETURN(EIO);
       }
       ret = HAL_TIM_PWM_Start(&state->hal_handle, tim_channel);
@@ -263,36 +261,24 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
       break;
 
     case CHANNEL_TYPE_NONE:
-      SOS_DEBUG_LINE_TRACE();
       HAL_TIM_OC_Stop(&state->hal_handle, tim_channel);
       HAL_TIM_PWM_Stop(&state->hal_handle, tim_channel);
       HAL_TIM_IC_Stop(&state->hal_handle, tim_channel);
       ret = HAL_OK;
       break;
     }
-    SOS_DEBUG_LINE_TRACE();
 
     if (ret != HAL_OK) {
-      SOS_DEBUG_LINE_TRACE();
       return SYSFS_SET_RETURN(EIO);
     }
 
     // this sets the value of the channel
     if (mcu_tmr_setchannel(handle, (void *)&attr->channel) < 0) {
-      SOS_DEBUG_LINE_TRACE();
       return SYSFS_SET_RETURN(EIO);
     }
   }
 
   if (o_flags & (TMR_FLAG_SET_TIMER | TMR_FLAG_SET_CHANNEL)) {
-    SOS_DEBUG_LINE_TRACE();
-    for (u32 i = 0; i < 4; i++) {
-      sos_debug_printf(
-        "config %d: %d.%d\n",
-        i,
-        attr->pin_assignment.channel[i].port,
-        attr->pin_assignment.channel[i].pin);
-    }
     if (
       mcu_set_pin_assignment(
         &(attr->pin_assignment),
@@ -304,19 +290,8 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
         0,
         0)
       < 0) {
-      SOS_DEBUG_LINE_TRACE();
       return SYSFS_SET_RETURN(EINVAL);
     }
-
-    sos_debug_printf(
-      "GPIOE->AFR = 0x%08lx 0x%08lx\n",
-      GPIOE->AFR[1],
-      GPIOE->AFR[0]);
-    sos_debug_printf(
-      "CCRM1 and CCRM2 and CCER = 0x%08lx 0x%08lx 0x%08lx\n",
-      state->hal_handle.Instance->CCMR1,
-      state->hal_handle.Instance->CCMR2,
-      state->hal_handle.Instance->CCER);
   }
 
   return 0;
