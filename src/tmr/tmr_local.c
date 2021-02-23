@@ -43,6 +43,7 @@ int tmr_local_open(const devfs_handle_t *handle) {
   if (state->ref_count == 0) {
     DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(tmr);
     clear_actions(state);
+    //state->hal_handle = {0};
     state->hal_handle.Instance = tmr_local_regs_table[config->port];
     switch (config->port) {
     default:
@@ -329,11 +330,18 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
   // this belongs in the PWM driver (NOT here)
+  if (htim->Instance != TIM5 ){
+    sos_debug_printf("pf %ld %ld %ld\n", htim->Instance->CNT, htim->Instance->CCR1, htim->Instance->CCR2);
+  }
 }
 
-void HAL_TIM_TriggerCallback(TIM_HandleTypeDef *htim) {}
+void HAL_TIM_TriggerCallback(TIM_HandleTypeDef *htim) {
+  sos_debug_printf("tc\n");
+}
 
-void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim) {}
+void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim) {
+  sos_debug_printf("Error %d\n", htim->State);
+}
 
 // Four timers with 4 OC's and 2 IC's each
 void tmr_isr(int port) {
