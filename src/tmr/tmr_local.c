@@ -330,17 +330,12 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
   // this belongs in the PWM driver (NOT here)
-  if (htim->Instance != TIM5 ){
-    sos_debug_printf("pf %ld %ld %ld\n", htim->Instance->CNT, htim->Instance->CCR1, htim->Instance->CCR2);
-  }
 }
 
 void HAL_TIM_TriggerCallback(TIM_HandleTypeDef *htim) {
-  sos_debug_printf("tc\n");
 }
 
 void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim) {
-  sos_debug_printf("Error %d\n", htim->State);
 }
 
 // Four timers with 4 OC's and 2 IC's each
