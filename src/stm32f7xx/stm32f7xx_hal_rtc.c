@@ -426,7 +426,6 @@ __weak void HAL_RTC_MspDeInit(RTC_HandleTypeDef* hrtc)
   * @{
   */
 
-#include <mcu/debug.h>
 /**
   * @brief  Sets RTC current time.
   * @param  hrtc: pointer to a RTC_HandleTypeDef structure that contains

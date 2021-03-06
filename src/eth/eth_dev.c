@@ -4,7 +4,7 @@
 #include <fcntl.h>
 #include <mcu/eth.h>
 
-#if MCU_ETH_PORTS > 0
+#if (MCU_ETH_PORTS > 0) && 0
 
 #define ETH_DMA_TRANSMIT_TIMEOUT (20U)
 

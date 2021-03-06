@@ -69,7 +69,6 @@ typedef struct MCU_PACK {
   u16 flash_program_millivolts;
   u16 flags;
   u32 oscillator_frequency;
-  uart_config_t debug_uart_config;
   stm32_usb_config_t usb;
 } stm32_config_t;
 
@@ -78,8 +77,8 @@ extern const stm32_config_t stm32_config;
 
 typedef struct {
   const char *git_hash;
-} stm32_git_hash;
+} stm32_git_hash_t;
 
-extern const stm32_git_hash stm32_config_git_hash;
+extern const stm32_git_hash_t stm32_config_git_hash;
 
 #endif // STM32_CONFIG_H

@@ -17,9 +17,9 @@
  *
  */
 
-#include <mcu/mcu.h>
 #include <cortexm/cortexm.h>
 #include <cortexm/fault.h>
+#include <mcu/mcu.h>
 
 #include <mcu/mcu.h>
 #include <sos/events.h>
@@ -116,23 +116,23 @@ _DECLARE_ISR(fpu); // 81
 
 void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   // Core Level
-  (void *)&_top_of_stack,           // The initial stack pointer
-  cortexm_reset_handler,           // The reset handler
-  cortexm_nmi_handler,                 // The NMI handler
-  cortexm_hardfault_handler,       // The hard fault handler
-  cortexm_memfault_handler,        // The MPU fault handler
-  cortexm_busfault_handler,        // The bus fault handler
-  cortexm_usagefault_handler,      // The usage fault handler
-  (void *)&_sos_hardware_id,             // Reserved
-  0,                                // Reserved
-  (void *)&sos_config.boot.api, // Reserved -- this is the kernel signature
-                                    // checksum value 0x24
-  0,                                // Reserved
-  cortexm_svcall_handler,          // SVCall handler
-  cortexm_debug_monitor_handler,        // Debug monitor handler
-  0,                                // Reserved
-  cortexm_pendsv_handler,          // The PendSV handler
-  cortexm_systick_handler,         // The SysTick handler
+  (void *)&_top_of_stack,        // The initial stack pointer
+  cortexm_reset_handler,         // The reset handler
+  cortexm_nmi_handler,           // The NMI handler
+  cortexm_hardfault_handler,     // The hard fault handler
+  cortexm_memfault_handler,      // The MPU fault handler
+  cortexm_busfault_handler,      // The bus fault handler
+  cortexm_usagefault_handler,    // The usage fault handler
+  (void *)&_sos_hardware_id,     // Reserved
+  0,                             // Reserved
+  (void *)&sos_config.boot.api,  // Reserved -- this is the kernel signature
+                                 // checksum value 0x24
+  0,                             // Reserved
+  cortexm_svcall_handler,        // SVCall handler
+  cortexm_debug_monitor_handler, // Debug monitor handler
+  0,                             // Reserved
+  cortexm_pendsv_handler,        // The PendSV handler
+  cortexm_systick_handler,       // The SysTick handler
   // Non Cortex M interrupts (device specific interrupts)
 
   _ISR(wwdg), // 0

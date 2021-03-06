@@ -261,7 +261,7 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
     if (state->fifo_config) {
       fifo_ioctl_local(state->fifo_config, &state->fifo_state, I_FIFO_INIT, 0);
       // enables idle interrupt
-#if defined USART_CR1_RTOIE
+#if defined STM32H7
       // config timeout for a half second
       HAL_UART_ReceiverTimeout_Config(&state->hal_handle, freq / 50);
       HAL_UART_EnableReceiverTimeout(&state->hal_handle);
@@ -462,10 +462,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
   uart_state_t *state = (uart_state_t *)huart;
 
-#if defined USART_CR1_RTOIE
+#if defined STM32H7 && defined USART_CR1_RTOIE && defined HAL_UART_ERROR_RTO
   // not an error
   if (huart->ErrorCode == HAL_UART_ERROR_RTO) {
-    sos_debug_printf("idle\n");
     HAL_UART_RxIdleCallback(&state->hal_handle);
     return;
   }
@@ -478,7 +477,9 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
     MCU_EVENT_FLAG_ERROR | MCU_EVENT_FLAG_CANCELED);
   // reset the head
   fifo_flush(&state->fifo_state);
+#if !defined STM32F7
   HAL_UART_AbortReceive_IT(huart);
+#endif
   if (state->hal_handle.hdmarx == NULL) {
     // if not in circular DMA mode -- start the next interrupt based read
     HAL_UART_Receive_IT(

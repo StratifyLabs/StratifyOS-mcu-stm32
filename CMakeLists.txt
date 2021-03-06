@@ -79,7 +79,7 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 	sos_sdk_library_target(RELEASE StratifyOS ${VARIANT} release ${ARCH})
 	sos_sdk_library_target(DEBUG StratifyOS ${VARIANT} debug ${ARCH})
 	add_library(${RELEASE_TARGET} STATIC)
-	target_compile_definitions(${RELEASE_TARGET} PRIVATE ${DEFINITIONS} )
+	target_compile_definitions(${RELEASE_TARGET} PUBLIC ${DEFINITIONS} )
 	target_sources(${RELEASE_TARGET} PRIVATE ${SOURCELIST})
 	target_include_directories(${RELEASE_TARGET}
 		PUBLIC
