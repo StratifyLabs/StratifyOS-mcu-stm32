@@ -25,6 +25,7 @@ int mcu_mmc_dma_open(const devfs_handle_t *handle) {
 int mcu_mmc_dma_close(const devfs_handle_t *handle) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(mmc);
 
+  // do the opposite of mcu_mmc_dma_open() -- ref_count is zero -- turn off
   if (state->ref_count == 1) {
     // disable the DMA
     if (state->transfer_handler.read || state->transfer_handler.write) {
@@ -44,7 +45,6 @@ int mcu_mmc_dma_close(const devfs_handle_t *handle) {
     }
   }
 
-  // do the opposite of mcu_mmc_dma_open() -- ref_count is zero -- turn off
   // interrupt
   return mmc_local_close(handle);
 }

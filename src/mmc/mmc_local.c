@@ -340,7 +340,6 @@ void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc) {
 
 // mmc actually uses the SDIO -- doesn't have it's own interrupt
 void mcu_core_sdio_isr() {
-  // sos_debug_log_info(SOS_DEBUG_DEVICE, "MMC IRQ");
   HAL_MMC_IRQHandler(&m_mmc_state_list[0]->hal_handle);
 }
 

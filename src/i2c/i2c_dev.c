@@ -456,10 +456,6 @@ void HAL_I2C_AddrCallback(
     state->slave_memory,
     state->slave_memory_size,
     I2C_LAST_FRAME);
-  if (hal_status != HAL_OK) {
-    // sos_debug_printf("slave addr call back error %u
-    // %u\n",hal_status,hi2c->State);
-  }
 }
 
 void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c) {

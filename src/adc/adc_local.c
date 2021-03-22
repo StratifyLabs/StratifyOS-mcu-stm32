@@ -486,6 +486,7 @@ int adc_local_setattr(const devfs_handle_t *handle, void *ctl) {
       SOS_DEBUG_DEVICE,
       "ADC Trig: 0x%X",
       state->hal_handle.Init.ExternalTrigConv);
+
     if (HAL_ADC_Init(&state->hal_handle) < 0) {
       return SYSFS_SET_RETURN(EIO);
     }

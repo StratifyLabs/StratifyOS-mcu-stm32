@@ -254,7 +254,7 @@ int spi_local_setattr(const devfs_handle_t *handle, void *ctl) {
     }
   }
 
-  if (o_flags & (SPI_FLAG_SET_FULL_DUPLEX)) {
+  if (o_flags & SPI_FLAG_SET_FULL_DUPLEX) {
     state->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
   } else if (o_flags & SPI_FLAG_SET_HALF_DUPLEX) {
     state->o_flags &= ~SPI_LOCAL_IS_FULL_DUPLEX;

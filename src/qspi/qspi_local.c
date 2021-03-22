@@ -348,7 +348,6 @@ int qspi_local_execcommand(const devfs_handle_t *handle, void *ctl) {
 }
 
 void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi) {
-  sos_debug_printf("error 0x%X\n", hqspi->ErrorCode);
   qspi_state_t *state = (qspi_state_t *)hqspi;
   devfs_execute_cancel_handler(
     &state->transfer_handler,
@@ -358,7 +357,6 @@ void HAL_QSPI_ErrorCallback(QSPI_HandleTypeDef *hqspi) {
 }
 
 void HAL_QSPI_AbortCpltCallback(QSPI_HandleTypeDef *hqspi) {
-  sos_debug_printf("abort\n");
   qspi_state_t *state = (qspi_state_t *)hqspi;
   devfs_execute_cancel_handler(
     &state->transfer_handler,

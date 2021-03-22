@@ -93,9 +93,6 @@ int mcu_rng_read(const devfs_handle_t *handle, devfs_async_t *async) {
     return SYSFS_SET_RETURN(EINVAL);
   }
 
-  if (state->transfer_handler.read) {
-    sos_debug_printf("RNG is busy %p\n", state->transfer_handler.read);
-  }
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
   // need to operate on 4 byte boundaries
