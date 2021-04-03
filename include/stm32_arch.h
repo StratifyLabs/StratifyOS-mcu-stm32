@@ -239,6 +239,10 @@ typedef struct {
 typedef struct {
   stm32_dma_channel_config_t tx;
   stm32_dma_channel_config_t rx;
+#if defined STM32H7 || defined STM32F7
+  void * misaligned_read_cache_buffer;
+  size_t misaligned_read_cache_buffer_size;
+#endif
 } stm32_dma_config_t;
 
 typedef struct {

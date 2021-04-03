@@ -30,6 +30,20 @@ int i2s_spi_local_unmute(const devfs_handle_t *handle, void *ctl) {
   return SYSFS_SET_RETURN(ENOTSUP);
 }
 
+static void check_full_duplex(u32 o_flags, spi_state_t * state){
+  if (o_flags & I2S_FLAG_IS_FULL_DUPLEX) {
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT && defined I2S_FULLDUPLEXMODE_ENABLE
+    state->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
+#endif
+#if defined I2S_MODE_SLAVE_FULLDUPLEX
+    state->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_FULLDUPLEX;
+#endif
+#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
+    state->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
+#endif
+  }
+}
+
 int i2s_spi_local_setattr(const devfs_handle_t *handle, void *ctl) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
   const i2s_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(i2s, ctl);
@@ -52,38 +66,19 @@ int i2s_spi_local_setattr(const devfs_handle_t *handle, void *ctl) {
       state->o_flags |= SPI_LOCAL_IS_ERRATA_REQUIRED;
       if (o_flags & I2S_FLAG_IS_TRANSMITTER) {
         state->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_TX;
-        if (o_flags & I2S_FLAG_IS_RECEIVER) {
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT && defined I2S_FULLDUPLEXMODE_ENABLE
-          state->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
-#endif
-#if defined I2S_MODE_SLAVE_FULLDUPLEX
-          state->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_FULLDUPLEX;
-#endif
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
-          state->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
-#endif
-        }
+        check_full_duplex(o_flags, state);
       } else if (o_flags & I2S_FLAG_IS_RECEIVER) {
         state->i2s_hal_handle.Init.Mode = I2S_MODE_SLAVE_RX;
+        check_full_duplex(o_flags, state);
       }
     } else {
 
       if (o_flags & I2S_FLAG_IS_TRANSMITTER) {
         state->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_TX;
-        if (o_flags & I2S_FLAG_IS_RECEIVER) {
-
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT && defined I2S_FULLDUPLEXMODE_ENABLE
-          state->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
-#endif
-#if defined I2S_MODE_MASTER_FULLDUPLEX
-          state->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_FULLDUPLEX;
-#endif
-#if defined SPI_I2S_FULLDUPLEX_SUPPORT || defined STM32H7
-          state->o_flags |= SPI_LOCAL_IS_FULL_DUPLEX;
-#endif
-        }
+        check_full_duplex(o_flags, state);
       } else if (o_flags & I2S_FLAG_IS_RECEIVER) {
         state->i2s_hal_handle.Init.Mode = I2S_MODE_MASTER_RX;
+        check_full_duplex(o_flags, state);
       }
     }
 

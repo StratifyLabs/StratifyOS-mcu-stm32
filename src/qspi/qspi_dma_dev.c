@@ -68,7 +68,6 @@ int mcu_qspi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
-  const stm32_spi_dma_config_t *dma_config = handle->config;
 
   // setup the DMA for receiving
 #if MCU_QSPI_API == 1
@@ -99,6 +98,7 @@ int mcu_qspi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
 
   __HAL_LINKDMA(&state->hal_handle, hmdma, stm32_dma_mdma_handle);
 #else
+  const stm32_spi_dma_config_t *dma_config = handle->config;
   stm32_dma_channel_t *channel = stm32_dma_setattr(&dma_config->dma_config.rx);
   if (channel == 0) {
     return SYSFS_SET_RETURN(EIO);
@@ -127,12 +127,24 @@ int mcu_qspi_dma_execcommand(const devfs_handle_t *handle, void *ctl) {
 int mcu_qspi_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(qspi);
 
+#if defined STM32F7 || defined STM32H7 && 0
+  // doing an unaligned read will cause problems
+  if( (u32)async->buf & 0x1f ){
+    return SYSFS_SET_RETURN(EINVAL);
+  }
+
+  if( async->nbyte & 0x1f ){
+    return SYSFS_SET_RETURN(EINVAL);
+  }
+#endif
+
   // can't read and write at the same time
   if (state->transfer_handler.write != 0) {
     return SYSFS_SET_RETURN(EBUSY);
   }
   // borrow async to qspi->transfer_handler.read
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
+
 
   if (HAL_QSPI_Receive_DMA(&state->hal_handle, async->buf) != HAL_OK) {
     state->transfer_handler.read = 0;
@@ -153,7 +165,7 @@ int mcu_qspi_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
 #if defined STM32F7 || defined STM32H7
   // ensure data in cache is written to memory before writing
-  sos_config.cache.clean_data_block(async->buf, async->nbyte + 31);
+  sos_config.cache.clean_data_block(async->buf, async->nbyte);
 #endif
 
   if (HAL_QSPI_Transmit_DMA(&state->hal_handle, async->buf) != HAL_OK) {

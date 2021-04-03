@@ -386,9 +386,9 @@ void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi) {
   qspi_state_t *state = (qspi_state_t *)hqspi;
   if (
 #if MCU_QSPI_API == 1
-    state->hal_handle.hmdma != 0 &&
+    state->hal_handle.hmdma != NULL &&
 #else
-    state->hal_handle.hdma != 0 &&
+    state->hal_handle.hdma != NULL &&
 #endif
     state->transfer_handler.read) {
     // pull in values from memory to cache if using DMA
@@ -399,7 +399,7 @@ void HAL_QSPI_RxCpltCallback(QSPI_HandleTypeDef *hqspi) {
      */
     sos_config.cache.invalidate_data_block(
       state->transfer_handler.read->buf,
-      state->transfer_handler.read->nbyte + 31);
+      state->transfer_handler.read->nbyte);
   }
   devfs_execute_read_handler(
     &state->transfer_handler,

@@ -389,7 +389,7 @@ void handle_bytes_received(uart_state_t *state, u16 bytes_received) {
   // invalidate the cache
   sos_config.cache.invalidate_data_block(
     state->fifo_config->buffer + state->fifo_state.atomic_position.access.head,
-    bytes_received + 31);
+    bytes_received);
 
   // increment the head by the number of bytes received
   for (u16 i = 0; i < bytes_received; i++) {
