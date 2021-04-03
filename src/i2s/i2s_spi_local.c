@@ -31,7 +31,7 @@ int i2s_spi_local_unmute(const devfs_handle_t *handle, void *ctl) {
 }
 
 static void check_full_duplex(u32 o_flags, spi_state_t * state){
-#if 0
+#if 1
   if (o_flags & I2S_FLAG_IS_FULL_DUPLEX) {
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT && defined I2S_FULLDUPLEXMODE_ENABLE
     state->i2s_hal_handle.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_ENABLE;
