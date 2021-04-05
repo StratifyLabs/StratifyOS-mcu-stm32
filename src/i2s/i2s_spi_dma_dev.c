@@ -86,6 +86,12 @@ int mcu_i2s_spi_dma_unmute(const devfs_handle_t *handle, void *ctl) {
   return i2s_spi_local_unmute(handle, ctl);
 }
 
+#if I2S_VERSION >= 0x030100
+#define I2S_FLAG_FD I2S_FLAG_IS_FULL_DUPLEX
+#else
+#define I2S_FLAG_FD 0
+#endif
+
 int mcu_i2s_spi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(spi);
   const stm32_i2s_spi_dma_config_t *dma_config;
@@ -103,7 +109,7 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
 
   if (attr->o_flags & (I2S_FLAG_SET_MASTER | I2S_FLAG_SET_SLAVE)) {
 
-    if (attr->o_flags & I2S_FLAG_IS_RECEIVER) {
+    if (attr->o_flags & (I2S_FLAG_IS_RECEIVER | I2S_FLAG_FD)) {
 
       sos_debug_log_info(
         SOS_DEBUG_DEVICE,
@@ -121,7 +127,7 @@ int mcu_i2s_spi_dma_setattr(const devfs_handle_t *handle, void *ctl) {
       __HAL_LINKDMA((&state->i2s_hal_handle), hdmarx, channel->handle);
     }
 
-    if (attr->o_flags & I2S_FLAG_IS_TRANSMITTER) {
+    if (attr->o_flags & (I2S_FLAG_IS_TRANSMITTER | I2S_FLAG_FD)) {
 
       sos_debug_log_info(
         SOS_DEBUG_DEVICE,
@@ -164,11 +170,13 @@ int mcu_i2s_spi_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
     i2s_spi_local_wait_for_errata_level(state);
 
 #if defined SPI_I2S_FULLDUPLEX_SUPPORT
+    //nbyte is in bytes but this function needs words
+
     result = HAL_I2SEx_TransmitReceive_DMA(
       &state->i2s_hal_handle,
       async->buf,
       state->transfer_handler.read->buf,
-      async->nbyte);
+      async->nbyte/state->size_mult);
 #elif defined STM32H7
 
     result = HAL_I2S_Transmit_DMA_DelayedStart(
