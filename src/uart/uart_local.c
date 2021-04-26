@@ -343,6 +343,7 @@ int uart_local_flush(const devfs_handle_t *handle, void *ctl) {
 
 int uart_local_get(const devfs_handle_t *handle, void *ctl) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  MCU_UNUSED_ARGUMENT(config);
 
   if (state->fifo_config == 0) {
     return SYSFS_SET_RETURN(ENOSYS);
@@ -359,29 +360,14 @@ int uart_local_get(const devfs_handle_t *handle, void *ctl) {
 
 int uart_local_read(const devfs_handle_t *handle, devfs_async_t *async) {
   DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  MCU_UNUSED_ARGUMENT(config);
 
   if (state->fifo_config == NULL) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
 
-  // check the DMA for enough bytes to fulfill the request
-  if (state->hal_handle.hdmarx) {
-    u16 bytes_ready = state->fifo_config->size
-                      - __HAL_DMA_GET_COUNTER(state->hal_handle.hdmarx)
-                      - state->fifo_state.atomic_position.access.head;
-
-    // if there aren't enough to fulfill the request
-    // the timeout will kick in later
-    if (bytes_ready >= async->nbyte) {
-      handle_bytes_received(state, bytes_ready);
-    }
-  }
-
   // read the fifo, block if no bytes are available
-  int result
-    = fifo_read_local(state->fifo_config, &state->fifo_state, async, 0);
-
-  return result;
+  return fifo_read_local(state->fifo_config, &state->fifo_state, async, 0);
 }
 
 void handle_bytes_received(uart_state_t *state, u16 bytes_received) {
