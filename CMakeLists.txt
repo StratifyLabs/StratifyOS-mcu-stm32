@@ -31,8 +31,7 @@ function(copy_conf_template FAMILY)
 	endif()
 endfunction()
 
-# Copy
-
+# make copies of conf template files as needed
 copy_conf_template(stm32h7xx)
 copy_conf_template(stm32f7xx)
 copy_conf_template(stm32f4xx)
