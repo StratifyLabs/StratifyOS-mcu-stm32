@@ -16,3 +16,4 @@
 cmake_*
 tools/IP/
 .vscode/settings.json
+src/*/*_hal_conf.h

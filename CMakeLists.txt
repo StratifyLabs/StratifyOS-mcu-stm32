@@ -15,7 +15,31 @@ if(NOT API_IS_SDK)
 	include(StratifyOS)
 endif()
 
+function(copy_conf_template FAMILY)
+	set(CONF_BASE ${CMAKE_CURRENT_SOURCE_DIR}/src/${FAMILY}/${FAMILY}_hal_conf)
+	set(CONF_FILE ${CONF_BASE}.h)
+	if(NOT EXISTS ${CONF_FILE})
+		message(STATUS "Creating ${CONF_FILE} -- modify as needed")
+		set(CONF_TEMPLATE_FILE ${CONF_BASE}_template.h)
+		file(READ
+			${CONF_TEMPLATE_FILE}
+			TEMPLATE)
+		file(WRITE
+			${CONF_FILE}
+			${TEMPLATE}
+			)
+	endif()
+endfunction()
+
+# Copy
+
+copy_conf_template(stm32h7xx)
+copy_conf_template(stm32f7xx)
+copy_conf_template(stm32f4xx)
+copy_conf_template(stm32l4xx)
+
 if(SOS_IS_ARM)
+
 
 #Add sources to the project
 sos_sdk_add_subdirectory(SOURCE_LIST ${CMAKE_CURRENT_SOURCE_DIR}/src)
