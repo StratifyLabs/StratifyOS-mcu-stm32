@@ -4,7 +4,7 @@
 #include <fcntl.h>
 #include <mcu/eth.h>
 
-#if (MCU_ETH_PORTS > 0) && 0
+#if (MCU_ETH_PORTS > 0)
 
 #define ETH_DMA_TRANSMIT_TIMEOUT (20U)
 
@@ -17,18 +17,7 @@
 #error("STM32_ETH_DMA_MAX_PACKET_SIZE is not equal to ETH_RXBUFNB or ETH_TXBUFNB")
 #endif
 
-typedef struct {
-  ETH_HandleTypeDef hal_handle;
-  devfs_transfer_handler_t transfer_handler;
-  ETH_DMADescTypeDef tx_dma_desc[ETH_TXBUFNB];
-  ETH_DMADescTypeDef rx_dma_desc[ETH_RXBUFNB];
-#if MCU_ETH_API == 1
-  ETH_TxPacketConfig tx_packet_config;
-#endif
-  u8 ref_count;
-} eth_local_t;
-
-static eth_local_t *m_eth_state_list[MCU_ETH_PORTS] MCU_SYS_MEM;
+static eth_state_t *m_eth_state_list[MCU_ETH_PORTS] MCU_SYS_MEM;
 ETH_TypeDef *const eth_regs_table[MCU_ETH_PORTS] = MCU_ETH_REGS;
 u8 const eth_irqs[MCU_ETH_PORTS] = MCU_ETH_IRQS;
 
@@ -41,10 +30,10 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_eth_getregister)
 
 int mcu_eth_open(const devfs_handle_t *handle) {
-  int port = config->port;
-  if (m_eth_state_list[config->port].ref_count == 0) {
-
-    m_eth_state_list[config->port].hal_handle.Instance = eth_regs_table[config->port];
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(eth);
+  if (state->ref_count == 0) {
+    DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(eth);
+    state->hal_handle.Instance = eth_regs_table[config->port];
 
     switch (config->port) {
     case 0:
@@ -59,15 +48,15 @@ int mcu_eth_open(const devfs_handle_t *handle) {
     }
     cortexm_enable_irq(eth_irqs[config->port]);
   }
-  m_eth_state_list[config->port].ref_count++;
+  state->ref_count++;
 
   return 0;
 }
 
 int mcu_eth_close(const devfs_handle_t *handle) {
-  int port = config->port;
-  if (m_eth_state_list[config->port].ref_count > 0) {
-    if (m_eth_state_list[config->port].ref_count == 1) {
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(eth);
+  if (state->ref_count > 0) {
+    if (state->ref_count == 1) {
       cortexm_disable_irq(eth_irqs[config->port]);
       switch (config->port) {
       case 0:
@@ -80,14 +69,15 @@ int mcu_eth_close(const devfs_handle_t *handle) {
 #endif
         break;
       }
-      m_eth_state_list[config->port].hal_handle.Instance = 0;
+      state->hal_handle.Instance = 0;
     }
-    m_eth_state_list[config->port].ref_count--;
+    state->ref_count--;
   }
   return 0;
 }
 
 int mcu_eth_getinfo(const devfs_handle_t *handle, void *ctl) {
+  MCU_UNUSED_ARGUMENT(handle);
   eth_info_t *info = ctl;
   info->o_flags = ETH_FLAG_SET_INTERFACE | ETH_FLAG_IS_FULLDUPLEX
                   | ETH_FLAG_IS_HALFDUPLEX | ETH_FLAG_IS_AUTONEGOTIATION_ENABLED
@@ -99,8 +89,7 @@ int mcu_eth_getinfo(const devfs_handle_t *handle, void *ctl) {
 
 int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
   u32 o_flags;
-
-  DEVFS_DRIVER_DECLARE_LOCAL(eth, MCU_ETH_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(eth);
   int result MCU_UNUSED;
   const eth_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(eth, ctl);
   if (attr == NULL) {
@@ -111,7 +100,7 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
 
   if (o_flags & ETH_FLAG_SET_INTERFACE) {
 
-    const stm32_eth_dma_config_t *config = handle->config;
+    const stm32_eth_dma_config_t * dma_config = handle->config;
     if (config == 0) {
       return SYSFS_SET_RETURN(ENOSYS);
     }
@@ -137,6 +126,8 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
     state->tx_packet_config.CRCPadCtrl = ETH_CRC_PAD_INSERT;
 
 #else
+    const ETH_InitTypeDef init = {0};
+    state->hal_handle.Init = init;
     // ETH_AUTONEGOTIATION_ENABLE
     // ETH_AUTONEGOTIATION_DISABLE
     state->hal_handle.Init.AutoNegotiation = ETH_AUTONEGOTIATION_DISABLE;
@@ -154,6 +145,9 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
     // ETH_MODE_FULLDUPLEX
     // ETH_MODE_HALFDUPLEX
     state->hal_handle.Init.DuplexMode = ETH_MODE_HALFDUPLEX;
+    if( o_flags & ETH_FLAG_IS_FULLDUPLEX ){
+      state->hal_handle.Init.DuplexMode = ETH_MODE_FULLDUPLEX;
+    }
 
     sos_debug_log_info(
       SOS_DEBUG_DEVICE,
@@ -190,7 +184,7 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
         MCU_CONFIG_PIN_ASSIGNMENT(eth_config_t, handle),
         MCU_PIN_ASSIGNMENT_COUNT(eth_pin_assignment_t),
         CORE_PERIPH_ENET,
-        port,
+        config->port,
         0,
         0,
         0)
@@ -214,12 +208,12 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
     HAL_ETH_DMATxDescListInit(
       &state->hal_handle,
       state->tx_dma_desc,
-      config->tx_buffer,
+      dma_config->tx_buffer,
       ETH_TXBUFNB);
     HAL_ETH_DMARxDescListInit(
       &state->hal_handle,
       state->rx_dma_desc,
-      config->rx_buffer,
+      dma_config->rx_buffer,
       ETH_RXBUFNB);
 #endif
     sos_debug_log_info(SOS_DEBUG_DEVICE, "Start Ethernet");
@@ -244,7 +238,7 @@ int mcu_eth_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_eth_setaction(const devfs_handle_t *handle, void *ctl) {
-  int port = config->port;
+  DEVFS_DRIVER_DECLARE_CONFIG(eth);
   mcu_action_t *action = ctl;
   if (action->handler.callback != 0) {
     return SYSFS_SET_RETURN(ENOTSUP);
@@ -254,29 +248,33 @@ int mcu_eth_setaction(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_eth_getregister(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_STATE(eth);
   mcu_channel_t *channel = ctl;
   int result;
 
+  u32 register_value;
   result = HAL_ETH_ReadPHYRegister(
-    &m_eth_state_list[config->port].hal_handle,
+    &state->hal_handle,
 #if MCU_ETH_API == 1
     0,
 #endif
     channel->loc,
-    &channel->value);
+    &register_value);
   if (result != HAL_OK) {
     return SYSFS_SET_RETURN(EIO);
   }
 
+  channel->value = register_value;
   return SYSFS_RETURN_SUCCESS;
 }
 
 int mcu_eth_setregister(const devfs_handle_t *handle, void *ctl) {
+  DEVFS_DRIVER_DECLARE_STATE(eth);
   mcu_channel_t *channel = ctl;
   int result;
 
   result = HAL_ETH_WritePHYRegister(
-    &m_eth_state_list[config->port].hal_handle,
+    &state->hal_handle,
 #if MCU_ETH_API == 1
     0,
 #endif
@@ -290,7 +288,7 @@ int mcu_eth_setregister(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_eth_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(eth, MCU_ETH_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(eth);
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
   // check to see if there is data ready to read in any of the buffers
@@ -327,12 +325,12 @@ int mcu_eth_read(const devfs_handle_t *handle, devfs_async_t *async) {
 
   if (HAL_ETH_GetReceivedFrame(&state->hal_handle) != HAL_OK) {
     // failed to check for the frame
-    state->transfer_handler.read = 0;
+    state->transfer_handler.read = NULL;
     return SYSFS_SET_RETURN(EAGAIN);
 
   } else {
 
-    if (async->nbyte > state->hal_handle.RxFrameInfos.length) {
+    if ((u32)async->nbyte > state->hal_handle.RxFrameInfos.length) {
       // buffer has enough bytes to read everything
       async->nbyte = state->hal_handle.RxFrameInfos.length;
     } else {
@@ -342,7 +340,7 @@ int mcu_eth_read(const devfs_handle_t *handle, devfs_async_t *async) {
                                               // size
       if (async->nbyte == 0) {
         // target buffer is too small
-        state->transfer_handler.read = 0;
+        state->transfer_handler.read = NULL;
         return SYSFS_SET_RETURN(EINVAL);
       }
     }
@@ -352,7 +350,7 @@ int mcu_eth_read(const devfs_handle_t *handle, devfs_async_t *async) {
     buffer = (u8 *)state->hal_handle.RxFrameInfos.buffer;
 
     int bytes_read = 0;
-    int page_size;
+    u32 page_size;
     do {
 
       page_size = async->nbyte - bytes_read;
@@ -361,6 +359,7 @@ int mcu_eth_read(const devfs_handle_t *handle, devfs_async_t *async) {
       }
 
       /* Copy data to Tx buffer*/
+      sos_config.cache.invalidate_data_block(buffer, page_size);
       memcpy(async->buf + bytes_read, buffer, page_size);
       bytes_read += page_size;
 
@@ -387,14 +386,14 @@ int mcu_eth_read(const devfs_handle_t *handle, devfs_async_t *async) {
       state->hal_handle.Instance->DMARPDR = 0;
     }
 
-    state->transfer_handler.read = 0;
+    state->transfer_handler.read = NULL;
     return async->nbyte;
   }
 #endif
 }
 
 int mcu_eth_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_LOCAL(eth, MCU_ETH_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(eth);
 
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
 
@@ -417,7 +416,7 @@ int mcu_eth_write(const devfs_handle_t *handle, devfs_async_t *async) {
   /* Is this buffer available? If not, goto error */
   if ((DmaTxDesc->Status & ETH_DMATXDESC_OWN) == (uint32_t)RESET) {
     int bytes_written = 0;
-    int page_size;
+    u32 page_size;
     u8 *buffer = (u8 *)(DmaTxDesc->Buffer1Addr);
 
     /* Check if the length of data to copy is bigger than Tx buffer size*/
@@ -430,6 +429,10 @@ int mcu_eth_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
       /* Copy data to Tx buffer*/
       memcpy(buffer, async->buf + bytes_written, page_size);
+      for(int b=0; b < page_size; b++){
+        sos_debug_printf("%02X ", buffer[b]);
+      }
+      sos_debug_printf("\n");
       bytes_written += page_size;
 
       /* Point to next descriptor */
@@ -449,8 +452,10 @@ int mcu_eth_write(const devfs_handle_t *handle, devfs_async_t *async) {
     if (bytes_written > 0) {
 
       async->nbyte = bytes_written;
+      sos_config.cache.clean_data_block(buffer, bytes_written);
       if (HAL_ETH_TransmitFrame(&state->hal_handle, async->nbyte) == HAL_OK) {
-        state->transfer_handler.write = 0;
+        state->transfer_handler.write = NULL;
+        sos_debug_printf("sync write complete %d\n", bytes_written);
         return async->nbyte;
       }
     }
@@ -466,12 +471,12 @@ int mcu_eth_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
 #endif
 
-  state->transfer_handler.write = 0;
-  return SYSFS_SET_RETURN(EIO);
+  state->transfer_handler.write = NULL;
+  return SYSFS_SET_RETURN(EAGAIN);
 }
 
 void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth) {
-  eth_local_t *eth = (eth_local_t *)heth;
+  eth_state_t *eth = (eth_state_t *)heth;
   devfs_execute_read_handler(
     &eth->transfer_handler,
     0,
@@ -480,7 +485,7 @@ void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth) {
 }
 
 void HAL_ETH_TxCpltCallback(ETH_HandleTypeDef *heth) {
-  eth_local_t *eth = (eth_local_t *)heth;
+  eth_state_t *eth = (eth_state_t *)heth;
 
   // have all bytes been sent?
 
@@ -491,6 +496,7 @@ void HAL_ETH_TxCpltCallback(ETH_HandleTypeDef *heth) {
     MCU_EVENT_FLAG_WRITE_COMPLETE);
 }
 
-void mcu_core_eth_isr() { HAL_ETH_IRQHandler(&m_eth_state_list[0].hal_handle); }
+void mcu_core_eth_isr() {
+  HAL_ETH_IRQHandler(&(m_eth_state_list[0]->hal_handle)); }
 
 #endif

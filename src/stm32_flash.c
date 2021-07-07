@@ -129,9 +129,12 @@ int stm32_flash_erase_sector(u32 sector) {
 #if defined STM32H7
   if (sector / 8 == 0) {
     hal_erase_attr.Banks = FLASH_BANK_1; // only used for mass erase?
-  } else {
+  }
+#if defined DUAL_BANK
+  else {
     hal_erase_attr.Banks = FLASH_BANK_2; // only used for mass erase?
   }
+#endif
   hal_erase_attr.Sector = sector % 8;
 #else
 #if defined FLASH_BANK_1

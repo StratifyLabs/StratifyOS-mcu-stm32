@@ -20,15 +20,17 @@
 #ifndef STM32_PIN_LOCAL_H_
 #define STM32_PIN_LOCAL_H_
 
+#include <sdk/types.h>
+
 #define TOTAL_ENTRIES 16
 #define DMA_STREAMS_PER_CHANNEL 8
 
 typedef struct {
-	u16 entry[DMA_STREAMS_PER_CHANNEL]; //eight streams per channel
+  u16 entry[DMA_STREAMS_PER_CHANNEL]; //eight streams per channel
 } dma_channel_entry_t;
 
 typedef struct {
-	u16 entry[TOTAL_ENTRIES];
+  u16 entry[TOTAL_ENTRIES];
 } alternate_function_entry_t;
 
 
@@ -46,6 +48,7 @@ typedef struct {
 #define O_I2S_(port) OUTPUT_ENTRY(CORE_PERIPH_I2S,(port-1)) //SAI (use SPI for I2S)
 #define O_SYS_(port) OUTPUT_ENTRY(CORE_PERIPH_SYS,(port-1))
 #define O_QSPI(port) OUTPUT_ENTRY(CORE_PERIPH_QSPI,(port-1)) //Quad SPI
+#define O_OSPI(port) OUTPUT_ENTRY(CORE_PERIPH_OCTOSPI,(port-1)) //Octo SPI
 #define O_SPI_(port) OUTPUT_ENTRY(CORE_PERIPH_SPI,(port-1)) //SPI (also use for I2S)
 #define O_USB_(port) OUTPUT_ENTRY(CORE_PERIPH_USB,(port-1))
 #define O_LCD_(port) OUTPUT_ENTRY(CORE_PERIPH_LCD,(port-1))
@@ -109,14 +112,17 @@ typedef struct {
 #define E_LPTM(port) ENTRY(CORE_PERIPH_TMR,(port-1)) //LPTIM
 #define E_TMR(port) ENTRY(CORE_PERIPH_TMR,(port-1)) //TIM (for values 10 and above
 #define E_UART(port) ENTRY(CORE_PERIPH_UART,(port-1)) //UART
+#define E_USRT(port) ENTRY(CORE_PERIPH_UART,(port-1)) //UART
 #define EUART(port) ENTRY(CORE_PERIPH_UART,(port-1)) //UART
-#define E_USRT(port) ENTRY(CORE_PERIPH_UART,(port-1)) //USART
+#define EUSRT(port) ENTRY(CORE_PERIPH_UART,(port-1)) //USART
 #define E_I2S_(port) ENTRY(CORE_PERIPH_I2S,(port-1)) //SAI (use SPI for I2S)
 #define E_SYS_(port) ENTRY(CORE_PERIPH_SYS,(port-1))
 #define E_QSPI(port) ENTRY(CORE_PERIPH_QSPI,(port-1)) //Quad SPI
+#define E_OSPI(port) ENTRY(CORE_PERIPH_OCTOSPI,(port-1)) //Octo SPI
 #define E_SPI_(port) ENTRY(CORE_PERIPH_SPI,(port-1)) //SPI (also use for I2S)
 #define E_USB_(port) ENTRY(CORE_PERIPH_USB,(port-1))
 #define E_LCD_(port) ENTRY(CORE_PERIPH_LCD,(port-1))
+#define E_LTDC(port) ENTRY(CORE_PERIPH_LCD,(port-1))
 #define E_FMC_(port) ENTRY(CORE_PERIPH_EMC,(port-1))
 #define E_FSMC(port) ENTRY(CORE_PERIPH_EMC,(port-1))
 #define E_MCO_(port) ENTRY(CORE_PERIPH_MCO,(port-1))
@@ -140,6 +146,13 @@ typedef struct {
 #define E_TSC_(port) RESERVED_
 #define ELUART(port) RESERVED_
 #define E_SWJ_(port) RESERVED_
+
+#define EMDIOS(port) RESERVED_
+#define E_PSSI(port) RESERVED_
+#define EFDCAN(port) RESERVED_
+#define E_CRS_(port) RESERVED_
+#define E_CEC_(port) RESERVED_
+#define E_SWP_(port) RESERVED_
 
 extern const alternate_function_entry_t alternate_function_table[];
 

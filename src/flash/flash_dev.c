@@ -14,7 +14,7 @@ static int get_last_boot_page() {
     return stm32_flash_get_sector(MCU_FLASH_CODE_END);
   }
 
-  bootloader_api_t *api = cortexm_get_bootloader_api();
+  const bootloader_api_t *api = cortexm_get_bootloader_api();
 
   if (api && api->code_size > 0) {
     return stm32_flash_get_sector(api->code_size);

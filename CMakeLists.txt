@@ -60,6 +60,7 @@ option(BUILD_STM32L475 "Build L475 configuration" OFF)
 option(BUILD_STM32L432 "Build L432 configuration" OFF)
 
 option(BUILD_STM32H7 "Build All H7 configurations" OFF)
+option(BUILD_STM32H735 "Build H735 configuration" OFF)
 option(BUILD_STM32H743 "Build H743 configuration" OFF)
 option(BUILD_STM32H750 "Build H750 configuration" OFF)
 
@@ -179,8 +180,9 @@ if(BUILD_STM32H743 OR BUILD_STM32H7 OR BUILD_STM32_ALL)
 	add_targets(stm32h7 stm32h743xx STM32H743xx v7em_f5dh)
 endif()
 
-
-#function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
+if(BUILD_STM32H735 OR BUILD_STM32H7 OR BUILD_STM32_ALL)
+	add_targets(stm32h7 stm32h735xx STM32H735xx v7em_f5dh)
+endif()
 
 if(BUILD_STM32H750 OR BUILD_STM32H7 OR BUILD_STM32_ALL)
 	add_targets(stm32h7 stm32h750xx STM32H750xx v7em_f5dh)

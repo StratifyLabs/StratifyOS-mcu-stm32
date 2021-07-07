@@ -25,9 +25,11 @@
  extern "C" {
 #endif
 
-#if defined(ETH)
+
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal_def.h"
+
+#if defined(ETH)
 
 /** @addtogroup STM32H7xx_HAL_Driver
   * @{
@@ -60,8 +62,8 @@ typedef struct
   __IO uint32_t DESC1;
   __IO uint32_t DESC2;
   __IO uint32_t DESC3;
-  __IO uint32_t BackupAddr0; /* used to store rx buffer 1 address */
-  __IO uint32_t BackupAddr1; /* used to store rx buffer 2 address */
+  uint32_t BackupAddr0; /* used to store rx buffer 1 address */
+  uint32_t BackupAddr1; /* used to store rx buffer 2 address */
 }ETH_DMADescTypeDef;
 /** 
   * 
@@ -87,10 +89,15 @@ typedef struct __ETH_BufferTypeDef
   */
 typedef struct
 {
-  uint32_t  TxDesc[ETH_TX_DESC_CNT];     /*<! Tx DMA descriptors addresses */
+  uint32_t  TxDesc[ETH_TX_DESC_CNT];        /*<! Tx DMA descriptors addresses */
   
-  uint32_t  CurTxDesc;               /*<! Current Tx descriptor index for packet transmission */
-  
+  uint32_t  CurTxDesc;                      /*<! Current Tx descriptor index for packet transmission */
+
+  uint32_t* PacketAddress[ETH_TX_DESC_CNT];  /*<! Ethernet packet addresses array */
+
+  uint32_t* CurrentPacketAddress;           /*<! Current transmit NX_PACKET addresses */
+
+  uint32_t BuffersInUse;                   /*<! Buffers in Use */
 }ETH_TxDescListTypeDef;
 /** 
   * 
@@ -544,7 +551,7 @@ typedef struct{
   */
 
 /*
-   DMA Tx Normal Desciptor Read Format
+   DMA Tx Normal Descriptor Read Format
   -----------------------------------------------------------------------------------------------
   TDES0 |                         Buffer1 or Header Address  [31:0]                              |
   -----------------------------------------------------------------------------------------------
@@ -657,7 +664,7 @@ typedef struct{
 
 
 /*
-   DMA Tx Context Desciptor
+   DMA Tx Context Descriptor
   -----------------------------------------------------------------------------------------------
   TDES0 |                               Timestamp Low                                            |
   -----------------------------------------------------------------------------------------------
@@ -869,7 +876,7 @@ typedef struct{
 /** @defgroup ETH_Frame_settings ETH frame settings
   * @{
   */ 
-#define ETH_MAX_PACKET_SIZE      1524U    /*!< ETH_HEADER + 2*VLAN_TAG + MAX_ETH_PAYLOAD + ETH_CRC */
+#define ETH_MAX_PACKET_SIZE      ((uint32_t)1528U)    /*!< ETH_HEADER + 2*VLAN_TAG + MAX_ETH_PAYLOAD + ETH_CRC */
 #define ETH_HEADER               ((uint32_t)14U)    /*!< 6 byte Dest addr, 6 byte Src addr, 2 byte length/type */
 #define ETH_CRC                  ((uint32_t)4U)    /*!< Ethernet CRC */
 #define ETH_VLAN_TAG             ((uint32_t)4U)    /*!< optional 802.1q VLAN Tag */

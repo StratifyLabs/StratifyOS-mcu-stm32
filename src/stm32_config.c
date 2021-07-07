@@ -23,7 +23,7 @@ void stm32_get_serial_number(mcu_sn_t *serial_number) {
 
 static tmr_state_t m_clock_tmr_state;
 const tmr_config_t m_clock_tmr_config = {
-  .port = 4,
+  .port = 4, //TIM5 - 32-bit timer
   .attr = {
     .o_flags
     = TMR_FLAG_SET_TIMER | TMR_FLAG_IS_SOURCE_CPU | TMR_FLAG_IS_AUTO_RELOAD,
@@ -63,11 +63,6 @@ void stm32_clock_initialize(
 
   action.prio = 0;
   action.channel = 0; // doesn't matter
-  action.o_events = MCU_EVENT_FLAG_OVERFLOW;
-  action.handler.callback = handle_overflow;
-  action.handler.context = 0;
-  tmr_local_setaction(&m_clock_tmr_handle, &action);
-
   // This sets up the output compare unit used with the usleep() function
   chan_req.loc = 0;
   chan_req.value = SOS_USECOND_PERIOD + 1;
@@ -81,6 +76,12 @@ void stm32_clock_initialize(
 
   chan_req.loc = 0;
   stm32_clock_set_channel(&chan_req);
+
+  action.o_events = MCU_EVENT_FLAG_OVERFLOW;
+  action.handler.callback = handle_overflow;
+  action.handler.context = 0;
+  tmr_local_setaction(&m_clock_tmr_handle, &action);
+
 
   if (handle_match_channel1) {
     action.channel = 1;
@@ -99,6 +100,7 @@ void stm32_clock_enable() {
 
 u32 stm32_clock_disable() {
   m_clock_tmr_state.hal_handle.Instance->CR1 &= ~(TIM_CR1_CEN);
+  m_clock_tmr_state.hal_handle.State = HAL_TIM_STATE_READY;
   return m_clock_tmr_state.hal_handle.Instance->CNT;
 }
 

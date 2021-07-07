@@ -44,7 +44,6 @@ extern tmr_state_t *m_tmr_state_list[MCU_TMR_PORTS] MCU_SYS_MEM;
 int tmr_local_open(const devfs_handle_t *handle);
 int tmr_local_close(const devfs_handle_t *handle);
 int tmr_local_getinfo(const devfs_handle_t *handle, void *ctl);
-int tmr_local_setattr(const devfs_handle_t *handle, void *ctl);
 int tmr_local_enable(const devfs_handle_t *handle, void *ctl);
 int tmr_local_disable(const devfs_handle_t *handle, void *ctl);
 int tmr_local_setchannel(const devfs_handle_t *handle, void *ctl);

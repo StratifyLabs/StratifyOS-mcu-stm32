@@ -36,7 +36,7 @@ int mcu_tmr_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(tmr);
 
   const tmr_attr_t *attr = DEVFS_ASSIGN_ATTRIBUTES(tmr, ctl);
 
@@ -44,9 +44,8 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
     return -1;
   }
 
-  u32 o_flags = attr->o_flags;
+  const u32 o_flags = attr->o_flags;
   u32 freq = attr->freq;
-  // regs = tmr_local_regs_table[config->port];
 
   if (o_flags & TMR_FLAG_SET_TIMER) {
 
@@ -86,7 +85,11 @@ int mcu_tmr_setattr(const devfs_handle_t *handle, void *ctl) {
 
       sos_debug_log_info(SOS_DEBUG_DEVICE, "Use pclk is %ld", pclk);
 
-      memset(&state->hal_handle.Init, 0, sizeof(state->hal_handle.Init));
+
+      const TIM_Base_InitTypeDef init_handle = {0};
+      state->hal_handle.Init = init_handle;
+
+      //memset(&state->hal_handle.Init, 0, sizeof(state->hal_handle.Init));
 
       if (freq < pclk * 2) {
         state->hal_handle.Init.Prescaler = ((pclk + freq / 2) / freq) - 1;
@@ -313,7 +316,9 @@ int mcu_tmr_getchannel(const devfs_handle_t *handle, void *ctl) {
   return tmr_local_getchannel(handle, ctl);
 }
 
-int mcu_tmr_write(const devfs_handle_t *handle, devfs_async_t *wop) {
+int mcu_tmr_write(const devfs_handle_t *handle, devfs_async_t *async) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(async);
   return SYSFS_SET_RETURN(ENOTSUP);
 }
 
@@ -321,7 +326,9 @@ int mcu_tmr_setaction(const devfs_handle_t *handle, void *ctl) {
   return tmr_local_setaction(handle, ctl);
 }
 
-int mcu_tmr_read(const devfs_handle_t *handle, devfs_async_t *rop) {
+int mcu_tmr_read(const devfs_handle_t *handle, devfs_async_t *async) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(async);
   return SYSFS_SET_RETURN(ENOTSUP);
 }
 

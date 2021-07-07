@@ -19,7 +19,7 @@ int mcu_uart_dma_open(const devfs_handle_t *handle) {
 }
 
 int mcu_uart_dma_close(const devfs_handle_t *handle) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  DEVFS_DRIVER_DECLARE_STATE(uart);
 
   if (state->ref_count == 1) {
     // disable the DMA
@@ -49,7 +49,7 @@ int mcu_uart_dma_close(const devfs_handle_t *handle) {
 }
 
 int mcu_uart_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
-
+  MCU_UNUSED_ARGUMENT(handle);
   uart_info_t *info = ctl;
 
   info->o_flags = UART_FLAG_IS_PARITY_NONE | UART_FLAG_IS_PARITY_ODD
@@ -60,7 +60,7 @@ int mcu_uart_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_uart_dma_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  DEVFS_DRIVER_DECLARE_STATE(uart);
   const stm32_uart_dma_config_t *dma_config;
 
   // BSP *MUST* provide DMA configuration information
@@ -129,7 +129,7 @@ int mcu_uart_dma_read(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_uart_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  DEVFS_DRIVER_DECLARE_STATE(uart);
   int ret;
 
   // write won't be circular like read

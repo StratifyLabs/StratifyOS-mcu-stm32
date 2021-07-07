@@ -169,7 +169,6 @@ _DECLARE_ISR(sai4);           // 146
 _DECLARE_ISR(wakup_pin);      // 149
 
 void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
-  // Core Level - CM3
   (void *)&_top_of_stack,        // The initial stack pointer
   cortexm_reset_handler,         // The reset handler
   cortexm_nmi_handler,           // The NMI handler
@@ -339,9 +338,5 @@ void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   mcu_core_default_isr,
   _ISR(wakup_pin), // 149
 };
-
-void mcu_core_reset_handler() {
-
-}
 
 void mcu_core_default_isr() { sos_handle_event(SOS_EVENT_ROOT_FATAL, "dflt"); }

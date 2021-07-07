@@ -96,6 +96,8 @@ int mcu_core_execsleep(int port, void *arg) {
 }
 
 int mcu_core_reset(int port, void *arg) {
+  MCU_UNUSED_ARGUMENT(port);
+  MCU_UNUSED_ARGUMENT(arg);
   // delay first
   cortexm_delay_ms(250);
   cortexm_reset(NULL);
@@ -104,7 +106,9 @@ int mcu_core_reset(int port, void *arg) {
 }
 
 int mcu_core_invokebootloader(int port, void *arg) {
-  bootloader_api_t *api = cortexm_get_bootloader_api();
+  MCU_UNUSED_ARGUMENT(port);
+  MCU_UNUSED_ARGUMENT(arg);
+  const bootloader_api_t *api = cortexm_get_bootloader_api();
   if (api == NULL) {
     return SYSFS_SET_RETURN(ENOTSUP);
   }

@@ -202,4 +202,17 @@ typedef struct {
 } usb_state_t;
 #endif
 
+#if MCU_ETH_PORTS > 0
+typedef struct {
+  ETH_HandleTypeDef hal_handle;
+  devfs_transfer_handler_t transfer_handler;
+  ETH_DMADescTypeDef tx_dma_desc[ETH_TXBUFNB];
+  ETH_DMADescTypeDef rx_dma_desc[ETH_RXBUFNB];
+#if MCU_ETH_API == 1
+  ETH_TxPacketConfig tx_packet_config;
+#endif
+  u8 ref_count;
+} eth_state_t;
+#endif
+
 #endif // STM32_STM32_TYPES_H

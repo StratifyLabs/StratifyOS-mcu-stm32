@@ -39,7 +39,7 @@ void clear_actions(tmr_state_t *state) {
 }
 
 int tmr_local_open(const devfs_handle_t *handle) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(tmr);
   if (state->ref_count == 0) {
     DEVFS_DRIVER_OPEN_STATE_LOCAL_V4(tmr);
     clear_actions(state);
@@ -75,7 +75,7 @@ int tmr_local_open(const devfs_handle_t *handle) {
 }
 
 int tmr_local_close(const devfs_handle_t *handle) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_CONFIG_STATE(tmr);
   if (state->ref_count > 0) {
     if (state->ref_count == 1) {
       clear_actions(state);
@@ -114,7 +114,7 @@ int tmr_local_close(const devfs_handle_t *handle) {
 }
 
 int tmr_local_getinfo(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  MCU_UNUSED_ARGUMENT(handle);
   tmr_info_t *info = ctl;
 
   // set supported flags and events
@@ -129,13 +129,9 @@ int tmr_local_getinfo(const devfs_handle_t *handle, void *ctl) {
   return 0;
 }
 
-int tmr_local_setattr(const devfs_handle_t *handle, void *ctl) {
-  // attributes should be set by the non-shared part of the driver
-  return 0;
-}
-
 int tmr_local_enable(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(tmr);
+  MCU_UNUSED_ARGUMENT(ctl);
   if (state->period_handler.callback != 0) {
     HAL_TIM_Base_Start_IT(&state->hal_handle);
   } else {
@@ -145,14 +141,15 @@ int tmr_local_enable(const devfs_handle_t *handle, void *ctl) {
 }
 
 int tmr_local_disable(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(tmr);
+  MCU_UNUSED_ARGUMENT(ctl);
   // HAL_TIM_Base_Stop_IT(&state->hal_handle);
   state->hal_handle.Instance->CR1 &= ~(TIM_CR1_CEN);
   return SYSFS_RETURN_SUCCESS;
 }
 
 int tmr_local_setchannel(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(tmr);
   TIM_TypeDef *regs = state->hal_handle.Instance;
   // Write the output compare value
   mcu_channel_t *req = (mcu_channel_t *)ctl;
@@ -176,9 +173,9 @@ int tmr_local_setchannel(const devfs_handle_t *handle, void *ctl) {
 }
 
 int tmr_local_getchannel(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(tmr);
   TIM_TypeDef *regs = state->hal_handle.Instance;
-  mcu_channel_t *req = (mcu_channel_t *)ctl;
+  mcu_channel_t *req = ctl;
   u8 chan;
 
   if (req->loc & MCU_CHANNEL_FLAG_IS_INPUT) {
@@ -197,12 +194,14 @@ int tmr_local_getchannel(const devfs_handle_t *handle, void *ctl) {
   return SYSFS_RETURN_SUCCESS;
 }
 
-int tmr_local_write(const devfs_handle_t *handle, devfs_async_t *wop) {
+int tmr_local_write(const devfs_handle_t *handle, devfs_async_t *async) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(async);
   return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int tmr_local_setaction(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(tmr);
   mcu_action_t *action = (mcu_action_t *)ctl;
   // regs = tmr_local_regs_table[config->port];
   u32 chan;
@@ -251,9 +250,7 @@ int tmr_local_setaction(const devfs_handle_t *handle, void *ctl) {
     state->handler[chan] = action->handler;
   } else if (o_events & MCU_EVENT_FLAG_OVERFLOW) {
 
-    if (action->handler.callback != 0) {
-      HAL_TIM_Base_Start_IT(&state->hal_handle);
-    } else {
+    if (action->handler.callback == 0) {
       HAL_TIM_Base_Stop_IT(&state->hal_handle);
     }
 
@@ -263,19 +260,21 @@ int tmr_local_setaction(const devfs_handle_t *handle, void *ctl) {
   return SYSFS_RETURN_SUCCESS;
 }
 
-int tmr_local_read(const devfs_handle_t *handle, devfs_async_t *rop) {
+int tmr_local_read(const devfs_handle_t *handle, devfs_async_t *async) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(async);
   return SYSFS_SET_RETURN(ENOTSUP);
 }
 
 int tmr_local_set(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(tmr);
   TIM_TypeDef *regs = state->hal_handle.Instance;
   regs->CNT = (u32)ctl;
   return SYSFS_RETURN_SUCCESS;
 }
 
 int tmr_local_get(const devfs_handle_t *handle, void *ctl) {
-  TMR_DECLARE_LOCAL(tmr, MCU_TMR_PORTS);
+  DEVFS_DRIVER_DECLARE_STATE(tmr);
   TIM_TypeDef *regs = state->hal_handle.Instance;
   u32 *value = ctl;
   if (value) {
@@ -330,12 +329,15 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
   // this belongs in the PWM driver (NOT here)
+  MCU_UNUSED_ARGUMENT(htim);
 }
 
 void HAL_TIM_TriggerCallback(TIM_HandleTypeDef *htim) {
+  MCU_UNUSED_ARGUMENT(htim);
 }
 
 void HAL_TIM_ErrorCallback(TIM_HandleTypeDef *htim) {
+  MCU_UNUSED_ARGUMENT(htim);
 }
 
 // Four timers with 4 OC's and 2 IC's each

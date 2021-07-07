@@ -25,8 +25,9 @@
   || (defined __stm32f767xx) || (defined __stm32l475xx)                        \
   || (defined __stm32l432xx) || (defined __stm32f401xe)                        \
   || (defined __stm32h743xx) || (defined __stm32h750xx)                        \
-  || (defined __stm32f205xx) || (defined __stm32f207xx)                        \
-  || (defined __stm32f215xx) || (defined __stm32f217xx)
+  || (defined __stm32h735xx) || (defined __stm32f205xx)                        \
+  || (defined __stm32f207xx) || (defined __stm32f215xx)                        \
+  || (defined __stm32f217xx)
 #undef __FPU_USED
 
 #include <mcu/adc.h>
@@ -37,8 +38,8 @@
 #include <mcu/qspi.h>
 #include <mcu/sdio.h>
 #include <mcu/spi.h>
-#include <sdk/types.h>
 #include <mcu/uart.h>
+#include <sdk/types.h>
 
 #if defined __stm32f205xx
 #define CORE_M4 1
@@ -210,6 +211,17 @@
 #include "mcu_stm32h750xx.h"
 #endif
 
+#if defined __stm32h735xx
+#define CORE_M7 1
+#define ARM_MATH_CM7 1
+#define STM32_FLASH_LAYOUT_128K_PAGES 1
+#if !defined STM32H735xx
+#define STM32H735xx 1
+#endif
+#include "mcu_stm32h735xx.h"
+#endif
+
+
 
 enum {
   STM32_DMA_PRIORITY_LOW,
@@ -240,7 +252,7 @@ typedef struct {
   stm32_dma_channel_config_t tx;
   stm32_dma_channel_config_t rx;
 #if defined STM32H7 || defined STM32F7
-  void * misaligned_read_cache_buffer;
+  void *misaligned_read_cache_buffer;
   size_t misaligned_read_cache_buffer_size;
 #endif
 } stm32_dma_config_t;
@@ -296,7 +308,7 @@ typedef struct {
 } stm32_dac_dma_config_t;
 
 #define STM32_ETH_DMA_MAX_PACKET_SIZE                                          \
-  (1524U) // must match ETH_MAX_PACKET_SIZE in hal_conf.h
+  (1536U) // must match ETH_MAX_PACKET_SIZE in hal_conf.h
 #define STM32_ETH_DMA_DESCRIPTOR_COUNT                                         \
   (4U) // must match ETH_RXBUFNB and ETH_TXBUFNB in hal_conf.h
 

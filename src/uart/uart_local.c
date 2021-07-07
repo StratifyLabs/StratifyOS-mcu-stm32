@@ -156,7 +156,7 @@ int uart_local_close(const devfs_handle_t *handle) {
 }
 
 int uart_local_getinfo(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  DEVFS_DRIVER_DECLARE_STATE(uart);
 
   uart_info_t *info = ctl;
 
@@ -203,6 +203,7 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
       freq = 115200;
     }
 
+    state->hal_handle.Init = (UART_InitTypeDef){};
     state->hal_handle.Init.BaudRate = freq;
 
     state->hal_handle.Init.WordLength = UART_WORDLENGTH_8B;
@@ -237,6 +238,7 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
     }
     state->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     state->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
+    state->hal_handle.Init.ClockPrescaler = UART_PRESCALER_DIV1;
 
     // pin assignments
     if (
@@ -313,7 +315,7 @@ int uart_local_setaction(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_put(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  DEVFS_DRIVER_DECLARE_STATE(uart);
   u8 c = (u32)ctl;
 
   if (HAL_UART_Transmit(&state->hal_handle, &c, 1, HAL_MAX_DELAY) != HAL_OK) {
@@ -324,7 +326,8 @@ int uart_local_put(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_flush(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  DEVFS_DRIVER_DECLARE_STATE(uart);
+  MCU_UNUSED_ARGUMENT(ctl);
 
   /*
    * The interrupt and DMA reads rely on the head staying
@@ -359,23 +362,23 @@ int uart_local_get(const devfs_handle_t *handle, void *ctl) {
 }
 
 int uart_local_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
-  MCU_UNUSED_ARGUMENT(config);
+  DEVFS_DRIVER_DECLARE_STATE(uart);
 
   if (state->fifo_config == NULL) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
+
+#if defined STM32F7 || defined STM32H7
+  // invalidate the cache
+  sos_config.cache.invalidate_data_block(
+    state->fifo_config->buffer, state->fifo_config->size);
+#endif
 
   // read the fifo, block if no bytes are available
   return fifo_read_local(state->fifo_config, &state->fifo_state, async, 0);
 }
 
 void handle_bytes_received(uart_state_t *state, u16 bytes_received) {
-
-  // invalidate the cache
-  sos_config.cache.invalidate_data_block(
-    state->fifo_config->buffer + state->fifo_state.atomic_position.access.head,
-    bytes_received);
 
   // increment the head by the number of bytes received
   for (u16 i = 0; i < bytes_received; i++) {
@@ -494,10 +497,9 @@ void HAL_UART_AbortReceiveCpltCallback(UART_HandleTypeDef *huart) {
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
   uart_state_t *state = (uart_state_t *)huart;
-  int nbyte = 0;
   // when transfer is complete, count is 0 and size is the original async->nbyte
   // value
-  nbyte = huart->TxXferSize - huart->TxXferCount;
+  int nbyte = huart->TxXferSize - huart->TxXferCount;
   devfs_execute_write_handler(
     &state->transfer_handler,
     0,

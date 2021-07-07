@@ -38,17 +38,24 @@ static USB_OTG_GlobalTypeDef *const usb_regs_table[MCU_USB_PORTS]
   = MCU_USB_REGS;
 static u8 const usb_irqs[MCU_USB_PORTS] = MCU_USB_IRQS;
 static void clear_callbacks(usb_state_t *state);
+static void clear_rx_buffer_offsets(usb_state_t *state);
 
 void clear_callbacks(usb_state_t *state) {
 
-  memset(
-    state->transfer_handler,
-    0,
-    (MCU_USB_ENDPOINT_COUNT) * sizeof(devfs_transfer_handler_t));
-  memset(&state->control_handler, 0, sizeof(mcu_event_handler_t));
-  memset(&state->special_event_handler, 0, sizeof(mcu_event_handler_t));
-  memset(state->rx_buffer_offset, 0, MCU_USB_ENDPOINT_COUNT * sizeof(u16));
+  for(int i=0; i < MCU_USB_ENDPOINT_COUNT; i++){
+    state->transfer_handler[i] = (devfs_transfer_handler_t){};
+  }
+
+  clear_rx_buffer_offsets(state);
+  state->control_handler = (mcu_event_handler_t){};
+  state->special_event_handler = (mcu_event_handler_t){};
   state->rx_buffer_used = 0;
+}
+
+void clear_rx_buffer_offsets(usb_state_t *state) {
+  for(int i=0; i < MCU_USB_ENDPOINT_COUNT; i++){
+    state->rx_buffer_offset[i] = 0;
+  }
 }
 
 DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
@@ -69,7 +76,11 @@ int mcu_usb_open(const devfs_handle_t *handle) {
 
     if (config->port == 0) {
 #if MCU_USB_API > 0
+#if defined STM32H735xx
+      __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
+#else
       __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
+#endif
 #else
       __HAL_RCC_USB_CLK_ENABLE();
 #endif
@@ -97,7 +108,11 @@ int mcu_usb_close(const devfs_handle_t *handle) {
       state->hal_handle.Instance = 0;
       if (config->port == 0) {
 #if MCU_USB_API > 0
+#if defined STM32H735xx
+        __HAL_RCC_USB_OTG_HS_CLK_DISABLE();
+#else
         __HAL_RCC_USB_OTG_FS_CLK_DISABLE();
+#endif
 #else
         __HAL_RCC_USB_CLK_DISABLE();
 #endif
@@ -118,6 +133,7 @@ int mcu_usb_close(const devfs_handle_t *handle) {
 }
 
 int mcu_usb_getinfo(const devfs_handle_t *handle, void *ctl) {
+  MCU_UNUSED_ARGUMENT(handle);
   usb_info_t *info = ctl;
 
   info->o_flags = 0;
@@ -137,7 +153,6 @@ int mcu_usb_setattr(const devfs_handle_t *handle, void *ctl) {
   u32 o_flags = attr->o_flags;
 
   if (o_flags & USB_FLAG_SET_DEVICE) {
-    // Start the USB clock
     int result;
 
     state->read_ready = 0;
@@ -166,6 +181,7 @@ int mcu_usb_setattr(const devfs_handle_t *handle, void *ctl) {
       HAL_PWREx_EnableVddUSB();
     }
 #endif
+
 
     if (port == 0) {
       state->hal_handle.Init.dev_endpoints = MCU_USB_ENDPOINT_COUNT;
@@ -226,7 +242,12 @@ int mcu_usb_setattr(const devfs_handle_t *handle, void *ctl) {
     }
 #endif
 
-    if (HAL_PCD_Init(&state->hal_handle) != HAL_OK) {
+    int pcd_init_result;
+    if ((pcd_init_result = HAL_PCD_Init(&state->hal_handle)) != HAL_OK) {
+#if 0
+      sos_debug_printf("Result is %d\n", pcd_init_result);
+      sos_debug_printf("State is %d\n", state->hal_handle.State);
+#endif
       return SYSFS_SET_RETURN(EIO);
     }
 
@@ -346,7 +367,7 @@ int mcu_usb_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 void usb_connect(const devfs_handle_t *handle, u32 con) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
   if (con) {
     // what is this delay waiting for
     // seems to be needed on STM32H7 between setattr and start
@@ -464,7 +485,7 @@ int mcu_usb_setaction(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_usb_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
 
   int loc = async->loc;
   if (loc > (MCU_USB_ENDPOINT_COUNT - 1)) {
@@ -503,7 +524,7 @@ int mcu_usb_read(const devfs_handle_t *handle, devfs_async_t *async) {
 
 int mcu_usb_write(const devfs_handle_t *handle, devfs_async_t *async) {
   // Asynchronous write
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
 
   int loc = async->loc;
   int ep;
@@ -538,17 +559,23 @@ int mcu_usb_write(const devfs_handle_t *handle, devfs_async_t *async) {
   return bytes_written;
 }
 
-void usb_reset(const devfs_handle_t *handle) {}
+void usb_reset(const devfs_handle_t *handle) {
+  MCU_UNUSED_ARGUMENT(handle);
+}
 
-void usb_wakeup(int port) {}
+void usb_wakeup(int port) {
+  MCU_UNUSED_ARGUMENT(port);
+}
 
 void usb_set_address(const devfs_handle_t *handle, u32 addr) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
   HAL_PCD_SetAddress(&state->hal_handle, addr);
 }
 
 void usb_configure(const devfs_handle_t *handle, u32 cfg) {
   // m_usb_state_list[config->port].connected = 1;
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(cfg);
 }
 
 void usb_configure_endpoint(
@@ -556,7 +583,7 @@ void usb_configure_endpoint(
   u32 endpoint_num,
   u32 max_packet_size,
   u8 type) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
 
   HAL_PCD_EP_Open(
     &state->hal_handle,
@@ -590,17 +617,23 @@ void usb_configure_endpoint(
   }
 }
 
-void usb_enable_endpoint(const devfs_handle_t *handle, u32 endpoint_num) {}
+void usb_enable_endpoint(const devfs_handle_t *handle, u32 endpoint_num) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(endpoint_num);
+}
 
 void usb_disable_endpoint(const devfs_handle_t *handle, u32 endpoint_num) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
   HAL_PCD_EP_Close(&state->hal_handle, endpoint_num);
 }
 
-void usb_reset_endpoint(const devfs_handle_t *handle, u32 endpoint_num) {}
+void usb_reset_endpoint(const devfs_handle_t *handle, u32 endpoint_num) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(endpoint_num);
+}
 
 void usb_flush_endpoint(const devfs_handle_t *handle, u32 endpoint_num) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
   PCD_HandleTypeDef *hpcd = &state->hal_handle;
   u8 logical_endpoint = endpoint_num & ~0x80;
 
@@ -625,27 +658,31 @@ void usb_flush_endpoint(const devfs_handle_t *handle, u32 endpoint_num) {
 }
 
 void usb_stall_endpoint(const devfs_handle_t *handle, u32 endpoint_num) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
   HAL_PCD_EP_SetStall(&state->hal_handle, endpoint_num);
 }
 
 void usb_unstall_endpoint(const devfs_handle_t *handle, u32 endpoint_num) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
   HAL_PCD_EP_ClrStall(&state->hal_handle, endpoint_num);
 }
 
 int mcu_usb_isconnected(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
+  MCU_UNUSED_ARGUMENT(ctl);
   return state->connected;
 }
 
-void usb_clr_ep_buf(const devfs_handle_t *handle, u32 endpoint_num) {}
+void usb_clr_ep_buf(const devfs_handle_t *handle, u32 endpoint_num) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(endpoint_num);
+}
 
 int mcu_usb_root_read_endpoint(
   const devfs_handle_t *handle,
   u32 endpoint_num,
   void *dest) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
   void *src_buffer;
   u8 epnum;
   epnum = endpoint_num & 0x7f;
@@ -668,7 +705,7 @@ int mcu_usb_root_write_endpoint(
   u32 size) {
   int ret;
 
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(usb);
+  DEVFS_DRIVER_DECLARE_STATE(usb);
 #if MCU_USB_API > 0
   int logical_endpoint = endpoint_num & 0x7f;
   int type = state->hal_handle.IN_ep[logical_endpoint].type;
@@ -821,22 +858,18 @@ void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
   }
 }
 
-void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {}
+void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd) {
+  MCU_UNUSED_ARGUMENT(hpcd);
+}
 
 void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd) {
-  int i;
-
-  usb_state_t *usb = (usb_state_t *)hpcd;
   const u32 mps = sos_config.usb.control_endpoint_max_size;
+  usb_state_t *usb = (usb_state_t *)hpcd;
   usb->connected = 1;
   usb->rx_buffer_used = mps;
-  memset(usb->rx_buffer_offset, 0, MCU_USB_ENDPOINT_COUNT * sizeof(u16));
-  for (i = 0; i < MCU_USB_ENDPOINT_COUNT; i++) {
-    usb->rx_buffer_offset[i] = 0;
-  }
+  clear_rx_buffer_offsets(usb);
 
   HAL_PCD_SetAddress(hpcd, 0);
-
   HAL_PCD_EP_Open(hpcd, 0x00, mps, EP_TYPE_CTRL);
   HAL_PCD_EP_Open(hpcd, 0x80, mps, EP_TYPE_CTRL);
 }
@@ -894,7 +927,10 @@ void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {
   }
 }
 
-void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {}
+void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum) {\
+  MCU_UNUSED_ARGUMENT(hpcd);
+  MCU_UNUSED_ARGUMENT(epnum);
+}
 
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd) {
   MCU_UNUSED_ARGUMENT(hpcd);
@@ -907,6 +943,9 @@ void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd) {
   // this is never called -- Suspend callback is called when connection is lost
 }
 
+
+
+
 void mcu_core_otg_fs_isr() {
   HAL_PCD_IRQHandler(&m_usb_state_list[0]->hal_handle);
 }
@@ -914,6 +953,10 @@ void mcu_core_otg_fs_isr() {
 #if MCU_USB_PORTS > 1
 void mcu_core_otg_hs_isr() {
   HAL_PCD_IRQHandler(&m_usb_state_list[1].hal_handle);
+}
+#else
+void mcu_core_otg_hs_isr(){
+  HAL_PCD_IRQHandler(&m_usb_state_list[0]->hal_handle);
 }
 #endif
 
