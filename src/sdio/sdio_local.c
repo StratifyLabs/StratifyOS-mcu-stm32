@@ -144,6 +144,11 @@ int sdio_local_setattr(const devfs_handle_t *handle, void *ctl) {
 
     // initialize using 1B bus
     state->hal_handle.Init.BusWide = SDIO_BUS_WIDE_1B;
+#if defined STM32H7
+    if (o_flags & SDIO_FLAG_IS_BUS_WIDTH_4) {
+      state->hal_handle.Init.BusWide = SDIO_BUS_WIDE_4B;
+    }
+#endif
 
     // SDIO_HARDWARE_FLOW_CONTROL_DISABLE
     // SDIO_HARDWARE_FLOW_CONTROL_ENABLE
@@ -158,7 +163,8 @@ int sdio_local_setattr(const devfs_handle_t *handle, void *ctl) {
     state->hal_handle.Init.ClockDiv = 0;
     if (attr->freq && (attr->freq < 25000000UL)) {
 #if defined STM32H7
-      u32 divider_value = HAL_RCC_GetHCLKFreq() / attr->freq;
+      const u32 clock_speed = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_SDMMC);
+      u32 divider_value = clock_speed / attr->freq;
       if (divider_value > 0) {
         state->hal_handle.Init.ClockDiv = divider_value - 1;
       }
@@ -195,6 +201,7 @@ int sdio_local_setattr(const devfs_handle_t *handle, void *ctl) {
       return SYSFS_SET_RETURN(EIO);
     }
 
+#if !defined STM32H7
     // SDIO_BUS_WIDE_1B -- set as default for initialziation
     // SDIO_BUS_WIDE_4B
     // SDIO_BUS_WIDE_8B -- not compatible with SDIO
@@ -209,6 +216,7 @@ int sdio_local_setattr(const devfs_handle_t *handle, void *ctl) {
         return SYSFS_SET_RETURN(EIO);
       }
     }
+#endif
   }
 
   if (o_flags & SDIO_FLAG_RESET) {

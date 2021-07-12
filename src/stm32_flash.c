@@ -25,7 +25,10 @@ u16 stm32_flash_local_get_sector_size(u16 sector) {
 
 u16 stm32_flash_local_get_sector_size(u16 sector) { return 2; }
 #elif defined STM32_FLASH_LAYOUT_128K_PAGES
-u16 stm32_flash_local_get_sector_size(u16 sector) { return 128; }
+u16 stm32_flash_local_get_sector_size(u16 sector) {
+  MCU_UNUSED_ARGUMENT(sector);
+  return 128;
+}
 #endif
 
 #if 0

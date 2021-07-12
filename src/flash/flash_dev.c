@@ -36,15 +36,34 @@ DEVFS_MCU_DRIVER_IOCTL_FUNCTION(
   mcu_flash_getpageinfo,
   mcu_flash_writepage)
 
-int mcu_flash_open(const devfs_handle_t *handle) { return 0; }
-int mcu_flash_close(const devfs_handle_t *handle) { return 0; }
+int mcu_flash_open(const devfs_handle_t *handle) {
+  MCU_UNUSED_ARGUMENT(handle);
+  return 0;
+}
+int mcu_flash_close(const devfs_handle_t *handle) {
+  MCU_UNUSED_ARGUMENT(handle);
+  return 0;
+}
 
-int mcu_flash_getinfo(const devfs_handle_t *handle, void *ctl) { return 0; }
-int mcu_flash_setattr(const devfs_handle_t *handle, void *ctl) { return 0; }
+int mcu_flash_getinfo(const devfs_handle_t *handle, void *ctl) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(ctl);
+  return 0;
+}
+int mcu_flash_setattr(const devfs_handle_t *handle, void *ctl) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(ctl);
+  return 0;
+}
 
-int mcu_flash_setaction(const devfs_handle_t *handle, void *ctl) { return 0; }
+int mcu_flash_setaction(const devfs_handle_t *handle, void *ctl) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(ctl);
+  return 0;
+}
 
 int mcu_flash_getpageinfo(const devfs_handle_t *handle, void *ctl) {
+  MCU_UNUSED_ARGUMENT(handle);
   u32 size;
   u32 addr;
   flash_pageinfo_t *ctlp = (flash_pageinfo_t *)ctl;
@@ -72,11 +91,12 @@ int mcu_flash_erasepage(const devfs_handle_t *handle, void *ctl) {
   int err;
   int addr;
   int page_size;
-  u32 page;
+  int page;
 
   MCU_UNUSED_ARGUMENT(handle);
 
-  page = (u32)ctl;
+
+  page = (int)ctl;
   int last_boot_page = get_last_boot_page();
 
   if (page <= last_boot_page) {
@@ -104,14 +124,18 @@ int mcu_flash_erasepage(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_flash_getpage(const devfs_handle_t *handle, void *ctl) {
+  MCU_UNUSED_ARGUMENT(handle);
   return stm32_flash_get_sector((u32)ctl);
 }
 
 int mcu_flash_getsize(const devfs_handle_t *handle, void *ctl) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(ctl);
   return MCU_FLASH_SIZE;
 }
 
 int mcu_flash_writepage(const devfs_handle_t *handle, void *ctl) {
+  MCU_UNUSED_ARGUMENT(handle);
   int err;
   int nbyte;
   flash_writepage_t *wattr = ctl;
@@ -145,11 +169,14 @@ int mcu_flash_writepage(const devfs_handle_t *handle, void *ctl) {
   return err;
 }
 
-int mcu_flash_write(const devfs_handle_t *cfg, devfs_async_t *async) {
+int mcu_flash_write(const devfs_handle_t *handle, devfs_async_t *async) {
+  MCU_UNUSED_ARGUMENT(handle);
+  MCU_UNUSED_ARGUMENT(async);
   return SYSFS_SET_RETURN(ENOTSUP);
 }
 
-int mcu_flash_read(const devfs_handle_t *cfg, devfs_async_t *async) {
+int mcu_flash_read(const devfs_handle_t *handle, devfs_async_t *async) {
+  MCU_UNUSED_ARGUMENT(handle);
   int ret = 0;
   if (stm32_flash_is_flash(async->loc, async->nbyte)) {
     memcpy(async->buf, (const void *)async->loc, async->nbyte);
