@@ -238,7 +238,9 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
     }
     state->hal_handle.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     state->hal_handle.Init.OverSampling = UART_OVERSAMPLING_16;
+#if defined UART_PRESCALER_DIV1
     state->hal_handle.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+#endif
 
     // pin assignments
     if (

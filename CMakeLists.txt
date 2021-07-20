@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.6)
+cmake_minimum_required (VERSION 3.12)
 
 if(NOT SOS_SDK_PATH)
 	set(SOS_SDK_PATH $ENV{SOS_SDK_PATH})
@@ -8,37 +8,13 @@ set(CMAKE_MODULE_PATH ${SOS_SDK_PATH}/cmake)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_MODULE_PATH}/sos-toolchain.cmake)
 include(sos-sdk)
 
-set(SOS_NAME sos)
 project(StratifyOS-mcu-stm32 C ASM)
-
-if(NOT API_IS_SDK)
-	include(StratifyOS)
-endif()
-
-function(copy_conf_template FAMILY)
-	set(CONF_BASE ${CMAKE_CURRENT_SOURCE_DIR}/src/${FAMILY}/${FAMILY}_hal_conf)
-	set(CONF_FILE ${CONF_BASE}.h)
-	if(NOT EXISTS ${CONF_FILE})
-		message(STATUS "Creating ${CONF_FILE} -- modify as needed")
-		set(CONF_TEMPLATE_FILE ${CONF_BASE}_template.h)
-		file(READ
-			${CONF_TEMPLATE_FILE}
-			TEMPLATE)
-		file(WRITE
-			${CONF_FILE}
-			${TEMPLATE}
-			)
-	endif()
-endfunction()
-
-# make copies of conf template files as needed
-copy_conf_template(stm32h7xx)
-copy_conf_template(stm32f7xx)
-copy_conf_template(stm32f4xx)
-copy_conf_template(stm32l4xx)
 
 if(SOS_IS_ARM)
 
+if(NOT STM32_CONFIG_PATH)
+	message(FATAL_ERROR "STM32_CONFIG_PATH needs to be set to config directory")
+endif()
 
 #Add sources to the project
 sos_sdk_add_subdirectory(SOURCE_LIST ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -47,12 +23,6 @@ set(SHARED_SOURCELIST ${SOURCE_LIST}
 	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32_config.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32_state_types.h
 	${CMAKE_CURRENT_SOURCE_DIR}/README.md)
-
-file(GLOB STM32F2XX_LDSCRIPT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ldscript/stm32f2*")
-file(GLOB STM32F3XX_LDSCRIPT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ldscript/stm32f3*")
-file(GLOB STM32L4XX_LDSCRIPT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ldscript/stm32l4*")
-file(GLOB STM32F7XX_LDSCRIPT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ldscript/stm32f7*")
-file(GLOB STM32H7XX_LDSCRIPT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ldscript/stm32h7*")
 
 option(BUILD_STM32_ALL "Build All configurations" ON)
 
@@ -109,6 +79,7 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 		PUBLIC
 		$<INSTALL_INTERFACE:include/stm32>
 		$<INSTALL_INTERFACE:include/stm32/cmsis>
+		$<BUILD_INTERFACE:${STM32_CONFIG_PATH}>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/${FAMILY}xx>
@@ -120,20 +91,26 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 	add_library(${DEBUG_TARGET} STATIC)
 	sos_sdk_copy_target(${RELEASE_TARGET} ${DEBUG_TARGET})
 
+	message(STATUS "${RELEASE_TARGET} -> StratifyOS_mcu_release_${ARCH}")
 	target_link_libraries(${RELEASE_TARGET}
 		PUBLIC
 		StratifyOS_mcu_release_${ARCH}
 		)
 
+	message(STATUS "${DEBUG_TARGET} -> StratifyOS_mcu_debug_${ARCH}")
 	target_link_libraries(${DEBUG_TARGET}
 		PUBLIC
 		StratifyOS_mcu_debug_${ARCH}
 		)
 
-
 	# Add SOS SDK build settings to targets
 	sos_sdk_library("${RELEASE_OPTIONS}")
 	sos_sdk_library("${DEBUG_OPTIONS}")
+
+	get_target_property(CHECK_LIBRARIES ${DEBUG_TARGET} LINK_LIBRARIES)
+
+	message(STATUS "CHECK_LIBRARIES ${CHECK_LIBRARIES}")
+
 endfunction()
 
 

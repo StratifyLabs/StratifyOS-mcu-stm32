@@ -495,7 +495,6 @@ HAL_StatusTypeDef HAL_RTC_SetTime(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTim
   /* Disable the write protection for RTC registers */
   __HAL_RTC_WRITEPROTECTION_DISABLE(hrtc);
 
-  mcu_debug_printf("%s():%d\n", __FUNCTION__, __LINE__);
   /* Set Initialization mode */
   if(RTC_EnterInitMode(hrtc) != HAL_OK)
   {
@@ -1511,8 +1510,8 @@ HAL_StatusTypeDef RTC_EnterInitMode(RTC_HandleTypeDef* hrtc)
     /* Wait till RTC is in INIT state and if Time out is reached exit */
     while((hrtc->Instance->ISR & RTC_ISR_INITF) == (uint32_t)RESET)
     {
-		 cortexm_delay_ms(1);
-		if(tickstart++ > RTC_TIMEOUT_VALUE)
+      cortexm_delay_ms(1);
+      if(tickstart++ > RTC_TIMEOUT_VALUE)
       {       
         return HAL_TIMEOUT;
       } 

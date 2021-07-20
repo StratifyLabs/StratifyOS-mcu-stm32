@@ -308,7 +308,7 @@ typedef struct {
 } stm32_dac_dma_config_t;
 
 #define STM32_ETH_DMA_MAX_PACKET_SIZE                                          \
-  (1536U) // must match ETH_MAX_PACKET_SIZE in hal_conf.h
+  (1524U) // must match ETH_MAX_PACKET_SIZE in hal_conf.h
 #define STM32_ETH_DMA_DESCRIPTOR_COUNT                                         \
   (4U) // must match ETH_RXBUFNB and ETH_TXBUFNB in hal_conf.h
 
