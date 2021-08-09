@@ -63,8 +63,8 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 	file(GLOB VARIANT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/${VARIANT}/*.c")
 	file(GLOB VARIANT_HEADERS
 		${CMAKE_CURRENT_SOURCE_DIR}/include/*${VARIANT}.h
-		${CMAKE_CURRENT_SOURCE_DIR}/include/cmsis/${STM32_FAMILY}.h
-		${CMAKE_CURRENT_SOURCE_DIR}/include/cmsis/${STM32_VARIANT}.h)
+		${CMAKE_CURRENT_SOURCE_DIR}/include/cmsis/${FAMILY}.h
+		${CMAKE_CURRENT_SOURCE_DIR}/include/cmsis/${VARIANT}.h)
 	file(GLOB LDSCRIPT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ldscript/${FAMILY}*")
 
 	set(SOURCELIST ${SHARED_SOURCELIST} ${FAMILY_SOURCES} ${VARIANT_SOURCES} ${VARIANT_HEADERS} ${LDSCRIPT_SOURCES})
@@ -74,7 +74,11 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 	sos_sdk_library_target(DEBUG StratifyOS ${VARIANT} debug ${ARCH})
 	add_library(${RELEASE_TARGET} STATIC)
 	target_compile_definitions(${RELEASE_TARGET} PUBLIC ${DEFINITIONS} )
-	target_sources(${RELEASE_TARGET} PRIVATE ${SOURCELIST})
+	target_sources(${RELEASE_TARGET}
+		PRIVATE
+		${SOURCELIST}
+		${STM32_CONFIG_PATH}/${FAMILY}xx_hal_conf.h
+		)
 	target_include_directories(${RELEASE_TARGET}
 		PUBLIC
 		$<INSTALL_INTERFACE:include/stm32>
