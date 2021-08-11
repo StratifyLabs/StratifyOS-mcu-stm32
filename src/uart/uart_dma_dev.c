@@ -102,7 +102,7 @@ int mcu_uart_dma_setattr(const devfs_handle_t *handle, void *ctl) {
 
 int mcu_uart_dma_setaction(const devfs_handle_t *handle, void *ctl) {
   const stm32_uart_dma_config_t *config = handle->config;
-  if (config == 0) {
+  if (config == NULL) {
     return SYSFS_SET_RETURN(ENOSYS);
   }
   // need to pass the interrupt number
@@ -137,7 +137,7 @@ int mcu_uart_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
 #if 0
   sos_debug_printf("w:\n");
-  for (u32 i = 0; i < async->nbyte; i++) {
+  for (int i = 0; i < async->nbyte; i++) {
     if (i && (i % 16 == 0)) {
       sos_debug_printf("\n");
     }

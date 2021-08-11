@@ -265,14 +265,8 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
     if (state->fifo_config) {
       fifo_ioctl_local(state->fifo_config, &state->fifo_state, I_FIFO_INIT, 0);
       // enables idle interrupt
-#if defined STM32H7
-      // config timeout for a half second
-      HAL_UART_ReceiverTimeout_Config(&state->hal_handle, freq / 50);
-      HAL_UART_EnableReceiverTimeout(&state->hal_handle);
-      SET_BIT(state->hal_handle.Instance->CR1, USART_CR1_RTOIE);
-#else
+      __HAL_UART_CLEAR_FLAG(&(state->hal_handle), UART_CLEAR_IDLEF);
       SET_BIT(state->hal_handle.Instance->CR1, USART_CR1_IDLEIE);
-#endif
     }
   }
 
@@ -373,7 +367,8 @@ int uart_local_read(const devfs_handle_t *handle, devfs_async_t *async) {
 #if defined STM32F7 || defined STM32H7
   // invalidate the cache
   sos_config.cache.invalidate_data_block(
-    state->fifo_config->buffer, state->fifo_config->size);
+    state->fifo_config->buffer,
+    state->fifo_config->size);
 #endif
 
   // read the fifo, block if no bytes are available
@@ -453,14 +448,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
   uart_state_t *state = (uart_state_t *)huart;
 
-#if defined STM32H7 && defined USART_CR1_RTOIE && defined HAL_UART_ERROR_RTO
-  // not an error
-  if (huart->ErrorCode == HAL_UART_ERROR_RTO) {
-    HAL_UART_RxIdleCallback(&state->hal_handle);
-    return;
-  }
-#endif
-
   devfs_execute_read_handler(
     &state->transfer_handler,
     0,
@@ -487,14 +474,19 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 
 void HAL_UART_TxHalfCpltCallback(UART_HandleTypeDef *huart) {
   // this does not need to do anything
+  MCU_UNUSED_ARGUMENT(huart);
 }
 
-void HAL_UART_AbortCpltCallback(UART_HandleTypeDef *huart) {}
+void HAL_UART_AbortCpltCallback(UART_HandleTypeDef *huart) {
+  MCU_UNUSED_ARGUMENT(huart);
+}
 
-void HAL_UART_AbortTransmitCpltCallback(UART_HandleTypeDef *huart) {}
+void HAL_UART_AbortTransmitCpltCallback(UART_HandleTypeDef *huart) {
+  MCU_UNUSED_ARGUMENT(huart);
+}
 
 void HAL_UART_AbortReceiveCpltCallback(UART_HandleTypeDef *huart) {
-  // sos_debug_printf("abort rx\n");
+  MCU_UNUSED_ARGUMENT(huart);
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
@@ -513,13 +505,11 @@ void mcu_uart_isr(int port) {
   uart_state_t *state = m_uart_state_list[port];
   HAL_UART_IRQHandler(&state->hal_handle);
 
-#if !defined USART_CR1_RTOIE
   if (__HAL_UART_GET_FLAG(&state->hal_handle, UART_FLAG_IDLE)) {
     __HAL_UART_CLEAR_IDLEFLAG(&state->hal_handle);
     HAL_UART_RxIdleCallback(&state->hal_handle);
     return;
   }
-#endif
 }
 
 #if defined USART1

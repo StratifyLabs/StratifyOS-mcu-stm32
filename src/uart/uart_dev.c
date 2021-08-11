@@ -30,14 +30,14 @@ int mcu_uart_getinfo(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_uart_setattr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  DEVFS_DRIVER_DECLARE_STATE(uart);
 
   int result = uart_local_setattr(handle, ctl);
   if (result < 0) {
     return result;
   }
 
-  if (state->fifo_config != 0) {
+  if (state->fifo_config != NULL) {
     result = HAL_UART_Receive_IT(
       &state->hal_handle,
       (u8 *)state->fifo_config->buffer,
@@ -71,7 +71,7 @@ int mcu_uart_read(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_uart_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(uart);
+  DEVFS_DRIVER_DECLARE_STATE(uart);
   int result;
 
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.write, async);
@@ -81,7 +81,7 @@ int mcu_uart_write(const devfs_handle_t *handle, devfs_async_t *async) {
     return 0;
   }
 
-  state->transfer_handler.write = 0;
+  state->transfer_handler.write = NULL;
   return SYSFS_SET_RETURN(EIO);
 }
 
