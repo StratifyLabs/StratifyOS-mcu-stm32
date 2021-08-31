@@ -265,7 +265,9 @@ int uart_local_setattr(const devfs_handle_t *handle, void *ctl) {
     if (state->fifo_config) {
       fifo_ioctl_local(state->fifo_config, &state->fifo_state, I_FIFO_INIT, 0);
       // enables idle interrupt
+#if defined STM32H7
       __HAL_UART_CLEAR_FLAG(&(state->hal_handle), UART_CLEAR_IDLEF);
+#endif
       SET_BIT(state->hal_handle.Instance->CR1, USART_CR1_IDLEIE);
     }
   }
