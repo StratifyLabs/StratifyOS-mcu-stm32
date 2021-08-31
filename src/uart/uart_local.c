@@ -165,7 +165,7 @@ int uart_local_getinfo(const devfs_handle_t *handle, void *ctl) {
                   | UART_FLAG_IS_STOP2 | UART_FLAG_IS_RX_FIFO;
 
   if (state->fifo_config) {
-    fifo_info_t fifo_info;
+    fifo_info_t fifo_info = {};
     info->o_flags |= UART_FLAG_IS_RX_FIFO;
     fifo_getinfo(&fifo_info, state->fifo_config, &state->fifo_state);
     info->size_ready = fifo_info.size_ready;

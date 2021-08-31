@@ -49,14 +49,7 @@ int mcu_uart_dma_close(const devfs_handle_t *handle) {
 }
 
 int mcu_uart_dma_getinfo(const devfs_handle_t *handle, void *ctl) {
-  MCU_UNUSED_ARGUMENT(handle);
-  uart_info_t *info = ctl;
-
-  info->o_flags = UART_FLAG_IS_PARITY_NONE | UART_FLAG_IS_PARITY_ODD
-                  | UART_FLAG_IS_PARITY_EVEN | UART_FLAG_IS_STOP1
-                  | UART_FLAG_IS_STOP2;
-
-  return 0;
+  return uart_local_getinfo(handle, ctl);
 }
 
 int mcu_uart_dma_setattr(const devfs_handle_t *handle, void *ctl) {
