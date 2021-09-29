@@ -810,7 +810,7 @@ HAL_StatusTypeDef HAL_LTDC_ConfigLayer(LTDC_HandleTypeDef *hltdc, LTDC_LayerCfgT
   LTDC_SetConfig(hltdc, pLayerCfg, LayerIdx);
 
   /* Set the Immediate Reload type */
-  hltdc->Instance->SRCR = LTDC_SRCR_IMR;
+  hltdc->Instance->SRCR = LTDC_SRCR_VBR;
 
   /* Initialize the LTDC state*/
   hltdc->State  = HAL_LTDC_STATE_READY;
