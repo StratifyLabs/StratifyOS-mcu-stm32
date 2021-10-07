@@ -95,7 +95,7 @@ int mcu_i2c_close(const devfs_handle_t *handle) {
 }
 
 int mcu_i2c_getinfo(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(i2c);
+  DEVFS_DRIVER_DECLARE_STATE(i2c);
   i2c_info_t *info = ctl;
 
   info->err = state->err;
@@ -192,10 +192,8 @@ int mcu_i2c_setattr(const devfs_handle_t *handle, void *ctl) {
       MCU_CONFIG_PIN_ASSIGNMENT(i2c_config_t, handle),
       MCU_PIN_ASSIGNMENT_COUNT(i2c_pin_assignment_t));
 
-    memcpy(
-      &state->pin_assignment,
-      pin_assignment,
-      sizeof(i2c_pin_assignment_t));
+    state->pin_assignment = *((i2c_pin_assignment_t*)pin_assignment);
+
     if (
       (state->pin_assignment.scl.port != 0xff)
       && (state->pin_assignment.sda.port != 0xff)) {
@@ -267,12 +265,13 @@ void post_configure_pin(const mcu_pin_t * pin, void* arg){
 #endif
 
 int mcu_i2c_geterr(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(i2c);
+  DEVFS_DRIVER_DECLARE_STATE(i2c);
+  MCU_UNUSED_ARGUMENT(ctl);
   return state->err;
 }
 
 int mcu_i2c_setaction(const devfs_handle_t *handle, void *ctl) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(i2c);
+  DEVFS_DRIVER_DECLARE_CONFIG(i2c);
   mcu_action_t *action = (mcu_action_t *)ctl;
 
   cortexm_set_irq_priority(
@@ -299,7 +298,7 @@ int mcu_i2c_setaction(const devfs_handle_t *handle, void *ctl) {
 }
 
 int mcu_i2c_write(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(i2c);
+  DEVFS_DRIVER_DECLARE_STATE(i2c);
   int ret;
   int addr_size;
 
@@ -343,7 +342,7 @@ int mcu_i2c_write(const devfs_handle_t *handle, devfs_async_t *async) {
 }
 
 int mcu_i2c_read(const devfs_handle_t *handle, devfs_async_t *async) {
-  DEVFS_DRIVER_DECLARE_CONFIG_STATE(i2c);
+  DEVFS_DRIVER_DECLARE_STATE(i2c);
   DEVFS_DRIVER_IS_BUSY(state->transfer_handler.read, async);
 
   int ret = HAL_OK;
@@ -448,10 +447,11 @@ void HAL_I2C_AddrCallback(
   I2C_HandleTypeDef *hi2c,
   uint8_t TransferDirection,
   uint16_t AddrMatchCode) {
+  MCU_UNUSED_ARGUMENT(TransferDirection);
+  MCU_UNUSED_ARGUMENT(AddrMatchCode);
   // slave has been addressed
   i2c_state_t *state = (i2c_state_t *)hi2c;
-  HAL_StatusTypeDef hal_status;
-  hal_status = HAL_I2C_Slave_Sequential_Transmit_IT(
+  HAL_I2C_Slave_Sequential_Transmit_IT(
     hi2c,
     state->slave_memory,
     state->slave_memory_size,
@@ -459,6 +459,7 @@ void HAL_I2C_AddrCallback(
 }
 
 void HAL_I2C_ListenCpltCallback(I2C_HandleTypeDef *hi2c) {
+  MCU_UNUSED_ARGUMENT(hi2c);
   // listen event
 }
 
@@ -546,6 +547,14 @@ void mcu_core_i2c2_er_isr() { mcu_i2c_er_isr(1); }
 void mcu_core_i2c3_ev_isr() { mcu_i2c_ev_isr(2); }
 void mcu_core_i2c3_er_isr() { mcu_i2c_er_isr(2); }
 #endif
+#if MCU_I2C_PORTS > 3
+void mcu_core_i2c4_ev_isr() { mcu_i2c_ev_isr(3); }
+void mcu_core_i2c4_er_isr() { mcu_i2c_er_isr(3); }
+#endif
+#if MCU_I2C_PORTS > 4
+void mcu_core_i2c5_ev_isr() { mcu_i2c_ev_isr(4); }
+void mcu_core_i2c5_er_isr() { mcu_i2c_er_isr(4); }
+#endif
 
 #define I2C_CLEAR_BUSY_DEBUG_MESSAGES 0
 #define I2C_WAIT_FOR_LINE_CHANGE 0
@@ -578,6 +587,20 @@ void i2c_clear_busy_flag_erratum(int port, i2c_state_t *i2c) {
     __HAL_RCC_I2C3_FORCE_RESET();
     cortexm_delay_us(1000);
     __HAL_RCC_I2C3_RELEASE_RESET();
+    break;
+#endif
+#if defined I2C4
+  case 3:
+    __HAL_RCC_I2C4_FORCE_RESET();
+    cortexm_delay_us(1000);
+    __HAL_RCC_I2C4_RELEASE_RESET();
+    break;
+#endif
+#if defined I2C5
+  case 4:
+    __HAL_RCC_I2C5_FORCE_RESET();
+    cortexm_delay_us(1000);
+    __HAL_RCC_I2C5_RELEASE_RESET();
     break;
 #endif
   }

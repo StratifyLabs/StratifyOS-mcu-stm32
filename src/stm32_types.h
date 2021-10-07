@@ -71,7 +71,7 @@ typedef struct {
 #endif
 
 #if MCU_I2C_PORTS > 0
-typedef struct MCU_PACK {
+typedef struct {
   I2C_HandleTypeDef hal_handle;
   devfs_transfer_handler_t transfer_handler;
   void *slave_memory;
