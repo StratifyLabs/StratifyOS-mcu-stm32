@@ -1,3 +1,9 @@
+# Version 4.1.1
+
+## Bug Fixes
+
+- Fixed STM32F413 build errors
+
 # Version 4.1.0
 
 ## Bug Fixes
