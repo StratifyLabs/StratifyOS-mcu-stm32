@@ -1,9 +1,20 @@
+# Version 4.2.0
+
+## New Features
+
+- None yet
+
+## Bug Fixes
+
+- Fixed STM32F413 build errors
+- Fixed ethernet packet size for cache alignment
+- Fixed a cache issue with the UART DMA driver
+
 # Version 4.1.0
 
 ## New Features
 
 - Update `CMakeLists.txt` to require setup of SDK in a super-project
-
 
 ## Bug Fixes
 
