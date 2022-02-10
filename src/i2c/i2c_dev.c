@@ -2,9 +2,9 @@
 
 #include "cortexm/cortexm.h"
 #include "mcu/core.h"
-#include "sos/debug.h"
 #include "mcu/i2c.h"
 #include "mcu/pio.h"
+#include "sos/debug.h"
 #include "stm32_local.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -248,19 +248,18 @@ int mcu_i2c_setattr(const devfs_handle_t *handle, void *ctl) {
 }
 
 #if 0
-void post_configure_pin(const mcu_pin_t * pin, void* arg){
-	post_configure_pin_t * post_configure = arg;
+void post_configure_pin(const mcu_pin_t *pin, void *arg) {
+  post_configure_pin_t *post_configure = arg;
 
-	if( post_configure->is_pullup ){
-		hal_set_alternate_pin_function(*pin,
-												 CORE_PERIPH_I2C,
-												 post_configure->port,
-												 GPIO_MODE_AF_OD,
-												 GPIO_SPEED_FREQ_LOW,
-												 GPIO_PULLUP);
-	}
-
-
+  if (post_configure->is_pullup) {
+    hal_set_alternate_pin_function(
+      *pin,
+      CORE_PERIPH_I2C,
+      post_configure->port,
+      GPIO_MODE_AF_OD,
+      GPIO_SPEED_FREQ_LOW,
+      GPIO_PULLUP);
+  }
 }
 #endif
 

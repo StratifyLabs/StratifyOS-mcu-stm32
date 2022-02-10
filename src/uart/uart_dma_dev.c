@@ -139,6 +139,10 @@ int mcu_uart_dma_write(const devfs_handle_t *handle, devfs_async_t *async) {
   sos_debug_printf("\n");
 #endif
 
+#if defined STM32F7 || defined STM32H7
+  sos_config.cache.clean_data_block(async->buf, async->nbyte);
+#endif
+
   if (state->hal_handle.hdmatx) {
     ret = HAL_UART_Transmit_DMA(&state->hal_handle, async->buf, async->nbyte);
   } else {
