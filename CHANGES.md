@@ -3,6 +3,8 @@
 ## Bug Fixes
 
 - Fixed STM32F413 build errors
+- Fixed ethernet packet size for cache alignment
+- Fixed a cache issue with the UART DMA driver
 
 # Version 4.1.0
 
