@@ -360,6 +360,13 @@ int mcu_eth_read(const devfs_handle_t *handle, devfs_async_t *async) {
 
       /* Copy data to Tx buffer*/
       sos_config.cache.invalidate_data_block(buffer, page_size);
+#if 0
+      sos_debug_printf("inv:%p, %d (%d): ", buffer, page_size, ((u32)buffer) % 32);
+      for(int i=0; i < page_size; i++) {
+        sos_debug_printf("%02x ", ((u8 *)buffer)[i]);
+      }
+      sos_debug_printf("\n");
+#endif
       memcpy(async->buf + bytes_read, buffer, page_size);
       bytes_read += page_size;
 
@@ -429,10 +436,12 @@ int mcu_eth_write(const devfs_handle_t *handle, devfs_async_t *async) {
 
       /* Copy data to Tx buffer*/
       memcpy(buffer, async->buf + bytes_written, page_size);
+#if SHOW_ETH_TRAFFIC
       for(int b=0; b < page_size; b++){
         sos_debug_printf("%02X ", buffer[b]);
       }
       sos_debug_printf("\n");
+#endif
       bytes_written += page_size;
 
       /* Point to next descriptor */
@@ -455,7 +464,6 @@ int mcu_eth_write(const devfs_handle_t *handle, devfs_async_t *async) {
       sos_config.cache.clean_data_block(buffer, bytes_written);
       if (HAL_ETH_TransmitFrame(&state->hal_handle, async->nbyte) == HAL_OK) {
         state->transfer_handler.write = NULL;
-        sos_debug_printf("sync write complete %d\n", bytes_written);
         return async->nbyte;
       }
     }
