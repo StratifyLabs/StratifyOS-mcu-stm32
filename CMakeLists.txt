@@ -27,6 +27,7 @@ option(BUILD_STM32F217xx "Build F217xx configuration" OFF)
 option(BUILD_STM32F4 "Build All F4 configurations" OFF)
 option(BUILD_STM32F401xC "Build F401xC configuration" OFF)
 option(BUILD_STM32F401xE "Build F401xE configuration" OFF)
+option(BUILD_STM32F405 "Build F405 configuration" OFF)
 option(BUILD_STM32F411 "Build F411 configuration" OFF)
 option(BUILD_STM32F412 "Build F412 configuration" OFF)
 option(BUILD_STM32F413 "Build F413 configuration" OFF)
@@ -122,6 +123,10 @@ endif()
 
 if(BUILD_STM32F401xE OR BUILD_STM32F4 OR BUILD_STM32_ALL)
 	add_targets(stm32f4 stm32f401xe STM32F401xE v7em_f4sh)
+endif()
+
+if(BUILD_STM32F405 OR BUILD_STM32F4 OR BUILD_STM32_ALL)
+	add_targets(stm32f4 stm32f405xx STM32F405xx v7em_f4sh)
 endif()
 
 if(BUILD_STM32F411 OR BUILD_STM32F4 OR BUILD_STM32_ALL)

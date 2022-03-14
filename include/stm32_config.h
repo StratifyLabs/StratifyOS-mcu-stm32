@@ -1,3 +1,5 @@
+//Copyright (c) 2011-2022 Tyler Gilbert and Stratify Labs, Inc. See LICENSE.md for details
+
 #ifndef STM32_CONFIG_H
 #define STM32_CONFIG_H
 
