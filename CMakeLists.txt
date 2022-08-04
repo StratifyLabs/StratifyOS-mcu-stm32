@@ -2,14 +2,14 @@ cmake_minimum_required (VERSION 3.12)
 
 project(StratifyOS-mcu-stm32 C ASM)
 
-if(SOS_IS_ARM)
+if(CMSDK_IS_ARM)
 
 if(NOT STM32_CONFIG_PATH)
 	message(FATAL_ERROR "STM32_CONFIG_PATH needs to be set to config directory")
 endif()
 
 #Add sources to the project
-sos_sdk_add_subdirectory(SOURCE_LIST ${CMAKE_CURRENT_SOURCE_DIR}/src)
+cmsdk_add_subdirectory(SOURCE_LIST ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SHARED_SOURCELIST ${SOURCE_LIST}
 	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32_arch.h
 	${CMAKE_CURRENT_SOURCE_DIR}/include/stm32_config.h
@@ -63,8 +63,8 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 	set(SOURCELIST ${SHARED_SOURCELIST} ${FAMILY_SOURCES} ${VARIANT_SOURCES} ${VARIANT_HEADERS} ${LDSCRIPT_SOURCES})
 	set(DEFINITIONS __${VARIANT} ${VARIANT_DEFINE}=1 MCU_ARCH_STM32)
 
-	sos_sdk_library_target(RELEASE StratifyOS ${VARIANT} release ${ARCH})
-	sos_sdk_library_target(DEBUG StratifyOS ${VARIANT} debug ${ARCH})
+	cmsdk_library_target(RELEASE StratifyOS ${VARIANT} release ${ARCH})
+	cmsdk_library_target(DEBUG StratifyOS ${VARIANT} debug ${ARCH})
 	add_library(${RELEASE_TARGET} STATIC)
 	target_compile_definitions(${RELEASE_TARGET} PUBLIC ${DEFINITIONS} )
 	target_sources(${RELEASE_TARGET}
@@ -86,7 +86,7 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 
 	# create debug as a copy of release
 	add_library(${DEBUG_TARGET} STATIC)
-	sos_sdk_copy_target(${RELEASE_TARGET} ${DEBUG_TARGET})
+	cmsdk_copy_target(${RELEASE_TARGET} ${DEBUG_TARGET})
 
 	message(STATUS "${RELEASE_TARGET} -> StratifyOS_mcu_release_${ARCH}")
 	target_link_libraries(${RELEASE_TARGET}
@@ -101,8 +101,8 @@ function(add_targets FAMILY VARIANT VARIANT_DEFINE ARCH)
 		)
 
 	# Add SOS SDK build settings to targets
-	sos_sdk_library("${RELEASE_OPTIONS}")
-	sos_sdk_library("${DEBUG_OPTIONS}")
+	cmsdk_library("${RELEASE_OPTIONS}")
+	cmsdk_library("${DEBUG_OPTIONS}")
 
 	get_target_property(CHECK_LIBRARIES ${DEBUG_TARGET} LINK_LIBRARIES)
 
