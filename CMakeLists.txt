@@ -105,11 +105,11 @@ if(CMSDK_IS_ARM)
 
     cmsdk2_library_add_dependencies(
       TARGET ${RELEASE_TARGET}
-      DEPENDENCIES StratifyOS_mcu)
+      DEPENDENCIES StratifyOS_interface)
 
     cmsdk2_library_add_dependencies(
       TARGET ${DEBUG_TARGET}
-      DEPENDENCIES StratifyOS_mcu)
+      DEPENDENCIES StratifyOS_interface)
 
   endfunction()
 
