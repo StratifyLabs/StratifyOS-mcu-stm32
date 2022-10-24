@@ -2,7 +2,7 @@
 
 ## New Features
 
-- None yet
+- Port to `cmsdk2`
 
 ## Bug Fixes
 
