@@ -1,7 +1,6 @@
 // Copyright 2011-2021 Tyler Gilbert and Stratify Labs, Inc; see LICENSE.md
 
 #include <mcu/core.h>
-#include <sos/debug.h>
 #include "stm32_local.h"
 #include "stm32_pin_local.h"
 
