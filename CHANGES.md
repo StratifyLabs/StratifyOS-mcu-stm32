@@ -1,3 +1,9 @@
+# Version 4.2.2 (unreleased)
+
+## Bug Fixes
+
+- Fix several build errors with some MCU targets (deprecated `mcu/debug.h` references)
+
 # Verison 4.2.1
 
 ## Bug Fixes
