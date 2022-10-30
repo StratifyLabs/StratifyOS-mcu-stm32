@@ -1,3 +1,9 @@
+# Verison 4.2.1 (unreleased)
+
+## Bug Fixes
+
+- Update version in CMake
+
 # Version 4.2.0
 
 ## New Features
