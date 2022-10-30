@@ -3,7 +3,13 @@ cmsdk2_minimum_required(2.1.2)
 
 project(StratifyOS-mcu-stm32
   LANGUAGES C ASM
-  VERSION 1.2.1)
+  VERSION 4.2.2)
+
+
+cmsdk2_check_version(
+  NAME StratifyOS
+  VERSION ${StratifyOS_VERSION}
+  MINIMUM_VERSION 4.3.1)
 
 set(${PROJECT_NAME}_VERSION ${PROJECT_VERSION} CACHE INTERNAL "StratifyOS mcu STM32 project version")
 

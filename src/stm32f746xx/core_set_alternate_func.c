@@ -18,7 +18,6 @@
  */
 
 #include <mcu/core.h>
-#include <sos/debug.h>
 #include "stm32_local.h"
 #include "stm32_pin_local.h"
 
