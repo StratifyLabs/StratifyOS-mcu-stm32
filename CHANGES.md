@@ -1,4 +1,4 @@
-# Verison 4.2.1 (unreleased)
+# Verison 4.2.1
 
 ## Bug Fixes
 
