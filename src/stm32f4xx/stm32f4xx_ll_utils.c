@@ -40,6 +40,8 @@
 #include <stm32f4xx/stm32f4xx_ll_system.h>
 #include <stm32f4xx/stm32f4xx_ll_utils.h>
 
+//Causes warnings __StratifyOS__
+#define assert_param(x)
 /** @addtogroup STM32F4xx_LL_Driver
   * @{
   */

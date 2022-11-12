@@ -37,7 +37,9 @@ int mcu_core_getinfo(const devfs_handle_t *handle, void *arg) {
   }
   info->o_flags |= mcu_core_reset_source;
 
-  stm32_get_serial_number(&info->serial);
+  mcu_sn_t serial;
+  stm32_get_serial_number(&serial);
+  info->serial = serial;
 
   return 0;
 }
