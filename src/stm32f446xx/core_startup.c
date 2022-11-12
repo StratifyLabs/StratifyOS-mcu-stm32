@@ -98,7 +98,8 @@ _DECLARE_ISR(cec);
 _DECLARE_ISR(spdif_rx);
 _DECLARE_ISR(fmpi2c1_ev);
 _DECLARE_ISR(fmpi2c1_er);
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   // Core Level
   (void *)&_top_of_stack,        // The initial stack pointer
@@ -217,6 +218,7 @@ void (*const mcu_core_vector_table[])() __attribute__((section(".startup"))) = {
   _ISR(spdif_rx),
   _ISR(fmpi2c1_ev),
   _ISR(fmpi2c1_er)};
+#pragma GCC diagnostic pop
 
 #if 0
 void mcu_core_reset_handler() {

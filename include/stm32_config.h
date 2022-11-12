@@ -67,7 +67,7 @@ typedef struct {
     [USB_TX_FIFO_WORD_SIZE_COUNT] /*! TX FIFO word size (used on STM32) */;
 } stm32_usb_config_t;
 
-typedef struct MCU_PACK {
+typedef struct {
   u16 flash_program_millivolts;
   u16 flags;
   u32 oscillator_frequency;
