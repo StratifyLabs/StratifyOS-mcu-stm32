@@ -3,8 +3,9 @@
 ## Bug Fixes
 
 - Fix several build errors with some MCU targets (deprecated `mcu/debug.h` references)
+- Fix some warnings with GCC11
 
-# Verison 4.2.1
+# Version 4.2.1
 
 ## Bug Fixes
 
